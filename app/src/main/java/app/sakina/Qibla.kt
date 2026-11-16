@@ -56,7 +56,7 @@ private fun cardinal(deg: Double): String {
     return names[(((deg + 22.5) % 360.0) / 45.0).toInt() % 8]
 }
 
-/** قرص أسطرلابي: حلقتان، علامات كل 10°، نجمة ثمانية من مربعين، منارة القبلة وعلامة الشمس. */
+/** قرص أسطرلابي فاخر: حلقة ذهبية، علامات دقيقة، نجمة ثمانية، ومنارة القبلة. */
 @Composable
 private fun QiblaDial(
     sky: Sky,
@@ -70,70 +70,61 @@ private fun QiblaDial(
     val accent = sky.accent
     val ringRotation by animateFloatAsState(
         targetValue = -headingCont,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "ring"
     )
-    Box(Modifier.size(276.dp), contentAlignment = Alignment.Center) {
+    
+    Box(Modifier.size(300.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
-            val radius = size.minDimension / 2f - 12.dp.toPx()
+            val radius = size.minDimension / 2f - 20.dp.toPx()
             val center = Offset(size.width / 2f, size.height / 2f)
 
-            drawCircle(
-                color = if (aligned) accent else accent.copy(alpha = 0.45f),
-                radius = radius, center = center,
-                style = Stroke(width = if (aligned) 2.5.dp.toPx() else 1.2.dp.toPx())
-            )
-            drawCircle(accent.copy(alpha = 0.25f), radius * 0.78f, center, style = Stroke(0.8.dp.toPx()))
+            // Outer Golden Ring
+            drawCircle(color = accent.copy(alpha = 0.8f), radius = radius, center = center, style = Stroke(width = 2.dp.toPx()))
+            drawCircle(color = accent.copy(alpha = 0.3f), radius = radius - 4.dp.toPx(), center = center, style = Stroke(width = 0.5.dp.toPx()))
 
             rotate(degrees = ringRotation, pivot = center) {
-                for (deg in 0 until 360 step 10) {
-                    val major = deg % 90 == 0
-                    val len = if (major) 12.dp.toPx() else 6.dp.toPx()
+                // Degree ticks
+                for (deg in 0 until 360 step 5) {
+                    val major = deg % 30 == 0
+                    val len = if (major) 16.dp.toPx() else 8.dp.toPx()
                     val rad = Math.toRadians((deg - 90).toDouble())
                     drawLine(
-                        color = accent.copy(alpha = if (major) 0.9f else 0.35f),
+                        color = accent.copy(alpha = if (major) 1f else 0.4f),
                         start = Offset(center.x + (radius - len) * cos(rad).toFloat(), center.y + (radius - len) * sin(rad).toFloat()),
                         end = Offset(center.x + radius * cos(rad).toFloat(), center.y + radius * sin(rad).toFloat()),
                         strokeWidth = if (major) 2.dp.toPx() else 1.dp.toPx()
                     )
                 }
 
-                val side = radius * 1.06f
+                // Inner Astrolabe Geometric Pattern (Octagram)
+                val side = radius * 1.1f
                 listOf(0f, 45f).forEach { angle ->
                     rotate(angle, pivot = center) {
-                        drawRect(
-                            color = accent.copy(alpha = 0.14f),
-                            topLeft = Offset(center.x - side / 2f, center.y - side / 2f),
-                            size = Size(side, side),
-                            style = Stroke(1.dp.toPx())
-                        )
+                        drawRect(color = accent.copy(alpha = 0.15f), topLeft = Offset(center.x - side / 2f, center.y - side / 2f), size = Size(side, side), style = Stroke(1.dp.toPx()))
                     }
                 }
-
+                
+                // Kaaba Marker
                 val qRad = Math.toRadians((qibla - 90f).toDouble())
-                val qPos = Offset(
-                    center.x + (radius - 16.dp.toPx()) * cos(qRad).toFloat(),
-                    center.y + (radius - 16.dp.toPx()) * sin(qRad).toFloat()
-                )
-                drawCircle(accent.copy(alpha = 0.25f), 14.dp.toPx(), qPos)
+                val qPos = Offset(center.x + (radius - 24.dp.toPx()) * cos(qRad).toFloat(), center.y + (radius - 24.dp.toPx()) * sin(qRad).toFloat())
+                drawCircle(accent.copy(alpha = 0.2f), 20.dp.toPx(), qPos)
                 drawCircle(accent, 6.dp.toPx(), qPos)
 
+                // Sun Marker
                 if (sunUp) {
                     val sRad = Math.toRadians((sunAz - 90f).toDouble())
-                    val sPos = Offset(center.x + radius * cos(sRad).toFloat(), center.y + radius * sin(sRad).toFloat())
-                    drawCircle(Color(0xFFE6A23C), 5.dp.toPx(), sPos)
+                    val sPos = Offset(center.x + (radius - 12.dp.toPx()) * cos(sRad).toFloat(), center.y + (radius - 12.dp.toPx()) * sin(sRad).toFloat())
+                    drawCircle(Color(0xFFE6A23C), 6.dp.toPx(), sPos)
                 }
             }
-            // مؤشر ثابت أعلى القرص: اتجاه رأس الهاتف.
-            drawLine(accent, Offset(center.x, 0f), Offset(center.x, 22.dp.toPx()), 3.dp.toPx())
+            // Fixed Heading Pointer
+            drawLine(accent, Offset(center.x, 0f), Offset(center.x, 30.dp.toPx()), 4.dp.toPx())
         }
-
+        
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "${qibla.toInt()}°", fontFamily = NotoKufi, fontWeight = FontWeight.Bold,
-                fontSize = 40.sp, color = sky.ink
-            )
-            Text(centerLabel, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = sky.accent)
+            Text("${qibla.toInt()}°", fontFamily = NotoKufi, fontWeight = FontWeight.Bold, fontSize = 48.sp, color = sky.ink)
+            Text(centerLabel, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = accent, letterSpacing = 1.sp)
         }
     }
 }
@@ -167,20 +158,16 @@ fun QiblaScreen(ctx: Context, sky: Sky) {
                     val o = FloatArray(3)
                     SensorManager.getRotationMatrixFromVector(r, e.values)
                     SensorManager.getOrientation(r, o)
-                    // هاتف قائم (ميل كبير): نعيد تعيين المحاور ليبقى السمت صحيحاً.
                     if (abs(o[1]) > 0.8f) {
                         val r2 = FloatArray(9)
                         SensorManager.remapCoordinateSystem(r, SensorManager.AXIS_X, SensorManager.AXIS_Z, r2)
                         SensorManager.getOrientation(r2, o)
                     }
-                    // من الشمال المغناطيسي إلى الحقيقي.
                     val h = ((Math.toDegrees(o[0].toDouble()) + declination + 720.0) % 360.0).toFloat()
-                    // زاوية متصلة بلا قفزة عند عبور 0/360 ليبقى الدوران سلساً.
                     if (last.isNaN()) cont = h else cont += ((h - last + 540f) % 360f) - 180f
                     last = h
                     heading = h
                 }
-
                 override fun onAccuracyChanged(s: Sensor?, a: Int) { acc = a }
             }
             sm.registerListener(l, sensor, SensorManager.SENSOR_DELAY_UI)
@@ -210,7 +197,7 @@ fun QiblaScreen(ctx: Context, sky: Sky) {
         if (has) {
             QiblaDial(
                 sky, qibla.toFloat(), cont, sun.first.toFloat(), sunUp, aligned,
-                if (aligned) "أنت متجه نحو القبلة" else cardinal(qibla)
+                if (aligned) "على القبلة" else cardinal(qibla)
             )
             Text(
                 if (abs(diff) < 4.0) "أنت متجه نحو القبلة"
@@ -231,7 +218,6 @@ fun QiblaScreen(ctx: Context, sky: Sky) {
             Text("${qibla.toInt()}° (${cardinal(qibla)})", color = ink, fontSize = 34.sp, fontFamily = NotoKufi, fontWeight = FontWeight.Bold)
             Text("لا يوجد مستشعر اتجاه في هذا الهاتف. استعمل الدرجات أعلاه.", color = ink)
         }
-        // تحقق بالعين دون مستشعر: مفيد داخل المباني الحديدية حيث تضطرب البوصلة.
         Text(
             if (sunUp) "الشمس الآن عند ${sun.first.toInt()}° (${cardinal(sun.first)}): القبلة على ${if (sunRel > 0) "يمين" else "يسار"} الشمس بنحو ${abs(sunRel).toInt()}°."
             else "الشمس تحت الأفق الآن، فلا يمكن التحقق منها بالعين.",
