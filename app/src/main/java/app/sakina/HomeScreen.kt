@@ -98,7 +98,6 @@ private fun HomeTab(
         modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // 1) الساعة + المدينة والتاريخ الهجري
         Column(
             Modifier.weight(0.95f).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -122,7 +121,6 @@ private fun HomeTab(
             }
         }
 
-        // 2) القوس الشمسي المتوهج + الصلاة القادمة
         Box(Modifier.weight(1.6f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Canvas(Modifier.fillMaxSize().padding(horizontal = 32.dp)) {
                 val strokePx = 2.5.dp.toPx()
@@ -179,7 +177,6 @@ private fun HomeTab(
             }
         }
 
-        // 3) بقية المواقيت في زجاج واحد
         Column(Modifier.weight(2.4f).fillMaxWidth()) {
             val shape = RoundedCornerShape(24.dp)
             Column(
@@ -310,13 +307,14 @@ fun HomeScreen(ctx: Context) {
                             (fadeIn(animationSpec = tween(400)) + slideInHorizontally(initialOffsetX = { 50 }))
                                 .togetherWith(fadeOut(animationSpec = tween(400)))
                         },
-                        label = "TabTransition"
+                        label = "TabTransition",
+                        modifier = Modifier.weight(1f)
                     ) { currentTab ->
                         if (currentTab == 0) {
-                            HomeTab(Modifier.weight(1f), ctx, sky, now, nxt, frac, left, hijri, saver, modes, cycleMode)
+                            HomeTab(Modifier.fillMaxSize(), ctx, sky, now, nxt, frac, left, hijri, saver, modes, cycleMode)
                         } else {
                             Column(
-                                Modifier.weight(1f).fillMaxWidth()
+                                Modifier.fillMaxSize()
                                     .verticalScroll(rememberScrollState())
                                     .padding(horizontal = 20.dp, vertical = 16.dp),
                                 verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -479,3 +477,5 @@ fun HomeScreen(ctx: Context) {
         }
     }
 }
+                                    
+    
