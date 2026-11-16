@@ -16,10 +16,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,12 +45,12 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 private val NAMES = PRAYER_NAMES
 
-/** التاريخ الهجري بأرقام لاتينية (0-9). */
 private val HIJRI = android.icu.text.DateFormat.getDateInstance(
     android.icu.text.DateFormat.LONG, Locale.forLanguageTag("ar-u-ca-islamic-umalqura-nu-latn")
 )
@@ -77,7 +80,6 @@ private fun HealthCard(ctx: Context, sky: Sky) {
     }
 }
 
-/** الشاشة الرئيسية: الساعة أعلى، الصلاة القادمة وسط القوس، وبقية المواقيت تحتها، دون تمرير. */
 @Composable
 private fun HomeTab(
     modifier: Modifier,
@@ -231,6 +233,9 @@ private fun HomeTab(
 
 @Composable
 fun HomeScreen(ctx: Context) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         var now by remember { mutableStateOf(Date()) }
         LaunchedEffect(Unit) { while (true) { delay(1000); now = Date() } }
@@ -297,185 +302,168 @@ fun HomeScreen(ctx: Context) {
         }
 
         SakinaTheme(sky) {
-            Box(Modifier.fillMaxSize()) {
-                SkyBackdrop(sky, Modifier.fillMaxSize())
-                Column(Modifier.fillMaxSize().systemBarsPadding()) {
-                    
-                    AnimatedContent(
-                        targetState = tab,
-                        transitionSpec = {
-                            (fadeIn(animationSpec = tween(400)) + slideInHorizontally(initialOffsetX = { 50 }))
-                                .togetherWith(fadeOut(animationSpec = tween(400)))
-                        },
-                        label = "TabTransition",
-                        modifier = Modifier.weight(1f)
-                    ) { currentTab ->
-                        if (currentTab == 0) {
-                            HomeTab(Modifier.fillMaxSize(), ctx, sky, now, nxt, frac, left, hijri, saver, modes, cycleMode)
-                        } else {
-                            Column(
-                                Modifier.fillMaxSize()
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(14.dp)
-                            ) {
-                                if (currentTab == 1) {
-                                    SectionTitle(sky, "القبلة")
-                                    QiblaScreen(ctx, sky)
-                                } else {
-                                    SectionTitle(sky, "الموقع")
-                                    GlassCard(sky) {
-                                        val co = Place.coords(ctx)
-                                        Text(
-                                            "${Place.name(ctx)}\nخط العرض ${String.format(Locale.US, "%.2f", co.latitude)}° · خط الطول ${String.format(Locale.US, "%.2f", co.longitude)}°",
-                                            color = ink
-                                        )
-                                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                            GoldButton("حدّد موقعي", Modifier.weight(1f)) {
-                                                val ok = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                                                    PackageManager.PERMISSION_GRANTED
-                                                if (ok) locate() else permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-                                            }
-                                            GlassButton(sky, "فرندة", Modifier.weight(1f)) {
-                                                Place.reset(ctx); AlarmScheduler.scheduleNext(ctx)
-                                                locMsg.value = "عاد الموقع إلى فرندة."
-                                            }
-                                        }
-                                        if (locMsg.value.isNotEmpty()) Text(locMsg.value, color = ink, fontSize = 13.sp)
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    ModalDrawerSheet(
+                        drawerContainerColor = sky.top.copy(alpha = 0.95f),
+                        drawerContentColor = sky.ink
+                    ) {
+                        Column(
+                            Modifier.padding(16.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // محتوى الإعدادات هنا
+                            SectionTitle(sky, "الإعدادات")
+                            
+                            SectionTitle(sky, "الموقع")
+                            GlassCard(sky) {
+                                val co = Place.coords(ctx)
+                                Text(
+                                    "${Place.name(ctx)}\nخط العرض ${String.format(Locale.US, "%.2f", co.latitude)}° · خط الطول ${String.format(Locale.US, "%.2f", co.longitude)}°",
+                                    color = sky.ink
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    GoldButton("حدّد موقعي", Modifier.weight(1f)) {
+                                        val ok = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                                        if (ok) locate() else permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
                                     }
-
-                                    SectionTitle(sky, "الحساب والتاريخ")
-                                    GlassCard(sky) {
-                                        Text("الطريقة: ${Prefs.methodLabel(ctx)}", color = ink)
-                                        GlassButton(sky, "تغيير طريقة الحساب", Modifier.fillMaxWidth()) {
-                                            Prefs.cycleMethod(ctx); AlarmScheduler.scheduleNext(ctx); cfgVer++
-                                        }
-                                        GlassButton(
-                                            sky,
-                                            if (Prefs.hanafi(ctx)) "العصر: حنفي (اضغط للتبديل)" else "العصر: شافعي (اضغط للتبديل)",
-                                            Modifier.fillMaxWidth()
-                                        ) {
-                                            Prefs.setHanafi(ctx, !Prefs.hanafi(ctx)); AlarmScheduler.scheduleNext(ctx); cfgVer++
-                                        }
-                                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                            Text("تعديل التاريخ الهجري (أيام)", color = ink, modifier = Modifier.weight(1f))
-                                            StepButton(sky, "−") {
-                                                hOff = (hOff - 1).coerceIn(-2, 2); Prefs.setHijriOffset(ctx, hOff)
-                                            }
-                                            Text(
-                                                if (hOff > 0) "+$hOff" else "$hOff", color = ink,
-                                                modifier = Modifier.width(40.dp), textAlign = TextAlign.Center
-                                            )
-                                            StepButton(sky, "+") {
-                                                hOff = (hOff + 1).coerceIn(-2, 2); Prefs.setHijriOffset(ctx, hOff)
-                                            }
-                                        }
-                                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                            Text("وضع الليل الأسود (AMOLED)", color = ink, modifier = Modifier.weight(1f))
-                                            Switch(
-                                                checked = amoledOn,
-                                                onCheckedChange = { amoledOn = it; Prefs.setAmoled(ctx, it) },
-                                                colors = switchColors(sky)
-                                            )
-                                        }
-                                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                            Text("تدرّج صوت أذان الفجر (12 ث)", color = ink, modifier = Modifier.weight(1f))
-                                            Switch(
-                                                checked = fajrFadeOn,
-                                                onCheckedChange = { fajrFadeOn = it; Prefs.setFajrFade(ctx, it) },
-                                                colors = switchColors(sky)
-                                            )
-                                        }
+                                    GlassButton(sky, "فرندة", Modifier.weight(1f)) {
+                                        Place.reset(ctx); AlarmScheduler.scheduleNext(ctx)
+                                        locMsg.value = "عاد الموقع إلى فرندة."
                                     }
+                                }
+                                if (locMsg.value.isNotEmpty()) Text(locMsg.value, color = sky.ink, fontSize = 13.sp)
+                            }
 
-                                    SectionTitle(sky, "نوع التنبيه لكل صلاة")
-                                    GlassCard(sky) {
-                                        Text(
-                                            "اضغط الشريحة للتبديل: أذان كامل، تكبير قصير، اهتزاز، صامت. وهي نفسها أيقونات القائمة الرئيسية.",
-                                            color = sky.ink2, fontSize = 13.sp
-                                        )
-                                        events(ctx, 0).filter { it.first != 1 }.forEach { (i, _) ->
-                                            val n = NAMES[i]
-                                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                                Text(n, color = ink, fontSize = 17.sp, modifier = Modifier.weight(1f))
-                                                ModeChip(sky, Modes.labels[modes[n] ?: 0]) { cycleMode(n) }
-                                            }
-                                        }
-                                    }
+                            SectionTitle(sky, "الحساب والتاريخ")
+                            GlassCard(sky) {
+                                Text("الطريقة: ${Prefs.methodLabel(ctx)}", color = sky.ink)
+                                GlassButton(sky, "تغيير طريقة الحساب", Modifier.fillMaxWidth()) {
+                                    Prefs.cycleMethod(ctx); AlarmScheduler.scheduleNext(ctx); cfgVer++
+                                }
+                                GlassButton(sky, if (Prefs.hanafi(ctx)) "العصر: حنفي (اضغط للتبديل)" else "العصر: شافعي (اضغط للتبديل)", Modifier.fillMaxWidth()) {
+                                    Prefs.setHanafi(ctx, !Prefs.hanafi(ctx)); AlarmScheduler.scheduleNext(ctx); cfgVer++
+                                }
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("تعديل التاريخ الهجري (أيام)", color = sky.ink, modifier = Modifier.weight(1f))
+                                    StepButton(sky, "−") { hOff = (hOff - 1).coerceIn(-2, 2); Prefs.setHijriOffset(ctx, hOff) }
+                                    Text(if (hOff > 0) "+$hOff" else "$hOff", color = sky.ink, modifier = Modifier.width(40.dp), textAlign = TextAlign.Center)
+                                    StepButton(sky, "+") { hOff = (hOff + 1).coerceIn(-2, 2); Prefs.setHijriOffset(ctx, hOff) }
+                                }
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("وضع الليل الأسود (AMOLED)", color = sky.ink, modifier = Modifier.weight(1f))
+                                    Switch(checked = amoledOn, onCheckedChange = { amoledOn = it; Prefs.setAmoled(ctx, it) }, colors = switchColors(sky))
+                                }
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("تدرّج صوت أذان الفجر (12 ث)", color = sky.ink, modifier = Modifier.weight(1f))
+                                    Switch(checked = fajrFadeOn, onCheckedChange = { fajrFadeOn = it; Prefs.setFajrFade(ctx, it) }, colors = switchColors(sky))
+                                }
+                            }
 
-                                    SectionTitle(sky, "تعديل المواقيت بالدقائق")
-                                    GlassCard(sky) {
-                                        Text(
-                                            "يُضاف الفرق إلى الحساب، ويسري على العدّاد وعلى وقت التنبيه (من -15 إلى +15).",
-                                            color = sky.ink2, fontSize = 13.sp
-                                        )
-                                        events(ctx, 0).filter { it.first != 1 }.forEach { (i, _) ->
-                                            val n = NAMES[i]
-                                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                                Text(n, color = ink, fontSize = 16.sp, modifier = Modifier.weight(1f))
-                                                StepButton(sky, "−") {
-                                                    val v = (offs[n] ?: 0) - 1
-                                                    offs[n] = v; Offsets.set(ctx, n, v); AlarmScheduler.scheduleNext(ctx)
-                                                }
-                                                Text(
-                                                    "${offs[n] ?: 0}", color = ink, modifier = Modifier.width(50.dp),
-                                                    textAlign = TextAlign.Center, fontSize = 16.sp
-                                                )
-                                                StepButton(sky, "+") {
-                                                    val v = (offs[n] ?: 0) + 1
-                                                    offs[n] = v; Offsets.set(ctx, n, v); AlarmScheduler.scheduleNext(ctx)
-                                                }
-                                            }
-                                        }
-                                        GlassButton(sky, "إرجاع كل التعديلات إلى صفر", Modifier.fillMaxWidth()) {
-                                            NAMES.forEach { offs[it] = 0; Offsets.set(ctx, it, 0) }
-                                            AlarmScheduler.scheduleNext(ctx)
-                                        }
-                                    }
-
-                                    SectionTitle(sky, "صحة المنبه")
-                                    HealthCard(ctx, sky)
-                                    BatteryWizard(ctx, sky)
-
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        GoldButton("أعد الجدولة", Modifier.weight(1f)) {
-                                            AlarmScheduler.scheduleNext(ctx)
-                                            log = DiagLog.get(ctx)
-                                            Toast.makeText(ctx, "تمت إعادة الجدولة", Toast.LENGTH_SHORT).show()
-                                        }
-                                        GlassButton(sky, "اختبر الآن (10 ث)", Modifier.weight(1f)) {
-                                            AlarmScheduler.scheduleTest(ctx)
-                                            Toast.makeText(ctx, "سيظهر التنبيه بعد 10 ثوان", Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                    Text(
-                                        "الاختبار يشغّل الأذان بنوع الفجر الحالي؛ أوقفه بزر «إيقاف» في الإشعار أو بقلب الهاتف على وجهه.",
-                                        color = sky.ink2, fontSize = 12.sp
-                                    )
-
-                                    SectionTitle(sky, "سجل التشخيص")
-                                    GlassCard(sky) {
-                                        val clip = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                        GlassButton(sky, "نسخ السجل", Modifier.fillMaxWidth()) {
-                                            clip.setPrimaryClip(ClipData.newPlainText("Sakina log", log.joinToString("\n")))
-                                            Toast.makeText(ctx, "نُسخ السجل", Toast.LENGTH_SHORT).show()
-                                        }
-                                        log.forEach { Text(it, color = ink, fontSize = 12.sp, fontFamily = NotoSans) }
+                            SectionTitle(sky, "نوع التنبيه لكل صلاة")
+                            GlassCard(sky) {
+                                events(ctx, 0).filter { it.first != 1 }.forEach { (i, _) ->
+                                    val n = NAMES[i]
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(n, color = sky.ink, fontSize = 17.sp, modifier = Modifier.weight(1f))
+                                        ModeChip(sky, Modes.labels[modes[n] ?: 0]) { cycleMode(n) }
                                     }
                                 }
                             }
+
+                            SectionTitle(sky, "تعديل المواقيت بالدقائق")
+                            GlassCard(sky) {
+                                events(ctx, 0).filter { it.first != 1 }.forEach { (i, _) ->
+                                    val n = NAMES[i]
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(n, color = sky.ink, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                                        StepButton(sky, "−") { val v = (offs[n] ?: 0) - 1; offs[n] = v; Offsets.set(ctx, n, v); AlarmScheduler.scheduleNext(ctx) }
+                                        Text("${offs[n] ?: 0}", color = sky.ink, modifier = Modifier.width(50.dp), textAlign = TextAlign.Center, fontSize = 16.sp)
+                                        StepButton(sky, "+") { val v = (offs[n] ?: 0) + 1; offs[n] = v; Offsets.set(ctx, n, v); AlarmScheduler.scheduleNext(ctx) }
+                                    }
+                                }
+                                GlassButton(sky, "إرجاع كل التعديلات إلى صفر", Modifier.fillMaxWidth()) {
+                                    NAMES.forEach { offs[it] = 0; Offsets.set(ctx, it, 0) }
+                                    AlarmScheduler.scheduleNext(ctx)
+                                }
+                            }
+
+                            SectionTitle(sky, "صحة المنبه")
+                            HealthCard(ctx, sky)
+                            BatteryWizard(ctx, sky)
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                GoldButton("أعد الجدولة", Modifier.weight(1f)) {
+                                    AlarmScheduler.scheduleNext(ctx); log = DiagLog.get(ctx)
+                                    Toast.makeText(ctx, "تمت إعادة الجدولة", Toast.LENGTH_SHORT).show()
+                                }
+                                GlassButton(sky, "اختبر الآن (10 ث)", Modifier.weight(1f)) {
+                                    AlarmScheduler.scheduleTest(ctx)
+                                    Toast.makeText(ctx, "سيظهر التنبيه بعد 10 ثوان", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+
+                            SectionTitle(sky, "سجل التشخيص")
+                            GlassCard(sky) {
+                                val clip = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                GlassButton(sky, "نسخ السجل", Modifier.fillMaxWidth()) {
+                                    clip.setPrimaryClip(ClipData.newPlainText("Sakina log", log.joinToString("\n")))
+                                    Toast.makeText(ctx, "نُسخ السجل", Toast.LENGTH_SHORT).show()
+                                }
+                                log.forEach { Text(it, color = sky.ink, fontSize = 12.sp, fontFamily = NotoSans) }
+                            }
                         }
                     }
-                    
-                    BrandNav(
-                        sky,
-                        listOf("الرئيسية", "القبلة", "الإعدادات"),
-                        tab
-                    ) { if (tab != it) { tab = it; log = DiagLog.get(ctx) } }
+                }
+            ) {
+                Box(Modifier.fillMaxSize()) {
+                    SkyBackdrop(sky, Modifier.fillMaxSize())
+                    Column(Modifier.fillMaxSize().systemBarsPadding()) {
+                        
+                        // شريط علوي يحتوي على زر القائمة الجانبية
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Rounded.Menu, contentDescription = "القائمة", tint = sky.ink)
+                            }
+                        }
+
+                        AnimatedContent(
+                            targetState = tab,
+                            transitionSpec = {
+                                (fadeIn(animationSpec = tween(400)) + slideInHorizontally(initialOffsetX = { 50 }))
+                                    .togetherWith(fadeOut(animationSpec = tween(400)))
+                            },
+                            label = "TabTransition",
+                            modifier = Modifier.weight(1f)
+                        ) { currentTab ->
+                            if (currentTab == 0) {
+                                HomeTab(Modifier.fillMaxSize(), ctx, sky, now, nxt, frac, left, hijri, saver, modes, cycleMode)
+                            } else {
+                                Column(
+                                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    SectionTitle(sky, "القبلة")
+                                    QiblaScreen(ctx, sky)
+                                }
+                            }
+                        }
+                        
+                        // شريط التنقل السفلي الآن يحتوي على تبويبين فقط
+                        BrandNav(
+                            sky,
+                            listOf("الرئيسية", "القبلة"),
+                            tab
+                        ) { if (tab != it) { tab = it; log = DiagLog.get(ctx) } }
+                    }
                 }
             }
         }
     }
 }
-                                    
-    
+  
