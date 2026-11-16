@@ -15,6 +15,7 @@ android {
         versionName = "0.2-brand"
     }
 
+    // --- إعدادات التوقيع الأساسية ---
     signingConfigs {
         create("release") {
             storeFile = file(System.getenv("KEYSTORE_PATH") ?: "release-key.jks")
@@ -26,8 +27,10 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
+            // سطر التوقيع الذي أضفناه لكي يعمل التثبيت:
+            signingConfig = signingConfigs.getByName("debug") 
+            
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
