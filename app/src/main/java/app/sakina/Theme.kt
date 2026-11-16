@@ -155,6 +155,13 @@ fun GlassButton(sky: Sky, text: String, modifier: Modifier = Modifier, onClick: 
 }
 
 @Composable
+fun ModeChip(sky: Sky, label: String, onClick: () -> Unit) {
+    OutlinedButton(onClick = onClick, modifier = Modifier.width(112.dp).heightIn(min = 44.dp), contentPadding = PaddingValues(horizontal = 6.dp), border = BorderStroke(0.75.dp, sky.hairline), colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink), shape = RoundedCornerShape(16.dp)) {
+        Text(label, fontSize = 12.sp, maxLines = 1, softWrap = false, fontFamily = NotoSans)
+    }
+}
+
+@Composable
 fun StepButton(sky: Sky, text: String, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick, modifier = Modifier.size(48.dp), contentPadding = PaddingValues(0.dp), border = BorderStroke(0.75.dp, sky.hairline), colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink), shape = CircleShape) {
         Text(text, fontSize = 18.sp, fontFamily = NotoSans)
