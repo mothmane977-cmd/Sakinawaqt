@@ -122,7 +122,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(start = 18.dp, end = 18.dp, top = 66.dp, bottom = 82.dp)
+                .padding(start = 18.dp, end = 18.dp, top = 74.dp, bottom = 82.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(
@@ -172,7 +172,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
     val lastSurahMeta = ALL_SURAHS.firstOrNull { it.number == lastSurahNum } ?: ALL_SURAHS.first()
 
     Column(
-        modifier = modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(start = 18.dp, end = 18.dp, top = 66.dp, bottom = 80.dp),
+        modifier = modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(start = 18.dp, end = 18.dp, top = 74.dp, bottom = 80.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 24.dp, vertical = 6.dp)) {

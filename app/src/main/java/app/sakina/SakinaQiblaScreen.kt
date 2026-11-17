@@ -140,7 +140,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 20.dp, end = 20.dp, top = 66.dp, bottom = 78.dp),
+            .padding(start = 20.dp, end = 20.dp, top = 74.dp, bottom = 78.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {

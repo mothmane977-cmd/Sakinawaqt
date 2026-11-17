@@ -98,7 +98,7 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(start = 18.dp, end = 18.dp, top = 66.dp, bottom = 82.dp)
+                .padding(start = 18.dp, end = 18.dp, top = 74.dp, bottom = 82.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(
@@ -134,7 +134,7 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 18.dp, end = 18.dp, top = 66.dp, bottom = 80.dp),
+            .padding(start = 18.dp, end = 18.dp, top = 74.dp, bottom = 80.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
