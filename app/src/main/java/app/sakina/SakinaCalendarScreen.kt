@@ -35,14 +35,12 @@ private val FULL_WEEKDAYS_AR = listOf("السبت", "الأحد", "الإثني�
 
 @Composable
 fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
+    val theme = LocalSakinaTheme.current
     var monthOffset by remember { mutableIntStateOf(0) }
     var selectedDay by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) }
 
     val baseCal = remember(monthOffset) {
-        Calendar.getInstance().apply {
-            add(Calendar.MONTH, monthOffset)
-            set(Calendar.DAY_OF_MONTH, 1)
-        }
+        Calendar.getInstance().apply { add(Calendar.MONTH, monthOffset); set(Calendar.DAY_OF_MONTH, 1) }
     }
     val daysInMonth = baseCal.getActualMaximum(Calendar.DAY_OF_MONTH)
     val firstDayOfWeek = (baseCal.get(Calendar.DAY_OF_WEEK) - Calendar.SATURDAY + 7) % 7
@@ -69,35 +67,27 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 76.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 66.dp, bottom = 78.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("التقويم", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 23.sp, color = Color(0xFFE6CF94))
+        SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 24.dp, vertical = 5.dp)) {
+            Text("التقويم الهجري", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = theme.accentBright)
+        }
 
         SakinaGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp, contentPadding = PaddingValues(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = Color(0xFFE6CF94), modifier = Modifier.size(26.dp).clickable { monthOffset-- })
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(26.dp).clickable { monthOffset-- })
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(gregTitle, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFFE6CF94))
+                    Text(gregTitle, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = theme.accentBright)
                     Text(hijriSubtitle, fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.LuminousIvory)
                 }
-                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = Color(0xFFE6CF94), modifier = Modifier.size(26.dp).clickable { monthOffset++ })
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(26.dp).clickable { monthOffset++ })
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
                 FULL_WEEKDAYS_AR.forEach { d ->
-                    Text(
-                        text = d,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center,
-                        fontFamily = SakinaBodyFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 9.5.sp,
-                        color = Color(0xFFE6CF94),
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                    Text(d, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = theme.accentBright, maxLines = 1, softWrap = false)
                 }
             }
             Spacer(Modifier.height(4.dp))
@@ -111,23 +101,14 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(27.dp)
+                                .height(26.dp)
                                 .clip(CircleShape)
-                                .then(
-                                    if (dayNum == clampedSelected) Modifier.background(Color(0xFF0F3D3E)).border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                    else Modifier
-                                )
+                                .then(if (dayNum == clampedSelected) Modifier.background(Color(0xFF0F3D3E)).border(1.dp, Sakina3DGoldBevelBrush, CircleShape) else Modifier)
                                 .clickable(enabled = dayNum in 1..daysInMonth) { selectedDay = dayNum },
                             contentAlignment = Alignment.Center
                         ) {
                             if (dayNum in 1..daysInMonth) {
-                                Text(
-                                    text = "$dayNum".toWesternDigits(),
-                                    fontFamily = SakinaNumeralFont,
-                                    fontWeight = if (dayNum == clampedSelected) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 12.sp,
-                                    color = if (dayNum == clampedSelected) Color(0xFFE6CF94) else SakinaBrandColors.LuminousIvory
-                                )
+                                Text("$dayNum".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = if (dayNum == clampedSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 12.sp, color = if (dayNum == clampedSelected) theme.accentBright else SakinaBrandColors.LuminousIvory)
                             }
                         }
                     }
@@ -137,16 +118,10 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
 
         SakinaParchmentPanel(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp, contentPadding = PaddingValues(12.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Image(painter = painterResource(id = R.drawable.ic_mosque), contentDescription = null, modifier = Modifier.size(34.dp))
+                Image(painter = painterResource(id = R.drawable.ic_mosque), contentDescription = null, modifier = Modifier.size(32.dp))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("مواقيت اليوم المختار", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F3D3E))
-                    Text(
-                        dayPrayers.joinToString(" · ") { "${it.first} ${hm.format(it.second)}" }.toWesternDigits(),
-                        fontFamily = SakinaBodyFont,
-                        fontSize = 10.5.sp,
-                        color = SakinaInkDark,
-                        textAlign = TextAlign.Center
-                    )
+                    Text(dayPrayers.joinToString(" · ") { "${it.first} ${hm.format(it.second)}" }.toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 10.5.sp, color = SakinaInkDark, textAlign = TextAlign.Center)
                 }
             }
         }

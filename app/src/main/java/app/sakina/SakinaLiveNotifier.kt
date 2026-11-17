@@ -23,15 +23,8 @@ object SakinaLiveNotifier {
         ) return
 
         val nm = ctx.getSystemService(NotificationManager::class.java) ?: return
-        val ch = NotificationChannel(
-            CHANNEL_ID,
-            "العد التنازلي للصلاة القادمة",
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            setShowBadge(false)
-            enableLights(false)
-            enableVibration(false)
-            setSound(null, null)
+        val ch = NotificationChannel(CHANNEL_ID, "العد التنازلي للصلاة القادمة", NotificationManager.IMPORTANCE_LOW).apply {
+            setShowBadge(false); enableLights(false); enableVibration(false); setSound(null, null)
         }
         nm.createNotificationChannel(ch)
 
@@ -42,15 +35,20 @@ object SakinaLiveNotifier {
         val prev = today.lastOrNull { it.second.time <= nowMs } ?: PrayerEngine.day(ctx, -1).last()
 
         val hm = SimpleDateFormat("HH:mm", Locale.US)
-        val nextTimeStr = hm.format(next.second)
-        val maghribMs = today.first { it.first == "المغرب" }.second.time
-        val nextFajrMs = tomorrow.first { it.first == "الفجر" }.second.time
-        val midnightStr = hm.format(Date(NightMath.midnight(maghribMs, nextFajrMs)))
-        val lastThirdStr = hm.format(Date(NightMath.lastThird(maghribMs, nextFajrMs)))
+        val nextTimeStr = hm.format(next.second).toWesternDigits()
 
-        val openIntent = PendingIntent.getActivity(
-            ctx, 0, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
-        )
+        // Show Midnight & Last Third ONLY during Isha time as requested
+        val bodyText = if (prev.first == "العشاء") {
+            val maghribMs = today.first { it.first == "المغرب" }.second.time
+            val nextFajrMs = tomorrow.first { it.first == "الفجر" }.second.time
+            val midnightStr = hm.format(Date(NightMath.midnight(maghribMs, nextFajrMs))).toWesternDigits()
+            val lastThirdStr = hm.format(Date(NightMath.lastThird(maghribMs, nextFajrMs))).toWesternDigits()
+            "الآن: العشاء | منتصف الليل $midnightStr · الثلث الأخير $lastThirdStr"
+        } else {
+            "الوقت الحالي: ${prev.first} · الموقع: ${Place.name(ctx)}"
+        }
+
+        val openIntent = PendingIntent.getActivity(ctx, 0, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
 
         val notif = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_sakina)
@@ -62,8 +60,8 @@ object SakinaLiveNotifier {
             .setChronometerCountDown(true)
             .setWhen(next.second.time)
             .setShowWhen(true)
-            .setContentTitle("${next.first} · $nextTimeStr (${Place.name(ctx)})")
-            .setContentText("الآن: ${prev.first} | منتصف الليل $midnightStr · الثلث الأخير $lastThirdStr")
+            .setContentTitle("${next.first} · $nextTimeStr".toWesternDigits())
+            .setContentText(bodyText.toWesternDigits())
             .setContentIntent(openIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
