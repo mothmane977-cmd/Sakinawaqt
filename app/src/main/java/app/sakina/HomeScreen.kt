@@ -313,6 +313,13 @@ fun HomeScreen(ctx: Context) {
                             Modifier.padding(16.dp).verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
+                            // إضافة زر المسبحة
+                            GlassButton(sky, "المسبحة الإلكترونية", Modifier.fillMaxWidth()) {
+                                scope.launch { drawerState.close() }
+                                tab = 2
+                            }
+                            Spacer(Modifier.height(16.dp))
+
                             // محتوى الإعدادات هنا
                             SectionTitle(sky, "الإعدادات")
                             
@@ -421,7 +428,6 @@ fun HomeScreen(ctx: Context) {
                     SkyBackdrop(sky, Modifier.fillMaxSize())
                     Column(Modifier.fillMaxSize().systemBarsPadding()) {
                         
-                        // شريط علوي يحتوي على زر القائمة الجانبية
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.End,
@@ -443,7 +449,7 @@ fun HomeScreen(ctx: Context) {
                         ) { currentTab ->
                             if (currentTab == 0) {
                                 HomeTab(Modifier.fillMaxSize(), ctx, sky, now, nxt, frac, left, hijri, saver, modes, cycleMode)
-                            } else {
+                            } else if (currentTab == 1) {
                                 Column(
                                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
                                     verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -451,10 +457,11 @@ fun HomeScreen(ctx: Context) {
                                     SectionTitle(sky, "القبلة")
                                     QiblaScreen(ctx, sky)
                                 }
+                            } else if (currentTab == 2) {
+                                TasbihScreen(sky)
                             }
                         }
                         
-                        // شريط التنقل السفلي الآن يحتوي على تبويبين فقط
                         BrandNav(
                             sky,
                             listOf("الرئيسية", "القبلة"),
@@ -466,4 +473,3 @@ fun HomeScreen(ctx: Context) {
         }
     }
 }
-  
