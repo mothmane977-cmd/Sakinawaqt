@@ -33,11 +33,9 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// ───────────── الخطوط ─────────────
-// (استخدمت Noto Kufi كبديل لـ Cairo إذا لم يكن مرفوعاً)
+// ───────────── الخطوط (تم إزالة السطر المسبب للخطأ) ─────────────
 val NotoKufi = FontFamily(
     Font(R.font.noto_kufi_arabic_regular, FontWeight.Normal),
-    Font(R.font.noto_kufi_arabic_semibold, FontWeight.SemiBold),
     Font(R.font.noto_kufi_arabic_bold, FontWeight.Bold)
 )
 val NotoSans = FontFamily(
@@ -63,7 +61,7 @@ private fun sakinaTypography(): Typography {
     )
 }
 
-// ───────────── الألوان الجديدة (من مواصفاتك) ─────────────
+// ───────────── الألوان الجديدة (Navy + Gold + Turquoise) ─────────────
 @Immutable
 class Sky(
     val top: Color,
@@ -92,7 +90,7 @@ private fun darkSky(top: Long, bottom: Long, accent: Long, ink2: Long) =
 
 object Brand {
     val GOLD = Color(0xFFD4AF5A)
-    val ON_GOLD = Color(0xFF0B1630) // نص كحلي على زر ذهبي
+    val ON_GOLD = Color(0xFF0B1630)
     val SKIES = listOf(
         darkSky(0xFF171D36, 0xFF162A4A, 0xFFD4AF5A, 0xFFAAB7C8),
         darkSky(0xFF0B1630, 0xFF162A4A, 0xFFD4AF5A, 0xFFAAB7C8),
@@ -226,11 +224,8 @@ fun BrandNav(sky: Sky, labels: List<String>, selected: Int, onSelect: (Int) -> U
                 Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).clickable { onSelect(i) }.padding(vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
             ) {
-                // إذا كانت الأيقونة من Material
                 if (i < icons.size) {
                     Icon(icons[i], contentDescription = l, tint = if (on) sky.accent else sky.ink2, modifier = Modifier.size(22.dp))
-                } else {
-                    // يمكنك إضافة أيقونات مخصصة هنا
                 }
                 Text(l, color = if (on) sky.accent else sky.ink2, fontSize = 11.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, fontFamily = NotoKufi)
             }
