@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// ───────────── الخطوط الجديدة (بناءً على الحزمة التي رفعتها) ─────────────
+// ───────────── الخطوط ─────────────
 val NotoNaskh = FontFamily(
     Font(R.font.noto_naskh_arabic_regular, FontWeight.Normal),
     Font(R.font.noto_naskh_arabic_bold, FontWeight.Bold)
@@ -46,7 +46,6 @@ val NotoSans = FontFamily(
     Font(R.font.noto_sans_arabic_regular, FontWeight.Normal),
     Font(R.font.noto_sans_arabic_bold, FontWeight.Bold)
 )
-// خط Inter للأرقام (تم رفعه بنجاح)
 val InterFont = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),
     Font(R.font.inter_medium, FontWeight.Medium),
@@ -56,7 +55,8 @@ val InterFont = FontFamily(
 
 private fun sakinaTypography(): Typography {
     val b = Typography()
-    fun TextStyle.n() = copy(fontFamily = NotoSans)
+    // جعل الخط الافتراضي هو النسخ (للنصوص العربية)
+    fun TextStyle.n() = copy(fontFamily = NotoNaskh)
     return b.copy(
         displayLarge = b.displayLarge.n(), displayMedium = b.displayMedium.n(), displaySmall = b.displaySmall.n(),
         headlineLarge = b.headlineLarge.n(), headlineMedium = b.headlineMedium.n(), headlineSmall = b.headlineSmall.n(),
@@ -78,11 +78,12 @@ class Sky(
     val glass: Color,
     val halo: Color
 ) {
-    val hairline: Color get() = accent.copy(alpha = 0.25f)
+    // حواف ذهبية دقيقة
+    val hairline: Color get() = accent.copy(alpha = 0.35f)
 }
 
 val MIDNIGHT = Color(0xFF0A0E12)
-val GOLD = Color(0xFFD4AF37)
+val GOLD = Color(0xFFC69C53) // ذهبي أغمق وأكثر فخامة
 val IVORY = Color(0xFFFAF8F5)
 val GLASS_DARK = Color(0xB8131B22)
 
@@ -90,15 +91,15 @@ private fun darkSky(top: Long, bottom: Long, accent: Long, ink2: Long) =
     Sky(Color(top), Color(bottom), Color(accent), true, IVORY, Color(ink2), GLASS_DARK, Color(accent).copy(alpha = 0.15f))
 
 object Brand {
-    val GOLD = Color(0xFFD4AF37)
+    val GOLD = Color(0xFFC69C53) // تعديل اللون هنا أيضاً
     val ON_GOLD = Color(0xFF1A1408)
     val SKIES = listOf(
-        darkSky(0xFF171D36, 0xFF5B4B6E, 0xFFE6C280, 0xFFCFC8DA),   // Fajr
-        darkSky(0xFF0A0E12, 0xFF1C1812, 0xFFD4AF37, 0xFFB8B0A0),   // Duha
-        darkSky(0xFF0A0E12, 0xFF131B22, 0xFFD4AF37, 0xFFB8B0A0),   // Dhuhr
-        darkSky(0xFF0A0E12, 0xFF131B22, 0xFFD4AF37, 0xFFB8B0A0),   // Asr
-        darkSky(0xFF7D4347, 0xFF2B2238, 0xFFE8B468, 0xFFE4DCD0),   // Maghrib
-        darkSky(0xFF0B111C, 0xFF0A0E12, 0xFFD4AF6A, 0xFFB8B0A0)    // Isha
+        darkSky(0xFF171D36, 0xFF5B4B6E, 0xFFE6C280, 0xFFCFC8DA),
+        darkSky(0xFF0A0E12, 0xFF1C1812, 0xFFC69C53, 0xFFB8B0A0),
+        darkSky(0xFF0A0E12, 0xFF131B22, 0xFFC69C53, 0xFFB8B0A0),
+        darkSky(0xFF0A0E12, 0xFF131B22, 0xFFC69C53, 0xFFB8B0A0),
+        darkSky(0xFF7D4347, 0xFF2B2238, 0xFFE8B468, 0xFFE4DCD0),
+        darkSky(0xFF0B111C, 0xFF0A0E12, 0xFFD4AF6A, 0xFFB8B0A0)
     )
     val AMOLED = Sky(Color(0xFF000000), Color(0xFF000000), GOLD, true, IVORY, Color(0xFF8A8A8A), Color(0x14FFFFFF), Color(0x1AD4AF37))
 }
@@ -137,10 +138,10 @@ fun TabularText(text: String, fontSize: TextUnit, color: Color, fontFamily: Font
 
 @Composable
 fun GlassCard(sky: Sky, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(20.dp)
     Column(
         modifier.fillMaxWidth().clip(shape).background(sky.glass).border(0.75.dp, sky.hairline, shape).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp), content = content
+        verticalArrangement = Arrangement.spacedBy(8.dp), content = content
     )
 }
 
@@ -149,32 +150,53 @@ fun SectionTitle(sky: Sky, text: String) {
     Text(text, color = sky.ink, fontSize = 18.sp, fontFamily = NotoKufi, fontWeight = FontWeight.Bold)
 }
 
+// أزرار متوسطة الحجم وأنيقة
 @Composable
 fun GoldButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Button(onClick = onClick, modifier = modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp), colors = ButtonDefaults.buttonColors(containerColor = Brand.GOLD, contentColor = Brand.ON_GOLD), shape = RoundedCornerShape(16.dp)) {
-        Text(text, fontSize = 14.sp, maxLines = 1, softWrap = false, fontWeight = FontWeight.Bold, fontFamily = NotoKufi)
+    Button(
+        onClick = onClick, 
+        modifier = modifier.heightIn(min = 44.dp), // حجم متوسط
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Brand.GOLD, contentColor = Brand.ON_GOLD),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(text, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = NotoNaskh)
     }
 }
 
 @Composable
 fun GlassButton(sky: Sky, text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp), border = BorderStroke(0.75.dp, sky.hairline), colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink), shape = RoundedCornerShape(16.dp)) {
-        Text(text, fontSize = 14.sp, maxLines = 1, softWrap = false, fontFamily = NotoSans)
+    OutlinedButton(
+        onClick = onClick, 
+        modifier = modifier.heightIn(min = 44.dp), 
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        border = BorderStroke(0.75.dp, sky.hairline), 
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(text, fontSize = 14.sp, fontFamily = NotoNaskh)
     }
 }
 
 @Composable
 fun ModeChip(sky: Sky, label: String, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.width(112.dp).heightIn(min = 44.dp), contentPadding = PaddingValues(horizontal = 6.dp), border = BorderStroke(0.75.dp, sky.hairline), colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink), shape = RoundedCornerShape(16.dp)) {
-        Text(label, fontSize = 12.sp, maxLines = 1, softWrap = false, fontFamily = NotoSans)
-    }
+    OutlinedButton(
+        onClick = onClick, modifier = Modifier.width(100.dp).heightIn(min = 40.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp),
+        border = BorderStroke(0.75.dp, sky.hairline),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink),
+        shape = RoundedCornerShape(12.dp)
+    ) { Text(label, fontSize = 12.sp, maxLines = 1, softWrap = false, fontFamily = NotoNaskh) }
 }
 
 @Composable
 fun StepButton(sky: Sky, text: String, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.size(48.dp), contentPadding = PaddingValues(0.dp), border = BorderStroke(0.75.dp, sky.hairline), colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink), shape = CircleShape) {
-        Text(text, fontSize = 18.sp, fontFamily = InterFont)
-    }
+    OutlinedButton(
+        onClick = onClick, modifier = Modifier.size(40.dp), // تصغير زر +/-
+        contentPadding = PaddingValues(0.dp), border = BorderStroke(0.75.dp, sky.hairline),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink),
+        shape = CircleShape
+    ) { Text(text, fontSize = 18.sp, fontFamily = InterFont) }
 }
 
 fun modeIcon(mode: Int): ImageVector = when (mode) {
@@ -186,7 +208,7 @@ fun modeIcon(mode: Int): ImageVector = when (mode) {
 
 @Composable
 fun ModeIconButton(sky: Sky, mode: Int, description: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.size(44.dp)) {
+    IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
         Icon(modeIcon(mode), contentDescription = description, tint = sky.accent, modifier = Modifier.size(18.dp))
     }
 }
@@ -194,19 +216,19 @@ fun ModeIconButton(sky: Sky, mode: Int, description: String, onClick: () -> Unit
 @Composable
 fun BrandNav(sky: Sky, labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     val icons = listOf(Icons.Rounded.Home, Icons.Rounded.Explore, Icons.Rounded.Tune)
-    val shape = RoundedCornerShape(32.dp)
+    val shape = RoundedCornerShape(24.dp)
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp).clip(shape).background(sky.glass).border(0.75.dp, sky.hairline, shape).padding(8.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp).clip(shape).background(sky.glass).border(0.75.dp, sky.hairline, shape).padding(6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         labels.forEachIndexed { i, l ->
             val on = i == selected
             Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(24.dp)).clickable { onSelect(i) }.padding(vertical = 8.dp),
+                Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).clickable { onSelect(i) }.padding(vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
             ) {
-                Icon(icons[i], contentDescription = l, tint = if (on) sky.accent else sky.ink2, modifier = Modifier.size(24.dp))
-                Text(l, color = if (on) sky.accent else sky.ink2, fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, fontFamily = NotoKufi)
+                Icon(icons[i], contentDescription = l, tint = if (on) sky.accent else sky.ink2, modifier = Modifier.size(22.dp))
+                Text(l, color = if (on) sky.accent else sky.ink2, fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, fontFamily = NotoNaskh)
             }
         }
     }
