@@ -15,10 +15,32 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
-      
+
+      # تجهيز المصحف الكامل (حفص وورش) أوفلاين
+      - name: Bundle Offline Quran (Hafs & Warsh)
+        run: |
+          mkdir -p app/src/main/assets
+          python3 - << 'EOF'
+          import json, urllib.request
+          sources = {
+              "quran_hafs.json": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ara-quranuthmanihaf.min.json",
+              "quran_warsh.json": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ara-quranwarsh.min.json",
+          }
+          for out_name, url in sources.items():
+              req = urllib.request.Request(url, headers={"User-Agent": "SakinaBuild/1.0"})
+              data = json.loads(urllib.request.urlopen(req, timeout=30).read().decode("utf-8"))
+              grouped = {}
+              for item in data.get("quran", []):
+                  ch = str(item["chapter"])
+                  grouped.setdefault(ch, []).append(f"{item['text']} ({item['verse']})")
+              with open(f"app/src/main/assets/{out_name}", "w", encoding="utf-8") as f:
+                  json.dump(grouped, f, ensure_ascii=False)
+          print("Bundled Hafs & Warsh offline JSONs successfully")
+          EOF
+
       # بناء نسخة الـ Release
       - run: gradle :app:assembleRelease --no-daemon
-      
+
       # رفع الملف الناتج
       - uses: actions/upload-artifact@v4
         with:
