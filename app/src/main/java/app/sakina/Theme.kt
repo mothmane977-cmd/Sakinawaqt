@@ -34,12 +34,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // ───────────── الخطوط ─────────────
-val NotoNaskh = FontFamily(
-    Font(R.font.noto_naskh_arabic_regular, FontWeight.Normal),
-    Font(R.font.noto_naskh_arabic_bold, FontWeight.Bold)
-)
+// (استخدمت Noto Kufi كبديل لـ Cairo إذا لم يكن مرفوعاً)
 val NotoKufi = FontFamily(
     Font(R.font.noto_kufi_arabic_regular, FontWeight.Normal),
+    Font(R.font.noto_kufi_arabic_semibold, FontWeight.SemiBold),
     Font(R.font.noto_kufi_arabic_bold, FontWeight.Bold)
 )
 val NotoSans = FontFamily(
@@ -55,18 +53,17 @@ val InterFont = FontFamily(
 
 private fun sakinaTypography(): Typography {
     val b = Typography()
-    // جعل الخط الافتراضي هو النسخ (للنصوص العربية)
-    fun TextStyle.n() = copy(fontFamily = NotoNaskh)
+    fun TextStyle.k() = copy(fontFamily = NotoKufi)
     return b.copy(
-        displayLarge = b.displayLarge.n(), displayMedium = b.displayMedium.n(), displaySmall = b.displaySmall.n(),
-        headlineLarge = b.headlineLarge.n(), headlineMedium = b.headlineMedium.n(), headlineSmall = b.headlineSmall.n(),
-        titleLarge = b.titleLarge.n(), titleMedium = b.titleMedium.n(), titleSmall = b.titleSmall.n(),
-        bodyLarge = b.bodyLarge.n(), bodyMedium = b.bodyMedium.n(), bodySmall = b.bodySmall.n(),
-        labelLarge = b.labelLarge.n(), labelMedium = b.labelMedium.n(), labelSmall = b.labelSmall.n()
+        displayLarge = b.displayLarge.k(), displayMedium = b.displayMedium.k(), displaySmall = b.displaySmall.k(),
+        headlineLarge = b.headlineLarge.k(), headlineMedium = b.headlineMedium.k(), headlineSmall = b.headlineSmall.k(),
+        titleLarge = b.titleLarge.k(), titleMedium = b.titleMedium.k(), titleSmall = b.titleSmall.k(),
+        bodyLarge = b.bodyLarge.k(), bodyMedium = b.bodyMedium.k(), bodySmall = b.bodySmall.k(),
+        labelLarge = b.labelLarge.k(), labelMedium = b.labelMedium.k(), labelSmall = b.labelSmall.k()
     )
 }
 
-// ───────────── الألوان ─────────────
+// ───────────── الألوان الجديدة (من مواصفاتك) ─────────────
 @Immutable
 class Sky(
     val top: Color,
@@ -76,38 +73,41 @@ class Sky(
     val ink: Color,
     val ink2: Color,
     val glass: Color,
-    val halo: Color
+    val halo: Color,
+    val turquoise: Color
 ) {
-    // حواف ذهبية دقيقة
-    val hairline: Color get() = accent.copy(alpha = 0.35f)
+    val hairline: Color get() = accent.copy(alpha = 0.25f)
 }
 
-val MIDNIGHT = Color(0xFF0A0E12)
-val GOLD = Color(0xFFC69C53) // ذهبي أغمق وأكثر فخامة
-val IVORY = Color(0xFFFAF8F5)
-val GLASS_DARK = Color(0xB8131B22)
+val NAVY_DARK = Color(0xFF0B1630)
+val NAVY_GRADIENT = Color(0xFF162A4A)
+val GOLD = Color(0xFFD4AF5A)
+val IVORY = Color(0xFFF7F2E8)
+val TURQUOISE = Color(0xFF4FB3A8)
+val CARD_NAVY = Color(0xFF172847)
+val TEXT_SEC = Color(0xFFAAB7C8)
 
 private fun darkSky(top: Long, bottom: Long, accent: Long, ink2: Long) =
-    Sky(Color(top), Color(bottom), Color(accent), true, IVORY, Color(ink2), GLASS_DARK, Color(accent).copy(alpha = 0.15f))
+    Sky(Color(top), Color(bottom), Color(accent), true, IVORY, Color(ink2), CARD_NAVY.copy(alpha = 0.85f), Color(accent).copy(alpha = 0.15f), TURQUOISE)
 
 object Brand {
-    val GOLD = Color(0xFFC69C53) // تعديل اللون هنا أيضاً
-    val ON_GOLD = Color(0xFF1A1408)
+    val GOLD = Color(0xFFD4AF5A)
+    val ON_GOLD = Color(0xFF0B1630) // نص كحلي على زر ذهبي
     val SKIES = listOf(
-        darkSky(0xFF171D36, 0xFF5B4B6E, 0xFFE6C280, 0xFFCFC8DA),
-        darkSky(0xFF0A0E12, 0xFF1C1812, 0xFFC69C53, 0xFFB8B0A0),
-        darkSky(0xFF0A0E12, 0xFF131B22, 0xFFC69C53, 0xFFB8B0A0),
-        darkSky(0xFF0A0E12, 0xFF131B22, 0xFFC69C53, 0xFFB8B0A0),
+        darkSky(0xFF171D36, 0xFF162A4A, 0xFFD4AF5A, 0xFFAAB7C8),
+        darkSky(0xFF0B1630, 0xFF162A4A, 0xFFD4AF5A, 0xFFAAB7C8),
+        darkSky(0xFF0B1630, 0xFF162A4A, 0xFFD4AF5A, 0xFFAAB7C8),
+        darkSky(0xFF0B1630, 0xFF162A4A, 0xFFD4AF5A, 0xFFAAB7C8),
         darkSky(0xFF7D4347, 0xFF2B2238, 0xFFE8B468, 0xFFE4DCD0),
-        darkSky(0xFF0B111C, 0xFF0A0E12, 0xFFD4AF6A, 0xFFB8B0A0)
+        darkSky(0xFF0B1630, 0xFF0B1630, 0xFFD4AF5A, 0xFFAAB7C8)
     )
-    val AMOLED = Sky(Color(0xFF000000), Color(0xFF000000), GOLD, true, IVORY, Color(0xFF8A8A8A), Color(0x14FFFFFF), Color(0x1AD4AF37))
+    val AMOLED = Sky(Color(0xFF000000), Color(0xFF000000), GOLD, true, IVORY, Color(0xFF8A8A8A), Color(0x14FFFFFF), Color(0x1AD4AF37), TURQUOISE)
 }
 
 private fun Sky.toColorScheme(): ColorScheme = darkColorScheme(
-    primary = accent, onPrimary = Color(0xFF0B111C), secondary = accent,
+    primary = accent, onPrimary = Brand.ON_GOLD, secondary = turquoise,
     surface = glass, onSurface = ink, outline = hairline,
-    background = MIDNIGHT, onBackground = ink
+    background = NAVY_DARK, onBackground = ink
 )
 
 @Composable
@@ -147,20 +147,19 @@ fun GlassCard(sky: Sky, modifier: Modifier = Modifier, content: @Composable Colu
 
 @Composable
 fun SectionTitle(sky: Sky, text: String) {
-    Text(text, color = sky.ink, fontSize = 18.sp, fontFamily = NotoKufi, fontWeight = FontWeight.Bold)
+    Text(text, color = sky.ink, fontSize = 18.sp, fontFamily = NotoKufi, fontWeight = FontWeight.SemiBold)
 }
 
-// أزرار متوسطة الحجم وأنيقة
 @Composable
 fun GoldButton(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Button(
         onClick = onClick, 
-        modifier = modifier.heightIn(min = 44.dp), // حجم متوسط
+        modifier = modifier.heightIn(min = 44.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Brand.GOLD, contentColor = Brand.ON_GOLD),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Text(text, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = NotoNaskh)
+        Text(text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, fontFamily = NotoKufi)
     }
 }
 
@@ -174,7 +173,7 @@ fun GlassButton(sky: Sky, text: String, modifier: Modifier = Modifier, onClick: 
         colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Text(text, fontSize = 14.sp, fontFamily = NotoNaskh)
+        Text(text, fontSize = 14.sp, fontFamily = NotoKufi)
     }
 }
 
@@ -186,13 +185,13 @@ fun ModeChip(sky: Sky, label: String, onClick: () -> Unit) {
         border = BorderStroke(0.75.dp, sky.hairline),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink),
         shape = RoundedCornerShape(12.dp)
-    ) { Text(label, fontSize = 12.sp, maxLines = 1, softWrap = false, fontFamily = NotoNaskh) }
+    ) { Text(label, fontSize = 12.sp, maxLines = 1, softWrap = false, fontFamily = NotoKufi) }
 }
 
 @Composable
 fun StepButton(sky: Sky, text: String, onClick: () -> Unit) {
     OutlinedButton(
-        onClick = onClick, modifier = Modifier.size(40.dp), // تصغير زر +/-
+        onClick = onClick, modifier = Modifier.size(40.dp),
         contentPadding = PaddingValues(0.dp), border = BorderStroke(0.75.dp, sky.hairline),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink),
         shape = CircleShape
@@ -215,11 +214,11 @@ fun ModeIconButton(sky: Sky, mode: Int, description: String, onClick: () -> Unit
 
 @Composable
 fun BrandNav(sky: Sky, labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    val icons = listOf(Icons.Rounded.Home, Icons.Rounded.Explore, Icons.Rounded.Tune)
+    val icons = listOf(Icons.Rounded.Home, Icons.Rounded.Explore, Icons.Rounded.Tune, Icons.Rounded.Book, Icons.Rounded.Star, Icons.Rounded.DateRange)
     val shape = RoundedCornerShape(24.dp)
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp).clip(shape).background(sky.glass).border(0.75.dp, sky.hairline, shape).padding(6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clip(shape).background(sky.glass).border(0.75.dp, sky.hairline, shape).padding(6.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         labels.forEachIndexed { i, l ->
             val on = i == selected
@@ -227,8 +226,13 @@ fun BrandNav(sky: Sky, labels: List<String>, selected: Int, onSelect: (Int) -> U
                 Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).clickable { onSelect(i) }.padding(vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
             ) {
-                Icon(icons[i], contentDescription = l, tint = if (on) sky.accent else sky.ink2, modifier = Modifier.size(22.dp))
-                Text(l, color = if (on) sky.accent else sky.ink2, fontSize = 12.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, fontFamily = NotoNaskh)
+                // إذا كانت الأيقونة من Material
+                if (i < icons.size) {
+                    Icon(icons[i], contentDescription = l, tint = if (on) sky.accent else sky.ink2, modifier = Modifier.size(22.dp))
+                } else {
+                    // يمكنك إضافة أيقونات مخصصة هنا
+                }
+                Text(l, color = if (on) sky.accent else sky.ink2, fontSize = 11.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, fontFamily = NotoKufi)
             }
         }
     }
