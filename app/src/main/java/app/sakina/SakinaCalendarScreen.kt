@@ -31,6 +31,8 @@ private val CAL_HIJRI_MONTHS = listOf(
     "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"
 )
 
+private val FULL_WEEKDAYS_AR = listOf("السبت", "الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة")
+
 @Composable
 fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
     var monthOffset by remember { mutableIntStateOf(0) }
@@ -67,14 +69,13 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 70.dp),
+            .padding(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 76.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("التقويم", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color(0xFFE6CF94))
+        Text("التقويم", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 23.sp, color = Color(0xFFE6CF94))
 
-        // Monthly Interactive Grid
-        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp, contentPadding = PaddingValues(12.dp)) {
+        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp, contentPadding = PaddingValues(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = Color(0xFFE6CF94), modifier = Modifier.size(26.dp).clickable { monthOffset-- })
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -85,8 +86,18 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             }
             Spacer(Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
-                listOf("س", "ح", "ن", "ث", "ر", "خ", "ج").forEach { d ->
-                    Text(d, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontFamily = SakinaBodyFont, fontSize = 11.sp, color = SakinaBrandColors.SoftSilver)
+                FULL_WEEKDAYS_AR.forEach { d ->
+                    Text(
+                        text = d,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        fontFamily = SakinaBodyFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.5.sp,
+                        color = Color(0xFFE6CF94),
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
             Spacer(Modifier.height(4.dp))
@@ -100,7 +111,7 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(28.dp)
+                                .height(27.dp)
                                 .clip(CircleShape)
                                 .then(
                                     if (dayNum == clampedSelected) Modifier.background(Color(0xFF0F3D3E)).border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
@@ -124,7 +135,6 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             }
         }
 
-        // Selected Day Prayer Times Parchment Card
         SakinaParchmentPanel(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp, contentPadding = PaddingValues(12.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Image(painter = painterResource(id = R.drawable.ic_mosque), contentDescription = null, modifier = Modifier.size(34.dp))

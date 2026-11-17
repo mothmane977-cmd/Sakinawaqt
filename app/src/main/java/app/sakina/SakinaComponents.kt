@@ -30,6 +30,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -52,13 +54,7 @@ val SakinaParchmentBottom = Color(0xFFEDE3CC)
 val SakinaInkDark = Color(0xFF152230)
 
 val Sakina3DGoldBevelBrush = Brush.linearGradient(
-    listOf(
-        Color(0xFF6B5224),
-        Color(0xFFC5A059),
-        Color(0xFFF0DAA0),
-        Color(0xFFC5A059),
-        Color(0xFF5C441B)
-    )
+    listOf(Color(0xFF6B5224), Color(0xFFC5A059), Color(0xFFF5E1A8), Color(0xFFC5A059), Color(0xFF5C441B))
 )
 
 fun String.toWesternDigits(): String {
@@ -76,19 +72,12 @@ fun SakinaBackgroundLayer(
     showMihrabFrame: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(SakinaRoyalNavy)
-    ) {
+    Box(modifier = modifier.fillMaxSize().background(SakinaRoyalNavy)) {
         Image(
             painter = painterResource(id = headerImageRes),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.46f)
-                .align(Alignment.TopCenter)
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.46f).align(Alignment.TopCenter)
         )
         Box(
             modifier = Modifier
@@ -113,29 +102,54 @@ fun SakinaBackgroundLayer(
                     .fillMaxSize()
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
             ) {
                 val w = size.width
                 val h = size.height
-                val archShoulderY = 92.dp.toPx()
-                val apexY = 6.dp.toPx()
-                val cornerR = 26.dp.toPx()
+                val archShoulderY = 56.dp.toPx()
+                val apexY = 2.dp.toPx()
+                val cornerR = 24.dp.toPx()
 
-                val framePath = Path().apply {
-                    moveTo(w * 0.5f, apexY)
-                    cubicTo(w * 0.65f, apexY + 18.dp.toPx(), w * 0.72f, archShoulderY - 12.dp.toPx(), w * 0.96f, archShoulderY)
-                    quadraticBezierTo(w, archShoulderY + 8.dp.toPx(), w, archShoulderY + 26.dp.toPx())
-                    lineTo(w, h - cornerR)
-                    quadraticBezierTo(w, h, w - cornerR, h)
-                    lineTo(cornerR, h)
-                    quadraticBezierTo(0f, h, 0f, h - cornerR)
-                    lineTo(0f, archShoulderY + 26.dp.toPx())
-                    quadraticBezierTo(0f, archShoulderY + 8.dp.toPx(), w * 0.04f, archShoulderY)
-                    cubicTo(w * 0.28f, archShoulderY - 12.dp.toPx(), w * 0.35f, apexY + 18.dp.toPx(), w * 0.5f, apexY)
+                fun buildArchPath(inset: Float): Path = Path().apply {
+                    val left = inset
+                    val right = w - inset
+                    val top = apexY + inset
+                    val shY = archShoulderY + inset * 0.4f
+                    val bot = h - inset
+                    val r = (cornerR - inset).coerceAtLeast(8f)
+
+                    moveTo(w * 0.5f, top)
+                    cubicTo(w * 0.66f, top + 12.dp.toPx(), w * 0.78f, shY - 8.dp.toPx(), right - 8.dp.toPx(), shY)
+                    quadraticBezierTo(right, shY + 6.dp.toPx(), right, shY + 22.dp.toPx())
+                    lineTo(right, bot - r)
+                    quadraticBezierTo(right, bot, right - r, bot)
+                    lineTo(left + r, bot)
+                    quadraticBezierTo(left, bot, left, bot - r)
+                    lineTo(left, shY + 22.dp.toPx())
+                    quadraticBezierTo(left, shY + 6.dp.toPx(), left + 8.dp.toPx(), shY)
+                    cubicTo(w * 0.22f, shY - 8.dp.toPx(), w * 0.34f, top + 12.dp.toPx(), w * 0.5f, top)
                     close()
                 }
-                drawPath(path = framePath, color = Color(0x33E6CF94), style = Stroke(width = 3.5.dp.toPx()))
-                drawPath(path = framePath, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 1.4.dp.toPx()))
+
+                val outerPath = buildArchPath(0f)
+                val innerPath = buildArchPath(3.5.dp.toPx())
+
+                // 3D shadow + outer bevel + specular highlight + inner ornamental hairline
+                drawPath(outerPath, color = Color(0x44000000), style = Stroke(width = 6.dp.toPx()))
+                drawPath(outerPath, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 2.6.dp.toPx()))
+                drawPath(outerPath, color = Color(0x66FFF5CE), style = Stroke(width = 0.8.dp.toPx()))
+                drawPath(innerPath, color = Color(0x88C5A059), style = Stroke(width = 0.9.dp.toPx()))
+
+                // Ornamental diamond finial at the top apex
+                val d = 4.5.dp.toPx()
+                val apex = Path().apply {
+                    moveTo(w * 0.5f, apexY - d)
+                    lineTo(w * 0.5f + d, apexY + 2.dp.toPx())
+                    lineTo(w * 0.5f, apexY + d + 4.dp.toPx())
+                    lineTo(w * 0.5f - d, apexY + 2.dp.toPx())
+                    close()
+                }
+                drawPath(apex, brush = Sakina3DGoldBevelBrush)
             }
         }
     }
@@ -157,7 +171,7 @@ fun SakinaOrnamentCartouche(
                 lineTo(w - tip, h); lineTo(tip, h); lineTo(0f, h * 0.5f); close()
             }
             drawPath(path = path, brush = Brush.verticalGradient(listOf(Color(0xEB0E2238), Color(0xF5071422))))
-            drawPath(path = path, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 1.dp.toPx()))
+            drawPath(path = path, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 1.2.dp.toPx()))
             val d = 3.5.dp.toPx()
             listOf(Offset(tip * 0.45f, h * 0.5f), Offset(w - tip * 0.45f, h * 0.5f)).forEach { c ->
                 val dpPath = Path().apply {
@@ -234,7 +248,7 @@ fun SakinaDrawerPillItem(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(10.dp))
-            Text(title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaBrandColors.LuminousIvory)
+            Text(title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = SakinaBrandColors.LuminousIvory)
         }
         if (badge.isNotEmpty()) {
             Text(badge.toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 11.sp, color = Color(0xFFE6CF94))
@@ -252,19 +266,19 @@ fun SakinaBottomPillBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
             .navigationBarsPadding()
-            .height(54.dp)
+            .height(62.dp)
             .clip(barShape)
             .background(Brush.verticalGradient(listOf(Color(0xF20C1E33), Color(0xFA06101B))))
-            .border(0.85.dp, Sakina3DGoldBevelBrush, barShape)
+            .border(0.9.dp, Sakina3DGoldBevelBrush, barShape)
             .padding(horizontal = 4.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         SakinaNavTab.entries.forEach { tab ->
             val selected = tab == currentTab
-            val textColor by animateColorAsState(if (selected) SakinaRoyalNavy else Color(0xFFD8C288), label = "tabColor")
+            val textColor by animateColorAsState(if (selected) SakinaRoyalNavy else Color(0xFFE6CF94), label = "tabColor")
             val tabShape = RoundedCornerShape(14.dp)
             Column(
                 modifier = Modifier
@@ -276,21 +290,23 @@ fun SakinaBottomPillBar(
                         else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
                     )
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onTabSelected(tab) }
-                    .padding(vertical = 3.dp),
+                    .padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Image(painter = painterResource(id = tab.iconRes), contentDescription = tab.labelAr, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.height(2.dp))
+                Image(painter = painterResource(id = tab.iconRes), contentDescription = tab.labelAr, modifier = Modifier.size(19.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = tab.labelAr,
                     fontFamily = SakinaHeadingFont,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                     fontSize = 10.sp,
+                    lineHeight = 12.sp,
                     color = textColor,
                     maxLines = 1,
                     softWrap = false,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Clip,
+                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                 )
             }
         }

@@ -2,6 +2,7 @@ package app.sakina
 
 import android.content.Context
 import android.view.HapticFeedbackConstants
+import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -60,6 +61,8 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
     var selectedCategory by remember { mutableStateOf<DhikrCategory?>(null) }
     val view = LocalView.current
 
+    BackHandler(enabled = selectedCategory != null) { selectedCategory = null }
+
     if (selectedCategory != null) {
         val cat = selectedCategory!!
         Column(
@@ -67,36 +70,30 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(start = 22.dp, end = 22.dp, top = 26.dp, bottom = 74.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 62.dp, bottom = 78.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "رجوع",
-                    tint = Color(0xFFE6CF94),
-                    modifier = Modifier.size(24.dp).clickable { selectedCategory = null }
-                )
-                Text(cat.title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFFE6CF94))
-                Spacer(Modifier.size(24.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xD60B1C2E))
+                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
+                        .clickable { selectedCategory = null }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "رجوع", tint = Color(0xFFE6CF94), modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("الأذكار", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFE6CF94))
+                }
+                Text(cat.title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFE6CF94))
+                Spacer(Modifier.width(56.dp))
             }
-            Spacer(Modifier.height(14.dp))
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            Spacer(Modifier.height(12.dp))
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 cat.items.forEach { text ->
                     SakinaParchmentPanel(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp)) {
-                        Text(
-                            text = text.toWesternDigits(),
-                            fontFamily = SakinaEditorialFont,
-                            fontSize = 16.sp,
-                            lineHeight = 28.sp,
-                            color = SakinaInkDark
-                        )
+                        Text(text.toWesternDigits(), fontFamily = SakinaEditorialFont, fontSize = 16.sp, lineHeight = 28.sp, color = SakinaInkDark)
                     }
                 }
             }
@@ -105,20 +102,15 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(start = 22.dp, end = 22.dp, top = 28.dp, bottom = 72.dp),
+        modifier = modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(start = 22.dp, end = 22.dp, top = 28.dp, bottom = 78.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("الأذكار", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color(0xFFE6CF94))
+            Text("الأذكار", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 23.sp, color = Color(0xFFE6CF94))
             Text("طمأنينة القلب بذكر الله", fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.SoftSilver)
         }
 
-        // 2x2 Parchment Grid
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 AdhkarTile(ADHKAR_CATEGORIES[0], Modifier.weight(1f)) { selectedCategory = ADHKAR_CATEGORIES[0] }
@@ -130,47 +122,25 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
             }
         }
 
-        // Daily Wird / Tasbih Counter Card
         SakinaGlassCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    count++
-                    sp.edit().putInt("count", count).apply()
-                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                },
+            modifier = Modifier.fillMaxWidth().clickable {
+                count++; sp.edit().putInt("count", count).apply()
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            },
             cornerRadius = 20.dp,
             glowGold = true,
             contentPadding = PaddingValues(14.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(painter = painterResource(id = R.drawable.ic_tasbih), contentDescription = null, modifier = Modifier.size(54.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Image(painter = painterResource(id = R.drawable.ic_tasbih), contentDescription = null, modifier = Modifier.size(52.dp))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("ابدأ وردك اليومي (اضغط للتسبيح)", fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.LuminousIvory)
                     Spacer(Modifier.height(6.dp))
                     SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 24.dp, vertical = 6.dp)) {
-                        Text(
-                            text = "$count".toWesternDigits(),
-                            fontFamily = SakinaNumeralFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 26.sp,
-                            color = Color(0xFFE6CF94)
-                        )
+                        Text("$count".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color(0xFFE6CF94))
                     }
                 }
-                Icon(
-                    imageVector = Icons.Rounded.Refresh,
-                    contentDescription = "تصفير",
-                    tint = Color(0xFFC5A059),
-                    modifier = Modifier.size(22.dp).clickable {
-                        count = 0
-                        sp.edit().putInt("count", 0).apply()
-                    }
-                )
+                Icon(imageVector = Icons.Rounded.Refresh, contentDescription = "تصفير", tint = Color(0xFFC5A059), modifier = Modifier.size(22.dp).clickable { count = 0; sp.edit().putInt("count", 0).apply() })
             }
         }
     }
@@ -178,16 +148,8 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
 
 @Composable
 private fun AdhkarTile(cat: DhikrCategory, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    SakinaParchmentPanel(
-        modifier = modifier.height(92.dp).clickable { onClick() },
-        cornerRadius = 16.dp,
-        contentPadding = PaddingValues(10.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
+    SakinaParchmentPanel(modifier = modifier.height(90.dp).clickable { onClick() }, cornerRadius = 16.dp, contentPadding = PaddingValues(10.dp)) {
+        Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Image(painter = painterResource(id = cat.iconRes), contentDescription = null, modifier = Modifier.size(28.dp))
             Spacer(Modifier.height(6.dp))
             Text(cat.title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaInkDark, textAlign = TextAlign.Center)

@@ -2,6 +2,7 @@ package app.sakina
 
 import android.content.Context
 import android.icu.util.IslamicCalendar
+import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -44,11 +45,9 @@ private val HIJRI_MONTHS_AR = listOf(
 )
 
 @Composable
-fun SakinaSettingsScreen(
-    ctx: Context,
-    onBackClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun SakinaSettingsScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier = Modifier) {
+    BackHandler { onBackClick() }
+
     var refreshTick by remember { mutableIntStateOf(0) }
     val currentFajrMode = remember(refreshTick) { Modes.get(ctx, "الفجر") }
     val selectedAudioMode = when (currentFajrMode) {
@@ -73,8 +72,8 @@ fun SakinaSettingsScreen(
         val hDay = ic.get(IslamicCalendar.DAY_OF_MONTH)
         val hMonth = HIJRI_MONTHS_AR[ic.get(IslamicCalendar.MONTH).coerceIn(0, 11)]
         val hYear = ic.get(IslamicCalendar.YEAR)
-        val gFmt = SimpleDateFormat("dd MMMM yyyy", Locale("ar")).format(Date())
-        "$hDay $hMonth $hYear" to gFmt
+        val gFmt = SimpleDateFormat("dd MMM yyyy", Locale("ar")).format(Date()).toWesternDigits()
+        "$hDay $hMonth $hYear".toWesternDigits() to gFmt
     }
 
     Column(
@@ -82,53 +81,27 @@ fun SakinaSettingsScreen(
             .fillMaxSize()
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
+            .padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 92.dp)
     ) {
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // 1. الترويسة
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "الإعدادات والتنبيهات",
-                fontFamily = SakinaHeadingFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 19.sp,
-                color = SakinaBrandColors.GoldBright
-            )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("الإعدادات والتنبيهات", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color(0xFFE6CF94))
             Box(
                 modifier = Modifier
-                    .size(34.dp)
+                    .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color(0x26D4AF37))
-                    .border(0.8.dp, SakinaBrandColors.ManuscriptGold.copy(alpha = 0.6f), CircleShape)
+                    .background(Color(0x26C5A059))
+                    .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
                     .clickable { onBackClick() },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "رجوع",
-                    tint = SakinaBrandColors.GoldBright,
-                    modifier = Modifier.size(18.dp)
-                )
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "رجوع", tint = Color(0xFFE6CF94), modifier = Modifier.size(18.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // 2. شريط أوضاع الصوت الثلاثي
-        SakinaGlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 16.dp,
-            contentPadding = PaddingValues(5.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
+        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 16.dp, contentPadding = PaddingValues(5.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 GlobalAudioMode.entries.forEach { mode ->
                     val selected = mode == selectedAudioMode
                     val shape = RoundedCornerShape(12.dp)
@@ -138,34 +111,18 @@ fun SakinaSettingsScreen(
                             .height(38.dp)
                             .clip(shape)
                             .background(
-                                if (selected) Brush.verticalGradient(listOf(Color(0x4AD4AF37), Color(0x1FD4AF37)))
+                                if (selected) Brush.verticalGradient(listOf(Color(0x4AC5A059), Color(0x1FC5A059)))
                                 else Brush.verticalGradient(listOf(Color(0x1CFFFFFF), Color(0x0AFFFFFF)))
                             )
-                            .border(
-                                0.9.dp,
-                                if (selected) Brush.horizontalGradient(
-                                    listOf(SakinaBrandColors.ManuscriptGold, SakinaBrandColors.GoldBright, SakinaBrandColors.ManuscriptGold)
-                                ) else Brush.horizontalGradient(listOf(Color(0x22FFFFFF), Color(0x11FFFFFF))),
-                                shape
-                            )
+                            .border(0.8.dp, if (selected) Sakina3DGoldBevelBrush else Brush.horizontalGradient(listOf(Color(0x22FFFFFF), Color(0x11FFFFFF))), shape)
                             .clickable {
-                                PRAYER_NAMES.filter { it != "الشروق" }.forEach { p ->
-                                    Modes.set(ctx, p, mode.modeCode)
-                                }
+                                PRAYER_NAMES.filter { it != "الشروق" }.forEach { p -> Modes.set(ctx, p, mode.modeCode) }
                                 AlarmScheduler.scheduleNext(ctx)
                                 refreshTick++
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = mode.labelAr,
-                            fontFamily = SakinaHeadingFont,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 12.sp,
-                            color = if (selected) SakinaBrandColors.GoldBright else SakinaBrandColors.SoftSilver,
-                            maxLines = 1,
-                            softWrap = false
-                        )
+                        Text(mode.labelAr, fontFamily = SakinaHeadingFont, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, fontSize = 12.sp, color = if (selected) Color(0xFFE6CF94) else SakinaBrandColors.SoftSilver, maxLines = 1)
                     }
                 }
             }
@@ -173,204 +130,70 @@ fun SakinaSettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 3. بطاقة منبه السحور
-        SakinaGlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 18.dp,
-            glowGold = suhoorEnabled,
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp, glowGold = suhoorEnabled, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_fajr),
-                        contentDescription = null,
-                        modifier = Modifier.size(30.dp)
-                    )
+                    Image(painter = painterResource(id = R.drawable.ic_fajr), contentDescription = null, modifier = Modifier.size(30.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text(
-                            text = "منبه السحور",
-                            fontFamily = SakinaHeadingFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = SakinaBrandColors.LuminousIvory
-                        )
-                        Text(
-                            text = "40 دقيقة قبل الفجر",
-                            fontFamily = SakinaBodyFont,
-                            fontSize = 11.sp,
-                            color = SakinaBrandColors.SoftSilver
-                        )
+                        Text("منبه السحور", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = SakinaBrandColors.LuminousIvory)
+                        Text("40 دقيقة قبل الفجر", fontFamily = SakinaBodyFont, fontSize = 11.sp, color = SakinaBrandColors.SoftSilver)
                     }
                 }
-                SakinaGoldSwitch(
-                    checked = suhoorEnabled,
-                    onCheckedChange = { enabled ->
-                        suhoorEnabled = enabled
-                        suhoorPrefs.edit().putBoolean("suhoor_enabled", enabled).apply()
-                    }
-                )
+                SakinaGoldSwitch(checked = suhoorEnabled, onCheckedChange = {
+                    suhoorEnabled = it; suhoorPrefs.edit().putBoolean("suhoor_enabled", it).apply()
+                })
             }
         }
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 4. بطاقة التاريخ الهجري والميلادي المزدوجة
-        SakinaGlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 18.dp,
-            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 14.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = hijriText,
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = SakinaBrandColors.GoldBright,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(22.dp)
-                        .background(SakinaBrandColors.DividerGold)
-                )
-                Text(
-                    text = gregorianText,
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = SakinaBrandColors.LuminousIvory,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
+        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 13.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(hijriText, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Color(0xFFE6CF94), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.weight(1f))
+                Box(modifier = Modifier.width(1.dp).height(20.dp).background(SakinaBrandColors.DividerGold))
+                Text(gregorianText, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.weight(1f))
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // 5. أزرار ذهبية رشيقة مدمجة الأيقونات (46dp فقط لكل زر)
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            SakinaLuxuryPillButton(
-                iconRes = R.drawable.ic_mosque,
-                title = "الموقع",
-                valueText = placeName,
-                onClick = {
-                    val loc = Place.fromDevice(ctx)
-                    if (loc != null) Place.set(ctx, loc.latitude, loc.longitude, "موقعي الحالي")
-                    else Place.reset(ctx)
-                    AlarmScheduler.scheduleNext(ctx)
-                    refreshTick++
-                }
-            )
-            SakinaLuxuryPillButton(
-                iconRes = R.drawable.ic_star_ornament,
-                title = "طريقة الحساب",
-                valueText = methodShort,
-                onClick = {
-                    Prefs.cycleMethod(ctx)
-                    AlarmScheduler.scheduleNext(ctx)
-                    refreshTick++
-                }
-            )
-            SakinaLuxuryPillButton(
-                iconRes = R.drawable.ic_fajr,
-                title = "اختبار المنبه",
-                valueText = testStatus,
-                onClick = {
-                    AlarmScheduler.scheduleTest(ctx)
-                    refreshTick++
-                }
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            SakinaLuxuryPillButton(R.drawable.ic_mosque, "الموقع", placeName) {
+                val loc = Place.fromDevice(ctx)
+                if (loc != null) Place.set(ctx, loc.latitude, loc.longitude, "موقعي الحالي") else Place.reset(ctx)
+                AlarmScheduler.scheduleNext(ctx); refreshTick++
+            }
+            SakinaLuxuryPillButton(R.drawable.ic_star_ornament, "طريقة الحساب", methodShort) {
+                Prefs.cycleMethod(ctx); AlarmScheduler.scheduleNext(ctx); refreshTick++
+            }
+            SakinaLuxuryPillButton(R.drawable.ic_fajr, "اختبار المنبه", testStatus) {
+                AlarmScheduler.scheduleTest(ctx); refreshTick++
+            }
         }
-
-        Spacer(modifier = Modifier.height(96.dp))
     }
 }
 
 @Composable
-private fun SakinaLuxuryPillButton(
-    @DrawableRes iconRes: Int,
-    title: String,
-    valueText: String,
-    onClick: () -> Unit
-) {
-    val pillShape = RoundedCornerShape(24.dp)
-    val goldBevelBorder = Brush.horizontalGradient(
-        listOf(
-            Color(0x668C6D2E),
-            SakinaBrandColors.GoldBright,
-            SakinaBrandColors.ManuscriptGold,
-            Color(0x668C6D2E)
-        )
-    )
-
+private fun SakinaLuxuryPillButton(@DrawableRes iconRes: Int, title: String, valueText: String, onClick: () -> Unit) {
+    val pillShape = RoundedCornerShape(23.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(46.dp)
+            .height(44.dp)
             .clip(pillShape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xD618222D), Color(0xEB0B0F15))
-                )
-            )
-            .border(0.9.dp, goldBevelBorder, pillShape)
+            .background(Brush.verticalGradient(listOf(Color(0xD618222D), Color(0xEB0B0F15))))
+            .border(0.75.dp, Sakina3DGoldBevelBrush, pillShape)
             .clickable { onClick() }
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.weight(1f)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x24D4AF37))
-                    .border(0.7.dp, SakinaBrandColors.ManuscriptGold.copy(alpha = 0.65f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = iconRes),
-                    contentDescription = null,
-                    modifier = Modifier.size(17.dp)
-                )
-            }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = title,
-                fontFamily = SakinaEditorialFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                color = SakinaBrandColors.LuminousIvory,
-                maxLines = 1
-            )
+            Text(title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1)
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = valueText,
-            fontFamily = SakinaBodyFont,
-            fontSize = 12.sp,
-            color = SakinaBrandColors.GoldBright,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Text(valueText.toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = Color(0xFFE6CF94), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
