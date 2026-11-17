@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material.icons.rounded.Vibration
@@ -21,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -199,15 +202,7 @@ fun HomeScreen(ctx: Context) {
                         ExtraSection.NONE -> {
                             Crossfade(targetState = currentTab, label = "sakina5Tabs") { tab ->
                                 when (tab) {
-                                    SakinaNavTab.HOME -> SakinaHomeContent(
-                                        ctx = ctx,
-                                        currentLang = currentLang,
-                                        onCycleLanguage = {
-                                            val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
-                                            currentLang = next
-                                            sp.edit().putString("app_lang", next.code).apply()
-                                        }
-                                    )
+                                    SakinaNavTab.HOME -> SakinaHomeContent(ctx = ctx)
                                     SakinaNavTab.QIBLA -> SakinaQiblaScreen(ctx = ctx)
                                     SakinaNavTab.QURAN -> SakinaQuranScreen(ctx = ctx)
                                     SakinaNavTab.ADHKAR -> SakinaAdhkarScreen(ctx = ctx)
@@ -218,36 +213,53 @@ fun HomeScreen(ctx: Context) {
                     }
 
                     if (extraSection == ExtraSection.NONE) {
-                        // Menu button
+                        // Right corner: Menu Button
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .statusBarsPadding()
-                                .padding(start = 22.dp, top = 24.dp)
-                                .size(32.dp)
+                                .padding(start = 24.dp, top = 32.dp)
+                                .size(30.dp)
                                 .clip(CircleShape)
-                                .background(currentTheme.bgDeep.copy(alpha = 0.78f))
+                                .background(currentTheme.bgDeep.copy(alpha = 0.82f))
                                 .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
                                 .clickable { scope.launch { drawerState.open() } },
                             contentAlignment = Alignment.Center
                         ) {
-                            Image(painter = painterResource(id = R.drawable.ic_menu), contentDescription = "Menu", modifier = Modifier.size(16.dp))
+                            Image(painter = painterResource(id = R.drawable.ic_menu), contentDescription = "Menu", modifier = Modifier.size(15.dp))
                         }
 
-                        // Settings button
-                        Box(
+                        // Left corner (#5): Petite Language Switcher with custom globe icon & flag (replaces old Settings icon!)
+                        Row(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .statusBarsPadding()
-                                .padding(end = 22.dp, top = 24.dp)
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(currentTheme.bgDeep.copy(alpha = 0.78f))
-                                .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                .clickable { openedFromDrawer = false; extraSection = ExtraSection.SETTINGS },
-                            contentAlignment = Alignment.Center
+                                .padding(end = 24.dp, top = 32.dp)
+                                .height(28.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(currentTheme.bgDeep.copy(alpha = 0.85f))
+                                .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                                .clickable {
+                                    val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
+                                    currentLang = next
+                                    sp.edit().putString("app_lang", next.code).apply()
+                                }
+                                .padding(horizontal = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Image(painter = painterResource(id = R.drawable.ic_settings), contentDescription = "Settings", modifier = Modifier.size(18.dp))
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_language),
+                                contentDescription = "Language",
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "${currentLang.flag} ${currentLang.code.uppercase()}",
+                                fontFamily = SakinaNumeralFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.5.sp,
+                                color = currentTheme.accentBright
+                            )
                         }
                     }
 
@@ -275,14 +287,11 @@ fun HomeScreen(ctx: Context) {
 }
 
 @Composable
-private fun SakinaHomeContent(
-    ctx: Context,
-    currentLang: SakinaLang,
-    onCycleLanguage: () -> Unit
-) {
+private fun SakinaHomeContent(ctx: Context) {
     val theme = LocalSakinaTheme.current
     val s = LocalSakinaStrings.current
     var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var dayOffset by remember { mutableIntStateOf(0) }
     var modeTick by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
@@ -294,12 +303,12 @@ private fun SakinaHomeContent(
     }
 
     val hmFmt = remember { SimpleDateFormat("HH:mm", Locale.US) }
-    val todayPrayers = remember(nowMs / 60_000L) { PrayerEngine.day(ctx, 0) }
+    val todayPrayers = remember(nowMs / 60_000L, dayOffset) { PrayerEngine.day(ctx, dayOffset) }
     val tomorrowPrayers = remember(nowMs / 60_000L) { PrayerEngine.day(ctx, 1) }
 
-    val nextIndexToday = todayPrayers.indexOfFirst { it.second.time > nowMs }
+    val nextIndexToday = PrayerEngine.day(ctx, 0).indexOfFirst { it.second.time > nowMs }
     val (nextDisplayName, nextTimeMs) = if (nextIndexToday >= 0) {
-        s.prayers[nextIndexToday] to todayPrayers[nextIndexToday].second.time
+        s.prayers[nextIndexToday] to PrayerEngine.day(ctx, 0)[nextIndexToday].second.time
     } else {
         s.prayers[0] to tomorrowPrayers.first().second.time
     }
@@ -307,23 +316,23 @@ private fun SakinaHomeContent(
     val remSec = ((nextTimeMs - nowMs).coerceAtLeast(0L) / 1000L)
     val countdownText = String.format(Locale.US, "%02d:%02d:%02d", remSec / 3600, (remSec % 3600) / 60, remSec % 60).toWesternDigits()
 
-    val rows = remember(todayPrayers, nextIndexToday, modeTick, s) {
+    val rows = remember(todayPrayers, nextIndexToday, dayOffset, modeTick, s) {
         todayPrayers.mapIndexed { idx, (keyAr, date) ->
-            BrandPrayerRow(keyAr, s.prayers[idx], hmFmt.format(date).toWesternDigits(), iconForPrayer(keyAr), idx == nextIndexToday, Modes.get(ctx, keyAr))
+            BrandPrayerRow(keyAr, s.prayers[idx], hmFmt.format(date).toWesternDigits(), iconForPrayer(keyAr), dayOffset == 0 && idx == nextIndexToday, Modes.get(ctx, keyAr))
         }
     }
 
-    val maghribMs = todayPrayers.first { it.first == "المغرب" }.second.time
-    val nextFajrMs = tomorrowPrayers.first { it.first == "الفجر" }.second.time
-    val midnightText = hmFmt.format(Date(NightMath.midnight(maghribMs, nextFajrMs))).toWesternDigits()
-    val lastThirdText = hmFmt.format(Date(NightMath.lastThird(maghribMs, nextFajrMs))).toWesternDigits()
-
-    val (gregText, hijriText) = remember(nowMs / 3_600_000L) {
-        val g = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(Date()).toWesternDigits()
-        val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, Prefs.hijriOffset(ctx)) }
-        val ic = IslamicCalendar().apply { timeInMillis = cal.timeInMillis }
+    val viewedCal = remember(dayOffset, nowMs / 3_600_000L) {
+        Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dayOffset) }
+    }
+    val datePillText = remember(viewedCal) {
+        val g = SimpleDateFormat("EEEE dd MMMM yyyy", Locale("ar")).format(viewedCal.time).toWesternDigits()
+        val ic = IslamicCalendar().apply {
+            timeInMillis = viewedCal.timeInMillis
+            add(IslamicCalendar.DAY_OF_MONTH, Prefs.hijriOffset(ctx))
+        }
         val h = "${ic.get(IslamicCalendar.DAY_OF_MONTH)} ${HOME_HIJRI_MONTHS[ic.get(IslamicCalendar.MONTH).coerceIn(0, 11)]} ${ic.get(IslamicCalendar.YEAR)}".toWesternDigits()
-        g to h
+        "$g · $h"
     }
 
     Column(
@@ -331,75 +340,113 @@ private fun SakinaHomeContent(
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 18.dp, end = 18.dp, top = 70.dp, bottom = 78.dp),
+            .padding(start = 22.dp, end = 22.dp, top = 76.dp, bottom = 78.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
+        // 1. Header organized like 19829.jpg: 3D Title + Ornamental Divider + Date Pill with arrows + Today badge
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            SakinaTitle3D(text = s.appName, fontSize = 25.sp)
+            SakinaTitle3D(text = s.appName, fontSize = 24.sp)
             Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                Text("${Place.name(ctx)} · $gregText · $hijriText", fontFamily = SakinaBodyFont, fontSize = 11.sp, color = SakinaBrandColors.LuminousIvory, textAlign = TextAlign.Center)
-                Spacer(Modifier.width(8.dp))
-                // Single compact 6-language pill with flag right on Home
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(24.dp).clip(CircleShape).background(theme.bgCard).border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape).clickable { dayOffset-- },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(16.dp))
+                }
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(theme.bgCard)
-                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
-                        .clickable { onCycleLanguage() }
-                        .padding(horizontal = 7.dp, vertical = 2.dp),
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(theme.bgCard.copy(alpha = 0.88f))
+                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("${currentLang.flag} ${currentLang.code.uppercase()}", fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 10.sp, color = theme.accentBright)
+                    Image(painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null, modifier = Modifier.size(13.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(datePillText, fontFamily = SakinaEditorialFont, fontSize = 11.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1)
+                }
+                Box(
+                    modifier = Modifier.size(24.dp).clip(CircleShape).background(theme.bgCard).border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape).clickable { dayOffset++ },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(16.dp))
+                }
+            }
+            if (dayOffset != 0) {
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF0F3D3E))
+                        .border(0.7.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                        .clickable { dayOffset = 0 }
+                        .padding(horizontal = 12.dp, vertical = 2.dp)
+                ) {
+                    Text("اليوم", fontFamily = SakinaEditorialFont, fontSize = 10.5.sp, color = theme.accentBright)
                 }
             }
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("${s.nextPrayer}: $nextDisplayName", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = SakinaBrandColors.LuminousIvory, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(4.dp))
-            SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 26.dp, vertical = 6.dp)) {
-                Text(countdownText, fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = theme.accentBright, style = TextStyle(fontFeatureSettings = "tnum"))
-            }
-        }
-
-        SakinaParchmentPanel(modifier = Modifier.fillMaxWidth(), cornerRadius = 18.dp, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp)) {
-            rows.forEachIndexed { index, prayer ->
-                SakinaPrayerRow(
-                    prayer = prayer,
-                    onCycleMode = {
-                        val nextMode = when (prayer.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
-                        Modes.set(ctx, prayer.keyNameAr, nextMode)
-                        AlarmScheduler.scheduleNext(ctx)
-                        modeTick++
-                    }
-                )
-                if (index < rows.lastIndex) HorizontalDivider(color = Color(0x22C5A059))
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(32.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(theme.bgCard.copy(alpha = 0.9f))
-                .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
-                .padding(horizontal = 10.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+        // 2. Unified Card Container like 19829.jpg: Dark Navy Top Header with Cartouche + Parchment Rows Below
+        SakinaGlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = 22.dp,
+            glowGold = true,
+            contentPadding = PaddingValues(0.dp)
         ) {
-            Text("${s.midnight}: $midnightText", fontFamily = SakinaBodyFont, fontSize = 11.sp, color = theme.accentBright)
-            Box(Modifier.width(1.dp).height(12.dp).background(SakinaBrandColors.DividerGold))
-            Text("${s.lastThird}: $lastThirdText", fontFamily = SakinaBodyFont, fontSize = 11.sp, color = SakinaBrandColors.LuminousIvory)
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp, start = 14.dp, end = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "❖ ${s.nextPrayer}: $nextDisplayName · ${Place.name(ctx)} ❖",
+                    fontFamily = SakinaEditorialFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = theme.accentBright,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(6.dp))
+                SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 26.dp, vertical = 6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(painter = painterResource(id = R.drawable.ic_fajr), contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Text(countdownText, fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 26.sp, color = theme.accentBright, style = TextStyle(fontFeatureSettings = "tnum"))
+                    }
+                }
+            }
+
+            SakinaParchmentPanel(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = 20.dp,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                rows.forEachIndexed { index, prayer ->
+                    SakinaPrayerRow(
+                        prayer = prayer,
+                        onCycleMode = {
+                            val nextMode = when (prayer.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
+                            Modes.set(ctx, prayer.keyNameAr, nextMode)
+                            AlarmScheduler.scheduleNext(ctx)
+                            SakinaLiveNotifier.update(ctx)
+                            modeTick++
+                        }
+                    )
+                    if (index < rows.lastIndex) HorizontalDivider(color = Color(0x22C5A059))
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun SakinaPrayerRow(prayer: BrandPrayerRow, onCycleMode: () -> Unit) {
-    val bgColor = if (prayer.isNext) Color(0x26C5A059) else Color.Transparent
+    val bgColor = if (prayer.isNext) Color(0x28C5A059) else Color.Transparent
     val modeIcon = when (prayer.mode) {
         2 -> Icons.Rounded.Vibration
         3 -> Icons.Rounded.NotificationsOff
@@ -410,19 +457,39 @@ private fun SakinaPrayerRow(prayer: BrandPrayerRow, onCycleMode: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(bgColor)
-            .padding(horizontal = 6.dp, vertical = 6.dp),
+            .padding(horizontal = 6.dp, vertical = 5.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Right side (in RTL): Diamond ornament + Prayer Name
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(painter = painterResource(id = prayer.iconRes), contentDescription = prayer.displayTitle, modifier = Modifier.size(20.dp))
+            Icon(
+                imageVector = modeIcon,
+                contentDescription = null,
+                tint = if (prayer.mode == 3) Color(0xFF9E8C6C) else Color(0xFFC5A059),
+                modifier = Modifier.size(17.dp).clickable { onCycleMode() }
+            )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(prayer.displayTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = if (prayer.isNext) Color(0xFF0F3D3E) else SakinaInkDark)
+            Text(
+                text = prayer.displayTitle,
+                fontFamily = SakinaEditorialFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = if (prayer.isNext) Color(0xFF0F3D3E) else SakinaInkDark
+            )
         }
+        // Left side (in RTL): Prayer Time + Star/Hexagon Polygon Badge (like 19829.jpg!)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(prayer.timeText.toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = if (prayer.isNext) FontWeight.Bold else FontWeight.Medium, fontSize = 14.sp, color = if (prayer.isNext) Color(0xFF0F3D3E) else Color(0xFF4A3D26), style = TextStyle(fontFeatureSettings = "tnum"))
+            Text(
+                text = prayer.timeText.toWesternDigits(),
+                fontFamily = SakinaNumeralFont,
+                fontWeight = if (prayer.isNext) FontWeight.Bold else FontWeight.SemiBold,
+                fontSize = 14.5.sp,
+                color = if (prayer.isNext) Color(0xFF0F3D3E) else SakinaInkDark,
+                style = TextStyle(fontFeatureSettings = "tnum")
+            )
             Spacer(modifier = Modifier.width(10.dp))
-            Icon(imageVector = modeIcon, contentDescription = null, tint = if (prayer.mode == 3) Color(0xFF8C7A5B) else Color(0xFF0F3D3E), modifier = Modifier.size(18.dp).clickable { onCycleMode() })
+            SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 32.dp)
         }
     }
 }

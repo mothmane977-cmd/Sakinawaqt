@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 enum class SakinaNavTab(@DrawableRes val iconRes: Int) {
     HOME(R.drawable.ic_mosque),
@@ -122,6 +125,40 @@ fun SakinaBackIconButton(
 }
 
 @Composable
+fun SakinaStarPolygonBadge(
+    @DrawableRes iconRes: Int,
+    size: Dp = 36.dp,
+    modifier: Modifier = Modifier
+) {
+    val theme = LocalSakinaTheme.current
+    Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val cx = this.size.width / 2f
+            val cy = this.size.height / 2f
+            val rOuter = this.size.minDimension / 2f
+            val rInner = rOuter * 0.80f
+            val starPath = Path().apply {
+                for (i in 0 until 16) {
+                    val ang = (i * 22.5 - 90.0) * PI / 180.0
+                    val r = if (i % 2 == 0) rOuter else rInner
+                    val x = cx + (r * cos(ang)).toFloat()
+                    val y = cy + (r * sin(ang)).toFloat()
+                    if (i == 0) moveTo(x, y) else lineTo(x, y)
+                }
+                close()
+            }
+            drawPath(starPath, color = theme.bgDeep)
+            drawPath(starPath, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 1.3.dp.toPx()))
+        }
+        Image(
+            painter = painterResource(id = iconRes),
+            contentDescription = null,
+            modifier = Modifier.size(size * 0.52f)
+        )
+    }
+}
+
+@Composable
 fun SakinaBackgroundLayer(
     modifier: Modifier = Modifier,
     @DrawableRes headerImageRes: Int = R.drawable.bg_header_mosque,
@@ -135,12 +172,12 @@ fun SakinaBackgroundLayer(
             painter = painterResource(id = headerImageRes),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.44f).align(Alignment.TopCenter)
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.45f).align(Alignment.TopCenter)
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.46f)
+                .fillMaxHeight(0.47f)
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
@@ -154,65 +191,17 @@ fun SakinaBackgroundLayer(
 
         content()
 
-        // Thick 3D Sculpted Gold Mihrab Arch across full phone width
+        // Real 3D Embossed Multi-foil Gold Mihrab Arch across full screen width (bg_mihrab.png)
         if (showMihrabFrame) {
-            Canvas(
+            Image(
+                painter = painterResource(id = R.drawable.bg_mihrab),
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds,
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .padding(horizontal = 4.dp, vertical = 4.dp)
-            ) {
-                val w = size.width
-                val h = size.height
-                val archShoulderY = 58.dp.toPx()
-                val apexY = 5.dp.toPx()
-                val cornerR = 24.dp.toPx()
-
-                fun buildArch(inset: Float): Path = Path().apply {
-                    val left = inset
-                    val right = w - inset
-                    val top = apexY + inset
-                    val shY = archShoulderY + inset * 0.4f
-                    val bot = h - inset
-                    val r = (cornerR - inset).coerceAtLeast(8f)
-
-                    moveTo(w * 0.5f, top)
-                    cubicTo(w * 0.62f, top + 18.dp.toPx(), w * 0.78f, shY - 10.dp.toPx(), right - 8.dp.toPx(), shY)
-                    quadraticBezierTo(right, shY + 6.dp.toPx(), right, shY + 22.dp.toPx())
-                    lineTo(right, bot - r)
-                    quadraticBezierTo(right, bot, right - r, bot)
-                    lineTo(left + r, bot)
-                    quadraticBezierTo(left, bot, left, bot - r)
-                    lineTo(left, shY + 22.dp.toPx())
-                    quadraticBezierTo(left, shY + 6.dp.toPx(), left + 8.dp.toPx(), shY)
-                    cubicTo(w * 0.22f, shY - 10.dp.toPx(), w * 0.38f, top + 18.dp.toPx(), w * 0.5f, top)
-                    close()
-                }
-
-                val outer = buildArch(0f)
-                val mid = buildArch(4.5.dp.toPx())
-                val inner = buildArch(8.dp.toPx())
-
-                // 3D drop shadow + thick sculptural gold arch + bright specular rim + carved inner line
-                drawPath(outer, color = Color(0x88000000), style = Stroke(width = 9.dp.toPx()))
-                drawPath(outer, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 5.5.dp.toPx()))
-                drawPath(outer, color = Color(0xAAFFF8DC), style = Stroke(width = 1.4.dp.toPx()))
-                drawPath(mid, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 1.8.dp.toPx()))
-                drawPath(inner, color = Color(0x88C5A059), style = Stroke(width = 0.9.dp.toPx()))
-
-                // 3-lobed Islamic crown finial at the apex
-                val d = 8.dp.toPx()
-                val finial = Path().apply {
-                    moveTo(w * 0.5f, apexY - d)
-                    lineTo(w * 0.5f + d, apexY + 5.dp.toPx())
-                    lineTo(w * 0.5f, apexY + d + 10.dp.toPx())
-                    lineTo(w * 0.5f - d, apexY + 5.dp.toPx())
-                    close()
-                }
-                drawPath(finial, brush = Sakina3DGoldBevelBrush)
-                drawPath(finial, color = Color(0xCCFFF8DC), style = Stroke(width = 1.dp.toPx()))
-            }
+            )
         }
     }
 }
@@ -220,7 +209,7 @@ fun SakinaBackgroundLayer(
 @Composable
 fun SakinaOrnamentCartouche(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 22.dp, vertical = 8.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
     content: @Composable BoxScope.() -> Unit
 ) {
     val theme = LocalSakinaTheme.current
@@ -228,25 +217,32 @@ fun SakinaOrnamentCartouche(
         Canvas(modifier = Modifier.matchParentSize()) {
             val w = size.width
             val h = size.height
-            val tip = 15.dp.toPx()
+            val tip = 18.dp.toPx()
+            val notch = 6.dp.toPx()
+            // Multi-lobed Islamic cartouche matching 19829.jpg
             val path = Path().apply {
-                moveTo(tip, 0f); lineTo(w - tip, 0f); lineTo(w, h * 0.5f)
-                lineTo(w - tip, h); lineTo(tip, h); lineTo(0f, h * 0.5f); close()
+                moveTo(tip, 0f)
+                lineTo(w - tip, 0f)
+                quadraticBezierTo(w - tip + notch, notch, w - notch, h * 0.32f)
+                lineTo(w, h * 0.5f)
+                lineTo(w - notch, h * 0.68f)
+                quadraticBezierTo(w - tip + notch, h - notch, w - tip, h)
+                lineTo(tip, h)
+                quadraticBezierTo(tip - notch, h - notch, notch, h * 0.68f)
+                lineTo(0f, h * 0.5f)
+                lineTo(notch, h * 0.32f)
+                quadraticBezierTo(tip - notch, notch, tip, 0f)
+                close()
             }
-            val inner = Path().apply {
-                val i = 3.dp.toPx()
-                moveTo(tip + i, i); lineTo(w - tip - i, i); lineTo(w - i, h * 0.5f)
-                lineTo(w - tip - i, h - i); lineTo(tip + i, h - i); lineTo(i, h * 0.5f); close()
-            }
-            drawPath(path, brush = Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.95f), theme.bgDeep.copy(alpha = 0.97f))))
-            drawPath(path, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 2.dp.toPx()))
-            drawPath(inner, color = Color(0x66C5A059), style = Stroke(width = 0.8.dp.toPx()))
-            val d = 4.5.dp.toPx()
-            listOf(Offset(tip * 0.42f, h * 0.5f), Offset(w - tip * 0.42f, h * 0.5f)).forEach { c ->
-                val dpPath = Path().apply {
-                    moveTo(c.x, c.y - d); lineTo(c.x + d, c.y); lineTo(c.x, c.y + d); lineTo(c.x - d, c.y); close()
+            drawPath(path, brush = Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.95f), theme.bgDeep.copy(alpha = 0.98f))))
+            drawPath(path, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 1.6.dp.toPx()))
+            // Top & bottom floral diamond finials (like 19829.jpg)
+            val d = 3.5.dp.toPx()
+            listOf(Offset(w * 0.5f, 0f), Offset(w * 0.5f, h)).forEach { c ->
+                val f = Path().apply {
+                    moveTo(c.x, c.y - d); lineTo(c.x + d * 1.4f, c.y); lineTo(c.x, c.y + d); lineTo(c.x - d * 1.4f, c.y); close()
                 }
-                drawPath(dpPath, brush = Sakina3DGoldBevelBrush)
+                drawPath(f, brush = Sakina3DGoldBevelBrush)
             }
         }
         Box(modifier = Modifier.padding(contentPadding), contentAlignment = Alignment.Center, content = content)
@@ -257,47 +253,56 @@ fun SakinaOrnamentCartouche(
 fun SakinaParchmentPanel(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 18.dp,
-    contentPadding: PaddingValues = PaddingValues(12.dp),
+    contentPadding: PaddingValues = PaddingValues(14.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
     val theme = LocalSakinaTheme.current
     val shape = RoundedCornerShape(cornerRadius)
-    Column(
+    Box(
         modifier = modifier
             .shadow(12.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
             .clip(shape)
             .background(Brush.verticalGradient(listOf(theme.parchmentTop, theme.parchmentBottom)))
             .drawBehind {
-                // Woven Islamic Damascus lattice texture
-                val step = 18.dp.toPx()
+                val step = 20.dp.toPx()
                 var x = -size.height
                 while (x < size.width + size.height) {
-                    drawLine(Color(0x12A67C2E), Offset(x, 0f), Offset(x + size.height, size.height), strokeWidth = 0.8.dp.toPx())
-                    drawLine(Color(0x12A67C2E), Offset(x + size.height, 0f), Offset(x, size.height), strokeWidth = 0.8.dp.toPx())
+                    drawLine(Color(0x0FA67C2E), Offset(x, 0f), Offset(x + size.height, size.height), strokeWidth = 0.7.dp.toPx())
+                    drawLine(Color(0x0FA67C2E), Offset(x + size.height, 0f), Offset(x, size.height), strokeWidth = 0.7.dp.toPx())
                     x += step
                 }
-                // Gold gilded corner ornaments (all 4 corners)
-                val cLen = 14.dp.toPx()
-                val pad = 5.dp.toPx()
-                val cColor = Color(0xFFC5A059)
-                val sw = 1.6.dp.toPx()
-                // Top-left
-                drawLine(cColor, Offset(pad, pad), Offset(pad + cLen, pad), sw)
-                drawLine(cColor, Offset(pad, pad), Offset(pad, pad + cLen), sw)
-                // Top-right
-                drawLine(cColor, Offset(size.width - pad, pad), Offset(size.width - pad - cLen, pad), sw)
-                drawLine(cColor, Offset(size.width - pad, pad), Offset(size.width - pad, pad + cLen), sw)
-                // Bottom-left
-                drawLine(cColor, Offset(pad, size.height - pad), Offset(pad + cLen, size.height - pad), sw)
-                drawLine(cColor, Offset(pad, size.height - pad), Offset(pad, size.height - pad - cLen), sw)
-                // Bottom-right
-                drawLine(cColor, Offset(size.width - pad, size.height - pad), Offset(size.width - pad - cLen, size.height - pad), sw)
-                drawLine(cColor, Offset(size.width - pad, size.height - pad), Offset(size.width - pad, size.height - pad - cLen), sw)
             }
             .border(1.5.dp, Sakina3DGoldBevelBrush, shape)
-            .padding(contentPadding),
-        content = content
-    )
+    ) {
+        // Real 3D Gilded Islamic Arabesque Ornaments in all 4 corners!
+        val cSize = 26.dp
+        Image(
+            painter = painterResource(id = R.drawable.ic_corner_arabesque),
+            contentDescription = null,
+            alpha = 0.85f,
+            modifier = Modifier.size(cSize).align(Alignment.TopEnd).padding(2.dp).graphicsLayer { scaleX = -1f }
+        )
+        Image(
+            painter = painterResource(id = R.drawable.ic_corner_arabesque),
+            contentDescription = null,
+            alpha = 0.85f,
+            modifier = Modifier.size(cSize).align(Alignment.TopStart).padding(2.dp)
+        )
+        Image(
+            painter = painterResource(id = R.drawable.ic_corner_arabesque),
+            contentDescription = null,
+            alpha = 0.85f,
+            modifier = Modifier.size(cSize).align(Alignment.BottomStart).padding(2.dp).graphicsLayer { scaleY = -1f }
+        )
+        Image(
+            painter = painterResource(id = R.drawable.ic_corner_arabesque),
+            contentDescription = null,
+            alpha = 0.85f,
+            modifier = Modifier.size(cSize).align(Alignment.BottomEnd).padding(2.dp).graphicsLayer { scaleX = -1f; scaleY = -1f }
+        )
+
+        Column(modifier = Modifier.fillMaxWidth().padding(contentPadding), content = content)
+    }
 }
 
 @Composable
@@ -360,9 +365,9 @@ fun SakinaBottomPillBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
             .navigationBarsPadding()
-            .height(62.dp)
+            .height(60.dp)
             .clip(barShape)
             .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.96f), theme.bgDeep)))
             .border(1.dp, Sakina3DGoldBevelBrush, barShape)
@@ -384,12 +389,12 @@ fun SakinaBottomPillBar(
                         else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
                     )
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onTabSelected(tab) }
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 3.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Image(painter = painterResource(id = tab.iconRes), contentDescription = tab.label(s), modifier = Modifier.size(19.dp))
-                Spacer(modifier = Modifier.height(3.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = tab.label(s),
                     fontFamily = SakinaHeadingFont,

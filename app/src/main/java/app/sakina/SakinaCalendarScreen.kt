@@ -120,7 +120,7 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Image(painter = painterResource(id = R.drawable.ic_mosque), contentDescription = null, modifier = Modifier.size(32.dp))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("مواقيت اليوم المختار", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F3D3E))
+                    Text("توقيت صلوات هذا اليوم", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F3D3E))
                     Text(dayPrayers.joinToString(" · ") { "${it.first} ${hm.format(it.second)}" }.toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 10.5.sp, color = SakinaInkDark, textAlign = TextAlign.Center)
                 }
             }
