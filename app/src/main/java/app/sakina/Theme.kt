@@ -33,10 +33,26 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// ───────────── 3-Tier Typography ─────────────
-val NotoNaskh = FontFamily(Font(R.font.notonaskharabic_regular, FontWeight.Normal), Font(R.font.notonaskharabic_bold, FontWeight.Bold))
-val NotoKufi = FontFamily(Font(R.font.notokufiarabic_regular, FontWeight.Normal), Font(R.font.notokufiarabic_bold, FontWeight.Bold))
-val NotoSans = FontFamily(Font(R.font.notosansarabic_regular, FontWeight.Normal), Font(R.font.notosansarabic_bold, FontWeight.Bold))
+// ───────────── الخطوط الجديدة (بناءً على الحزمة التي رفعتها) ─────────────
+val NotoNaskh = FontFamily(
+    Font(R.font.noto_naskh_arabic_regular, FontWeight.Normal),
+    Font(R.font.noto_naskh_arabic_bold, FontWeight.Bold)
+)
+val NotoKufi = FontFamily(
+    Font(R.font.noto_kufi_arabic_regular, FontWeight.Normal),
+    Font(R.font.noto_kufi_arabic_bold, FontWeight.Bold)
+)
+val NotoSans = FontFamily(
+    Font(R.font.noto_sans_arabic_regular, FontWeight.Normal),
+    Font(R.font.noto_sans_arabic_bold, FontWeight.Bold)
+)
+// خط Inter للأرقام (تم رفعه بنجاح)
+val InterFont = FontFamily(
+    Font(R.font.inter_regular, FontWeight.Normal),
+    Font(R.font.inter_medium, FontWeight.Medium),
+    Font(R.font.inter_semibold, FontWeight.SemiBold),
+    Font(R.font.inter_bold, FontWeight.Bold)
+)
 
 private fun sakinaTypography(): Typography {
     val b = Typography()
@@ -50,7 +66,7 @@ private fun sakinaTypography(): Typography {
     )
 }
 
-// ───────────── Premium Color Tokens ─────────────
+// ───────────── الألوان ─────────────
 @Immutable
 class Sky(
     val top: Color,
@@ -65,13 +81,10 @@ class Sky(
     val hairline: Color get() = accent.copy(alpha = 0.25f)
 }
 
-val MIDNIGHT = Color(0xFF0A0E12) // Obsidian
-val EMERALD = Color(0xFF0F3D3E)  // Royal Emerald
-val GOLD = Color(0xFFD4AF37)     // Manuscript Gold
-val IVORY = Color(0xFFFAF8F5)    // Luminous Ivory
-val SURFACE = Color(0xFF131B22)  // Sakina Surface
-
-val GLASS_DARK = Color(0xB8131B22) // rgba(19, 27, 34, 0.72)
+val MIDNIGHT = Color(0xFF0A0E12)
+val GOLD = Color(0xFFD4AF37)
+val IVORY = Color(0xFFFAF8F5)
+val GLASS_DARK = Color(0xB8131B22)
 
 private fun darkSky(top: Long, bottom: Long, accent: Long, ink2: Long) =
     Sky(Color(top), Color(bottom), Color(accent), true, IVORY, Color(ink2), GLASS_DARK, Color(accent).copy(alpha = 0.15f))
@@ -79,17 +92,14 @@ private fun darkSky(top: Long, bottom: Long, accent: Long, ink2: Long) =
 object Brand {
     val GOLD = Color(0xFFD4AF37)
     val ON_GOLD = Color(0xFF1A1408)
-    
-    // 6 Solar Sky States from PDF
     val SKIES = listOf(
         darkSky(0xFF171D36, 0xFF5B4B6E, 0xFFE6C280, 0xFFCFC8DA),   // Fajr
-        darkSky(0xFF0A0E12, 0xFF1C1812, 0xFFD4AF37, 0xFFB8B0A0),   // Duha (Mock Dark)
-        darkSky(0xFF0A0E12, 0xFF131B22, 0xFFD4AF37, 0xFFB8B0A0),   // Dhuhr (Mock Dark)
-        darkSky(0xFF0A0E12, 0xFF131B22, 0xFFD4AF37, 0xFFB8B0A0),   // Asr (Mock Dark)
+        darkSky(0xFF0A0E12, 0xFF1C1812, 0xFFD4AF37, 0xFFB8B0A0),   // Duha
+        darkSky(0xFF0A0E12, 0xFF131B22, 0xFFD4AF37, 0xFFB8B0A0),   // Dhuhr
+        darkSky(0xFF0A0E12, 0xFF131B22, 0xFFD4AF37, 0xFFB8B0A0),   // Asr
         darkSky(0xFF7D4347, 0xFF2B2238, 0xFFE8B468, 0xFFE4DCD0),   // Maghrib
-        darkSky(0xFF0B111C, 0xFF0A0E12, 0xFFD4AF6A, 0xFFB8B0A0)    // Isha (Midnight Mihrab)
+        darkSky(0xFF0B111C, 0xFF0A0E12, 0xFFD4AF6A, 0xFFB8B0A0)    // Isha
     )
-    
     val AMOLED = Sky(Color(0xFF000000), Color(0xFF000000), GOLD, true, IVORY, Color(0xFF8A8A8A), Color(0x14FFFFFF), Color(0x1AD4AF37))
 }
 
@@ -111,7 +121,7 @@ fun switchColors(sky: Sky) = SwitchDefaults.colors(
 )
 
 @Composable
-fun TabularText(text: String, fontSize: TextUnit, color: Color, fontFamily: FontFamily = NotoSans, fontWeight: FontWeight = FontWeight.Normal) {
+fun TabularText(text: String, fontSize: TextUnit, color: Color, fontFamily: FontFamily = InterFont, fontWeight: FontWeight = FontWeight.Normal) {
     val dw = with(LocalDensity.current) { (fontSize.toPx() * 0.6f).toDp() }
     val cw = with(LocalDensity.current) { (fontSize.toPx() * 0.32f).toDp() }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -125,7 +135,6 @@ fun TabularText(text: String, fontSize: TextUnit, color: Color, fontFamily: Font
     }
 }
 
-// Frosted Glass UI Component
 @Composable
 fun GlassCard(sky: Sky, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val shape = RoundedCornerShape(24.dp)
@@ -164,7 +173,7 @@ fun ModeChip(sky: Sky, label: String, onClick: () -> Unit) {
 @Composable
 fun StepButton(sky: Sky, text: String, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick, modifier = Modifier.size(48.dp), contentPadding = PaddingValues(0.dp), border = BorderStroke(0.75.dp, sky.hairline), colors = ButtonDefaults.outlinedButtonColors(contentColor = sky.ink), shape = CircleShape) {
-        Text(text, fontSize = 18.sp, fontFamily = NotoSans)
+        Text(text, fontSize = 18.sp, fontFamily = InterFont)
     }
 }
 
@@ -182,7 +191,6 @@ fun ModeIconButton(sky: Sky, mode: Int, description: String, onClick: () -> Unit
     }
 }
 
-// Floating Glass Bottom Navigation
 @Composable
 fun BrandNav(sky: Sky, labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     val icons = listOf(Icons.Rounded.Home, Icons.Rounded.Explore, Icons.Rounded.Tune)
@@ -213,9 +221,5 @@ fun SkyBackdrop(sky: Sky, modifier: Modifier = Modifier) {
         val glowR = w * 0.95f
         drawCircle(brush = Brush.radialGradient(listOf(sky.halo, Color.Transparent), center = c, radius = glowR), radius = glowR, center = c)
         for (k in 1..5) { drawCircle(sky.accent.copy(alpha = 0.05f), w * 0.17f * k, c, style = Stroke(1.dp.toPx())) }
-        if (sky.dark) {
-            val rnd = java.util.Random(7)
-            for (i in 0 until 48) { val x = rnd.nextFloat() * w; val y = rnd.nextFloat() * h * 0.55f; drawCircle(Color.White.copy(alpha = 0.2f), 1f + rnd.nextFloat(), Offset(x, y)) }
-        }
     }
 }
