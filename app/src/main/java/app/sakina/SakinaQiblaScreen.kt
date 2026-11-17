@@ -16,6 +16,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
@@ -72,8 +73,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
         (res[0] / 1000f).roundToInt()
     }
     val declination = remember(co.latitude, co.longitude) {
-        GeomagneticField(co.latitude.toFloat(), co.longitude.toFloat(), 0f, System.currentTimeMillis())
-            .declination.toDouble()
+        GeomagneticField(co.latitude.toFloat(), co.longitude.toFloat(), 0f, System.currentTimeMillis()).declination.toDouble()
     }
 
     var heading by remember { mutableStateOf(0f) }
@@ -89,20 +89,15 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
         val rotSensor = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
         val magSensor = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
         if (rotSensor == null) {
-            hasSensor = false
-            onDispose { }
+            hasSensor = false; onDispose { }
         } else {
             val l = object : SensorEventListener {
                 override fun onSensorChanged(e: SensorEvent) {
                     if (e.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
-                        val x = e.values[0]
-                        val y = e.values[1]
-                        val z = e.values[2]
-                        magUt = sqrt(x * x + y * y + z * z)
-                        return
+                        val x = e.values[0]; val y = e.values[1]; val z = e.values[2]
+                        magUt = sqrt(x * x + y * y + z * z); return
                     }
-                    val r = FloatArray(9)
-                    val o = FloatArray(3)
+                    val r = FloatArray(9); val o = FloatArray(3)
                     SensorManager.getRotationMatrixFromVector(r, e.values)
                     SensorManager.getOrientation(r, o)
                     if (abs(o[1]) > 0.8f) {
@@ -112,8 +107,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                     }
                     val h = ((Math.toDegrees(o[0].toDouble()) + declination + 720.0) % 360.0).toFloat()
                     if (last.isNaN()) cont = h else cont += ((h - last + 540f) % 360f) - 180f
-                    last = h
-                    heading = h
+                    last = h; heading = h
                 }
                 override fun onAccuracyChanged(s: Sensor?, a: Int) {
                     if (s?.type == Sensor.TYPE_ROTATION_VECTOR) acc = a
@@ -127,9 +121,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
 
     val diff = (((qibla - heading + 540.0) % 360.0) - 180.0)
     val aligned = hasSensor && abs(diff) < 2.0
-    LaunchedEffect(aligned) {
-        if (aligned) view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-    }
+    LaunchedEffect(aligned) { if (aligned) view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK) }
 
     val sun = sakinaSunPosition(co.latitude, co.longitude, System.currentTimeMillis())
     val sunUp = sun.second > 0.0
@@ -138,7 +130,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
     val accLabel = when (acc) {
         SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> "الدقة: عالية"
         SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> "الدقة: جيدة"
-        SensorManager.SENSOR_STATUS_ACCURACY_LOW -> "الدقة: ضعيفة · حرّك الهاتف على شكل ٨"
+        SensorManager.SENSOR_STATUS_ACCURACY_LOW -> "الدقة: ضعيفة · حرّك الهاتف على شكل 8"
         else -> "الدقة: غير مستقرة · أبعد الهاتف عن المعادن"
     }
 
@@ -147,22 +139,20 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 68.dp),
+            .padding(start = 24.dp, end = 24.dp, top = 26.dp, bottom = 76.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = "اتجاه القبلة الحقيقي في ${Place.name(ctx)}",
-            fontFamily = SakinaBodyFont,
-            fontSize = 13.sp,
-            color = SakinaBrandColors.SoftSilver,
+            text = "اتجاه القبلة · ${Place.name(ctx)}",
+            fontFamily = SakinaHeadingFont,
+            fontWeight = FontWeight.Bold,
+            fontSize = 15.sp,
+            color = Color(0xFFE6CF94),
             textAlign = TextAlign.Center
         )
 
-        Box(
-            modifier = Modifier.size(280.dp),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.size(255.dp), contentAlignment = Alignment.Center) {
             SakinaAstrolabeDial(
                 qibla = qibla.toFloat(),
                 headingCont = cont,
@@ -171,76 +161,79 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 aligned = aligned,
                 modifier = Modifier.fillMaxSize()
             )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "${qibla.toInt()}°",
-                    fontFamily = SakinaNumeralFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 32.sp,
-                    color = Color(0xFFE6CF94)
-                )
-                Text(
-                    text = if (aligned) "على القبلة" else sakinaCardinal(qibla),
-                    fontFamily = SakinaHeadingFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = if (aligned) SakinaBrandColors.StableEmerald else Color(0xFFE6CF94)
+            // Clean dark core badge inside the dial so numbers NEVER touch the star tips
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(SakinaRoyalNavy)
+                    .border(0.9.dp, Sakina3DGoldBevelBrush, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_kaaba),
+                    contentDescription = null,
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }
 
-        Text(
-            text = when {
-                !hasSensor -> "لا يوجد مستشعر اتجاه في هذا الهاتف"
-                abs(diff) < 4.0 -> "أنت متجه نحو القبلة"
-                else -> "أدر الهاتف ${abs(diff).toInt()}° نحو ${if (diff > 0) "اليمين" else "اليسار"}"
-            },
-            fontFamily = SakinaHeadingFont,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = if (aligned) SakinaBrandColors.StableEmerald else SakinaBrandColors.LuminousIvory,
-            textAlign = TextAlign.Center
-        )
+        SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 24.dp, vertical = 7.dp)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "${qibla.toInt()}° · ${if (aligned) "على القبلة" else sakinaCardinal(qibla)}".toWesternDigits(),
+                    fontFamily = SakinaNumeralFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = if (aligned) SakinaBrandColors.StableEmerald else Color(0xFFE6CF94)
+                )
+                Text(
+                    text = when {
+                        !hasSensor -> "لا يوجد مستشعر اتجاه"
+                        abs(diff) < 4.0 -> "أنت متجه نحو القبلة"
+                        else -> "أدر الهاتف ${abs(diff).toInt()}° نحو ${if (diff > 0) "اليمين" else "اليسار"}".toWesternDigits()
+                    },
+                    fontFamily = SakinaBodyFont,
+                    fontSize = 12.sp,
+                    color = SakinaBrandColors.LuminousIvory
+                )
+            }
+        }
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
             QiblaTelemetryPill(glow = false) {
                 Image(painter = painterResource(id = R.drawable.ic_kaaba), contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("$distanceKm كم عن مكة", fontFamily = SakinaBodyFont, fontSize = 13.sp, color = Color(0xFFE6CF94))
+                Text("$distanceKm كم عن مكة".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 13.sp, color = Color(0xFFE6CF94))
             }
-
             QiblaTelemetryPill(glow = fieldStable) {
                 Text(
-                    text = "${magUt.roundToInt()} μT · ${if (fieldStable) "مجال مستقر" else "تشويش مغناطيسي"}",
+                    text = "${magUt.roundToInt()} μT · ${if (fieldStable) "مجال مستقر" else "تشويش مغناطيسي"}".toWesternDigits(),
                     fontFamily = SakinaBodyFont,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                     color = if (fieldStable) SakinaBrandColors.StableEmerald else Color(0xFFE6CF94)
                 )
             }
-
             QiblaTelemetryPill(glow = false) {
                 Icon(imageVector = Icons.Rounded.Check, contentDescription = null, tint = Color(0xFFE6CF94), modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(accLabel, fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = Color(0xFFE6CF94), maxLines = 1)
+                Text(accLabel.toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = Color(0xFFE6CF94), maxLines = 1)
             }
         }
     }
 }
 
 @Composable
-private fun QiblaTelemetryPill(
-    glow: Boolean,
-    content: @Composable RowScope.() -> Unit
-) {
-    val pillShape = RoundedCornerShape(20.dp)
+private fun QiblaTelemetryPill(glow: Boolean, content: @Composable RowScope.() -> Unit) {
+    val pillShape = RoundedCornerShape(19.dp)
     val borderBrush = if (glow) Brush.horizontalGradient(listOf(Color(0x664ADE80), Color(0xFFE6CF94), Color(0x664ADE80)))
     else Sakina3DGoldBevelBrush
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
+            .height(38.dp)
             .clip(pillShape)
             .background(Brush.verticalGradient(listOf(Color(0xD618222D), Color(0xEB0B0F15))))
             .border(0.65.dp, borderBrush, pillShape)
@@ -272,26 +265,24 @@ private fun SakinaAstrolabeDial(
             painter = painterResource(id = R.drawable.ic_astrolabe_dial),
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { rotationZ = ringRotation }
+            modifier = Modifier.fillMaxSize().graphicsLayer { rotationZ = ringRotation }
         )
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val cx = size.width / 2f
             val cy = size.height / 2f
-            val outerR = size.minDimension / 2f - 14.dp.toPx()
+            val outerR = size.minDimension / 2f - 12.dp.toPx()
 
             rotate(degrees = ringRotation, pivot = Offset(cx, cy)) {
                 val qRad = Math.toRadians((qibla - 90f).toDouble())
-                val qPos = Offset(cx + (outerR - 18.dp.toPx()) * cos(qRad).toFloat(), cy + (outerR - 18.dp.toPx()) * sin(qRad).toFloat())
-                drawCircle(accentGlow.copy(alpha = 0.35f), 12.dp.toPx(), qPos)
-                drawCircle(accentGlow, 5.5.dp.toPx(), qPos)
+                val qPos = Offset(cx + (outerR - 16.dp.toPx()) * cos(qRad).toFloat(), cy + (outerR - 16.dp.toPx()) * sin(qRad).toFloat())
+                drawCircle(accentGlow.copy(alpha = 0.35f), 11.dp.toPx(), qPos)
+                drawCircle(accentGlow, 5.dp.toPx(), qPos)
 
                 if (sunUp) {
                     val sRad = Math.toRadians((sunAz - 90f).toDouble())
                     val sPos = Offset(cx + outerR * cos(sRad).toFloat(), cy + outerR * sin(sRad).toFloat())
-                    drawCircle(Brush.radialGradient(listOf(Color(0xFFFFF3B0), Color(0xFFFF9800), Color.Transparent), center = sPos, radius = 12.dp.toPx()), 12.dp.toPx(), sPos)
+                    drawCircle(Brush.radialGradient(listOf(Color(0xFFFFF3B0), Color(0xFFFF9800), Color.Transparent), center = sPos, radius = 11.dp.toPx()), 11.dp.toPx(), sPos)
                     drawCircle(Color(0xFFFFE082), 4.5.dp.toPx(), sPos)
                 }
             }

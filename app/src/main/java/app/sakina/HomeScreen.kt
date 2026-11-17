@@ -52,6 +52,8 @@ private val HOME_HIJRI_MONTHS = listOf(
 fun HomeScreen(ctx: Context) {
     var currentTab by remember { mutableStateOf(SakinaNavTab.HOME) }
     var showSettings by remember { mutableStateOf(false) }
+    var serviceDialogTitle by remember { mutableStateOf<String?>(null) }
+    var serviceDialogBody by remember { mutableStateOf<String?>(null) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -65,33 +67,45 @@ fun HomeScreen(ctx: Context) {
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
-                ModalDrawerSheet(
-                    drawerContainerColor = SakinaRoyalNavy,
-                    modifier = Modifier.width(280.dp)
-                ) {
+                ModalDrawerSheet(drawerContainerColor = SakinaRoyalNavy, modifier = Modifier.width(285.dp)) {
                     Column(
                         modifier = Modifier.fillMaxHeight().padding(horizontal = 16.dp, vertical = 24.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text("سَكِينَة · القائمة", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color(0xFFE6CF94))
+                        Text("سَكِينَة · خدمات إضافية", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFFE6CF94))
                         Spacer(Modifier.height(4.dp))
-                        SakinaDrawerPillItem(R.drawable.ic_mosque, "الرئيسية") {
-                            scope.launch { drawerState.close() }; showSettings = false; currentTab = SakinaNavTab.HOME
+
+                        SakinaDrawerPillItem(R.drawable.ic_sunan, "السنن الرواتب", "12 ركعة") {
+                            scope.launch { drawerState.close() }
+                            serviceDialogTitle = "السنن الرواتب (12 ركعة)"
+                            serviceDialogBody = "• الفجر: 2 ركعتان قبلها\n• الظهر: 4 قبلها + 2 بعدها\n• المغرب: 2 ركعتان بعدها\n• العشاء: 2 ركعتان بعدها"
                         }
-                        SakinaDrawerPillItem(R.drawable.ic_kaaba, "القبلة") {
-                            scope.launch { drawerState.close() }; showSettings = false; currentTab = SakinaNavTab.QIBLA
+                        SakinaDrawerPillItem(R.drawable.ic_dhuhr, "وقت الضحى وقيام الليل") {
+                            scope.launch { drawerState.close() }
+                            val events = PrayerEngine.events(ctx, 0)
+                            val sunrise = events.first { it.first == 1 }.second.time
+                            val dhuhr = events.first { it.first == 2 }.second.time
+                            val hm = SimpleDateFormat("HH:mm", Locale.US)
+                            val duhaStart = hm.format(Date(sunrise + 15 * 60_000L))
+                            val duhaEnd = hm.format(Date(dhuhr - 10 * 60_000L))
+                            serviceDialogTitle = "صلاة الضحى والقيام"
+                            serviceDialogBody = "• وقت صلاة الضحى اليوم: من $duhaStart إلى $duhaEnd\n• أفضل وقتها حين ترمض الفصال (قبل الظهر بساعتين).".toWesternDigits()
                         }
-                        SakinaDrawerPillItem(R.drawable.ic_adhkar, "القرآن الكريم", "حفص / ورش") {
-                            scope.launch { drawerState.close() }; showSettings = false; currentTab = SakinaNavTab.QURAN
+                        SakinaDrawerPillItem(R.drawable.ic_fajr, "صيام التطوع والأيام البيض") {
+                            scope.launch { drawerState.close() }
+                            val ic = IslamicCalendar()
+                            val hDay = ic.get(IslamicCalendar.DAY_OF_MONTH)
+                            serviceDialogTitle = "صيام التطوع"
+                            serviceDialogBody = "• اليوم الهجري: $hDay\n• الأيام البيض: 13 و14 و15 من كل شهر هجري\n• سنن الأسبوع: الإثنين والخميس".toWesternDigits()
                         }
-                        SakinaDrawerPillItem(R.drawable.ic_tasbih, "الأذكار والمسبحة") {
-                            scope.launch { drawerState.close() }; showSettings = false; currentTab = SakinaNavTab.ADHKAR
-                        }
-                        SakinaDrawerPillItem(R.drawable.ic_calendar, "التقويم الهجري") {
-                            scope.launch { drawerState.close() }; showSettings = false; currentTab = SakinaNavTab.CALENDAR
+                        SakinaDrawerPillItem(R.drawable.ic_star_ornament, "المناسبات الإسلامية القادمة") {
+                            scope.launch { drawerState.close() }
+                            serviceDialogTitle = "المناسبات القادمة"
+                            serviceDialogBody = "• ليلة الإسراء والمعراج (27 رجب)\n• بداية شهر رمضان (1 رمضان)\n• عيد الفطر (1 شوال)\n• يوم عرفة (9 ذو الحجة)".toWesternDigits()
                         }
                         SakinaDrawerPillItem(R.drawable.ic_settings, "الإعدادات والتنبيهات") {
-                            scope.launch { drawerState.close() }; showSettings = true
+                            scope.launch { drawerState.close() }
+                            showSettings = true
                         }
                     }
                 }
@@ -118,7 +132,7 @@ fun HomeScreen(ctx: Context) {
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .statusBarsPadding()
-                                .padding(start = 24.dp, top = 20.dp)
+                                .padding(start = 24.dp, top = 22.dp)
                                 .size(32.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xC0071422))
@@ -133,7 +147,7 @@ fun HomeScreen(ctx: Context) {
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .statusBarsPadding()
-                                .padding(end = 24.dp, top = 20.dp)
+                                .padding(end = 24.dp, top = 22.dp)
                                 .size(32.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xC0071422))
@@ -152,6 +166,20 @@ fun HomeScreen(ctx: Context) {
                     )
                 }
             }
+        }
+
+        if (serviceDialogTitle != null && serviceDialogBody != null) {
+            AlertDialog(
+                onDismissRequest = { serviceDialogTitle = null },
+                containerColor = SakinaRoyalNavyCard,
+                title = { Text(serviceDialogTitle!!, fontFamily = SakinaHeadingFont, color = Color(0xFFE6CF94)) },
+                text = { Text(serviceDialogBody!!, fontFamily = SakinaBodyFont, color = SakinaBrandColors.LuminousIvory, lineHeight = 24.sp) },
+                confirmButton = {
+                    TextButton(onClick = { serviceDialogTitle = null }) {
+                        Text("إغلاق", fontFamily = SakinaHeadingFont, color = Color(0xFFE6CF94))
+                    }
+                }
+            )
         }
     }
 }
@@ -179,10 +207,7 @@ private fun SakinaHomeContent(ctx: Context) {
     }
 
     val remSec = ((nextTimeMs - nowMs).coerceAtLeast(0L) / 1000L)
-    val countdownText = String.format(
-        Locale.US, "%02d:%02d:%02d",
-        remSec / 3600, (remSec % 3600) / 60, remSec % 60
-    ).toWesternDigits()
+    val countdownText = String.format(Locale.US, "%02d:%02d:%02d", remSec / 3600, (remSec % 3600) / 60, remSec % 60).toWesternDigits()
 
     val rows = todayPrayers.mapIndexed { idx, (name, date) ->
         BrandPrayerRow(name, hmFmt.format(date).toWesternDigits(), iconForPrayer(name), idx == nextIndexToday)
@@ -206,7 +231,7 @@ private fun SakinaHomeContent(ctx: Context) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 70.dp),
+            .padding(start = 20.dp, end = 20.dp, top = 26.dp, bottom = 76.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {

@@ -1,6 +1,7 @@
 package app.sakina
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -93,27 +94,9 @@ private val BUILTIN_HAFS = mapOf(
         "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ (6)",
         "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ (7)"
     ),
-    112 to listOf(
-        "قُلْ هُوَ اللَّهُ أَحَدٌ (1)",
-        "اللَّهُ الصَّمَدُ (2)",
-        "لَمْ يَلِدْ وَلَمْ يُولَدْ (3)",
-        "وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ (4)"
-    ),
-    113 to listOf(
-        "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ (1)",
-        "مِن شَرِّ مَا خَلَقَ (2)",
-        "وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ (3)",
-        "وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ (4)",
-        "وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ (5)"
-    ),
-    114 to listOf(
-        "قُلْ أَعُوذُ بِرَبِّ النَّاسِ (1)",
-        "مَلِكِ النَّاسِ (2)",
-        "إِلَٰهِ النَّاسِ (3)",
-        "مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ (4)",
-        "الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ (5)",
-        "مِنَ الْجِنَّةِ وَالنَّاسِ (6)"
-    )
+    112 to listOf("قُلْ هُوَ اللَّهُ أَحَدٌ (1)", "اللَّهُ الصَّمَدُ (2)", "لَمْ يَلِدْ وَلَمْ يُولَدْ (3)", "وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ (4)"),
+    113 to listOf("قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ (1)", "مِن شَرِّ مَا خَلَقَ (2)", "وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ (3)", "وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ (4)", "وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ (5)"),
+    114 to listOf("قُلْ أَعُوذُ بِرَبِّ النَّاسِ (1)", "مَلِكِ النَّاسِ (2)", "إِلَٰهِ النَّاسِ (3)", "مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ (4)", "الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ (5)", "مِنَ الْجِنَّةِ وَالنَّاسِ (6)")
 )
 
 private val BUILTIN_WARSH = mapOf(
@@ -126,27 +109,9 @@ private val BUILTIN_WARSH = mapOf(
         "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ (6)",
         "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ (7)"
     ),
-    112 to listOf(
-        "قُلْ هُوَ اللَّهُ أَحَدٌ (1)",
-        "اللَّهُ الصَّمَدُ (2)",
-        "لَمْ يَلِدْ وَلَمْ يُولَدْ (3)",
-        "وَلَمْ يَكُن لَّهُ كُفُؤًا أَحَدٌ (4)"
-    ),
-    113 to listOf(
-        "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ (1)",
-        "مِن شَرِّ مَا خَلَقَ (2)",
-        "وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ (3)",
-        "وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ (4)",
-        "وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ (5)"
-    ),
-    114 to listOf(
-        "قُلْ أَعُوذُ بِرَبِّ النَّاسِ (1)",
-        "مَلِكِ النَّاسِ (2)",
-        "إِلَٰهِ النَّاسِ (3)",
-        "مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ (4)",
-        "الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ (5)",
-        "مِنَ الْجِنَّةِ وَالنَّاسِ (6)"
-    )
+    112 to listOf("قُلْ هُوَ اللَّهُ أَحَدٌ (1)", "اللَّهُ الصَّمَدُ (2)", "لَمْ يَلِدْ وَلَمْ يُولَدْ (3)", "وَلَمْ يَكُن لَّهُ كُفُؤًا أَحَدٌ (4)"),
+    113 to listOf("قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ (1)", "مِن شَرِّ مَا خَلَقَ (2)", "وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ (3)", "وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ (4)", "وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ (5)"),
+    114 to listOf("قُلْ أَعُوذُ بِرَبِّ النَّاسِ (1)", "مَلِكِ النَّاسِ (2)", "إِلَٰهِ النَّاسِ (3)", "مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ (4)", "الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ (5)", "مِنَ الْجِنَّةِ وَالنَّاسِ (6)")
 )
 
 private fun loadSurahAyahs(ctx: Context, riwaya: QuranRiwaya, surahNum: Int): List<String> {
@@ -154,26 +119,22 @@ private fun loadSurahAyahs(ctx: Context, riwaya: QuranRiwaya, surahNum: Int): Li
         ctx.assets.open(riwaya.assetFile).bufferedReader().use { reader ->
             val root = JSONObject(reader.readText())
             val arr = root.optJSONArray(surahNum.toString())
-            if (arr != null && arr.length() > 0) {
-                return List(arr.length()) { i -> arr.getString(i).toWesternDigits() }
-            }
+            if (arr != null && arr.length() > 0) return List(arr.length()) { i -> arr.getString(i).toWesternDigits() }
         }
     } catch (_: Exception) { }
     val map = if (riwaya == QuranRiwaya.WARSH) BUILTIN_WARSH else BUILTIN_HAFS
-    return map[surahNum] ?: listOf(
-        "لإظهار نص السورة كاملاً بدون إنترنت، أضف ملف ${riwaya.assetFile} في مجلد app/src/main/assets/."
-    )
+    return map[surahNum] ?: listOf("لإظهار نص السورة كاملاً بدون إنترنت، أضف ملف ${riwaya.assetFile} في مجلد app/src/main/assets/.")
 }
 
 @Composable
 fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
     val sp = remember { ctx.getSharedPreferences("quran_prefs", Context.MODE_PRIVATE) }
-    var riwaya by remember {
-        mutableStateOf(if (sp.getString("riwaya", "hafs") == "warsh") QuranRiwaya.WARSH else QuranRiwaya.HAFS)
-    }
+    var riwaya by remember { mutableStateOf(if (sp.getString("riwaya", "hafs") == "warsh") QuranRiwaya.WARSH else QuranRiwaya.HAFS) }
     var lastSurahNum by remember { mutableIntStateOf(sp.getInt("last_surah", 1)) }
     var openedSurah by remember { mutableStateOf<SurahMeta?>(null) }
     var searchQuery by remember { mutableStateOf("") }
+
+    BackHandler(enabled = openedSurah != null) { openedSurah = null }
 
     if (openedSurah != null) {
         val surah = openedSurah!!
@@ -183,26 +144,23 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(start = 22.dp, end = 22.dp, top = 20.dp, bottom = 74.dp)
+                .padding(start = 18.dp, end = 18.dp, top = 62.dp, bottom = 78.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "رجوع",
-                    tint = Color(0xFFE6CF94),
-                    modifier = Modifier.size(24.dp).clickable { openedSurah = null }
-                )
-                Text(
-                    text = "${surah.name} · ${riwaya.labelAr}",
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color(0xFFE6CF94)
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xD60B1C2E))
+                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
+                        .clickable { openedSurah = null }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "السور", tint = Color(0xFFE6CF94), modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("السور", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFE6CF94))
+                }
+                Text("${surah.name} · ${riwaya.labelAr}", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFFE6CF94))
                 Icon(
                     imageVector = Icons.Rounded.Bookmark,
                     contentDescription = "تذكر",
@@ -213,22 +171,11 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                     }
                 )
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            SakinaParchmentPanel(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp)
-            ) {
+            Spacer(modifier = Modifier.height(10.dp))
+            SakinaParchmentPanel(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     ayahs.forEach { ayah ->
-                        Text(
-                            text = ayah.toWesternDigits(),
-                            fontFamily = SakinaEditorialFont,
-                            fontSize = 19.sp,
-                            lineHeight = 34.sp,
-                            color = SakinaInkDark,
-                            textAlign = TextAlign.Justify,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
-                        )
+                        Text(ayah.toWesternDigits(), fontFamily = SakinaEditorialFont, fontSize = 19.sp, lineHeight = 34.sp, color = SakinaInkDark, textAlign = TextAlign.Justify, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp))
                         HorizontalDivider(color = Color(0x22C5A059))
                     }
                 }
@@ -239,113 +186,52 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
 
     val filteredSurahs = remember(searchQuery) {
         val q = searchQuery.trim()
-        if (q.isEmpty()) ALL_SURAHS
-        else ALL_SURAHS.filter { it.name.contains(q) || it.number.toString() == q }
+        if (q.isEmpty()) ALL_SURAHS else ALL_SURAHS.filter { it.name.contains(q) || it.number.toString() == q }
     }
     val lastSurahMeta = ALL_SURAHS.firstOrNull { it.number == lastSurahNum } ?: ALL_SURAHS.first()
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 72.dp),
+        modifier = modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 78.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "القرآن",
-            fontFamily = SakinaEditorialFont,
-            fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
-            color = Color(0xFFE6CF94)
-        )
+        Text("القرآن", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 23.sp, color = Color(0xFFE6CF94))
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Riwaya Switcher (حفص / ورش)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xD60B1C2E))
-                .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(18.dp))
-                .padding(3.dp),
+            modifier = Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(18.dp)).background(Color(0xD60B1C2E)).border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(18.dp)).padding(3.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             QuranRiwaya.entries.forEach { r ->
                 val sel = r == riwaya
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(15.dp))
-                        .background(
-                            if (sel) Brush.horizontalGradient(listOf(Color(0xFFC5A059), Color(0xFFF0DAA0)))
-                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
-                        )
-                        .clickable {
-                            riwaya = r
-                            sp.edit().putString("riwaya", r.key).apply()
-                        },
+                    modifier = Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(15.dp)).background(
+                        if (sel) Brush.horizontalGradient(listOf(Color(0xFFC5A059), Color(0xFFF0DAA0))) else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                    ).clickable { riwaya = r; sp.edit().putString("riwaya", r.key).apply() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = r.labelAr,
-                        fontFamily = SakinaHeadingFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = if (sel) SakinaRoyalNavy else Color(0xFFE6CF94)
-                    )
+                    Text(r.labelAr, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (sel) SakinaRoyalNavy else Color(0xFFE6CF94))
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Search Box
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(38.dp)
-                .clip(RoundedCornerShape(19.dp))
-                .background(Color(0xD60B1C2E))
-                .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(19.dp))
-                .padding(horizontal = 12.dp),
+            modifier = Modifier.fillMaxWidth().height(38.dp).clip(RoundedCornerShape(19.dp)).background(Color(0xD60B1C2E)).border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(19.dp)).padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(Icons.Rounded.Search, contentDescription = null, tint = Color(0xFFC5A059), modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Box(modifier = Modifier.weight(1f)) {
-                if (searchQuery.isEmpty()) {
-                    Text("ابحث عن سورة...", fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.SoftSilver)
-                }
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    singleLine = true,
-                    textStyle = TextStyle(fontFamily = SakinaBodyFont, fontSize = 13.sp, color = SakinaBrandColors.LuminousIvory),
-                    cursorBrush = SolidColor(Color(0xFFE6CF94)),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (searchQuery.isEmpty()) Text("ابحث عن سورة...", fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.SoftSilver)
+                BasicTextField(value = searchQuery, onValueChange = { searchQuery = it }, singleLine = true, textStyle = TextStyle(fontFamily = SakinaBodyFont, fontSize = 13.sp, color = SakinaBrandColors.LuminousIvory), cursorBrush = SolidColor(Color(0xFFE6CF94)), modifier = Modifier.fillMaxWidth())
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Remember / Resume Reading Card
-        SakinaGlassCard(
-            modifier = Modifier.fillMaxWidth().clickable {
-                openedSurah = lastSurahMeta
-            },
-            cornerRadius = 16.dp,
-            glowGold = true,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        SakinaGlassCard(modifier = Modifier.fillMaxWidth().clickable { openedSurah = lastSurahMeta }, cornerRadius = 16.dp, glowGold = true, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(painter = painterResource(id = R.drawable.ic_adhkar), contentDescription = null, modifier = Modifier.size(30.dp))
                     Spacer(modifier = Modifier.width(10.dp))
@@ -354,12 +240,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                         Text("الرواية: ${riwaya.labelAr}", fontFamily = SakinaBodyFont, fontSize = 11.sp, color = SakinaBrandColors.SoftSilver)
                     }
                 }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.horizontalGradient(listOf(Color(0xFFC5A059), Color(0xFFF0DAA0))))
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
+                Box(modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Brush.horizontalGradient(listOf(Color(0xFFC5A059), Color(0xFFF0DAA0)))).padding(horizontal = 10.dp, vertical = 5.dp)) {
                     Text("متابعة", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = SakinaRoyalNavy)
                 }
             }
@@ -367,57 +248,26 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 114 Surahs Parchment List
-        SakinaParchmentPanel(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-        ) {
+        SakinaParchmentPanel(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(filteredSurahs) { s ->
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                lastSurahNum = s.number
-                                sp.edit().putInt("last_surah", s.number).putString("riwaya", riwaya.key).apply()
-                                openedSurah = s
-                            }
-                            .padding(horizontal = 6.dp, vertical = 9.dp),
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            lastSurahNum = s.number
+                            sp.edit().putInt("last_surah", s.number).putString("riwaya", riwaya.key).apply()
+                            openedSurah = s
+                        }.padding(horizontal = 6.dp, vertical = 9.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(SakinaRoyalNavy)
-                                    .border(1.dp, Sakina3DGoldBevelBrush, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${s.number}".toWesternDigits(),
-                                    fontFamily = SakinaNumeralFont,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                    color = Color(0xFFE6CF94)
-                                )
+                            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(SakinaRoyalNavy).border(1.dp, Sakina3DGoldBevelBrush, CircleShape), contentAlignment = Alignment.Center) {
+                                Text("${s.number}".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFE6CF94))
                             }
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = s.name,
-                                fontFamily = SakinaEditorialFont,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = SakinaInkDark
-                            )
+                            Text(s.name, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = SakinaInkDark)
                         }
-                        Text(
-                            text = "${s.ayahs} آية".toWesternDigits(),
-                            fontFamily = SakinaNumeralFont,
-                            fontSize = 11.5.sp,
-                            color = Color(0xFF6B5224)
-                        )
+                        Text("${s.ayahs} آية".toWesternDigits(), fontFamily = SakinaNumeralFont, fontSize = 11.5.sp, color = Color(0xFF6B5224))
                     }
                     HorizontalDivider(color = Color(0x22C5A059))
                 }
