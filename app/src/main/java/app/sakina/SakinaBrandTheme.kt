@@ -30,20 +30,14 @@ object SakinaBrandColors {
     val DividerGold = Color(0x33D4AF37)
 }
 
-val SakinaHeadingFont = FontFamily(
-    Font(R.font.noto_kufi_arabic_regular, FontWeight.Normal),
-    Font(R.font.noto_kufi_arabic_bold, FontWeight.Bold)
-)
-
-val SakinaBodyFont = FontFamily(
-    Font(R.font.noto_sans_arabic_regular, FontWeight.Normal),
-    Font(R.font.noto_sans_arabic_bold, FontWeight.Bold)
-)
-
 val SakinaEditorialFont = FontFamily(
     Font(R.font.noto_naskh_arabic_regular, FontWeight.Normal),
     Font(R.font.noto_naskh_arabic_bold, FontWeight.Bold)
 )
+
+val SakinaHeadingFont = SakinaEditorialFont
+
+val SakinaBodyFont = SakinaEditorialFont
 
 val SakinaNumeralFont = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),
