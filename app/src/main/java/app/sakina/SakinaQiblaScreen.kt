@@ -13,9 +13,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
@@ -23,13 +24,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -144,11 +146,11 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .navigationBarsPadding()
+            .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 68.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Spacer(modifier = Modifier.height(14.dp))
         Text(
             text = "اتجاه القبلة الحقيقي في ${Place.name(ctx)}",
             fontFamily = SakinaBodyFont,
@@ -156,10 +158,9 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             color = SakinaBrandColors.SoftSilver,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(18.dp))
 
         Box(
-            modifier = Modifier.size(290.dp),
+            modifier = Modifier.size(280.dp),
             contentAlignment = Alignment.Center
         ) {
             SakinaAstrolabeDial(
@@ -171,30 +172,23 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxSize()
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_kaaba),
-                    contentDescription = "الكعبة المشرفة",
-                    modifier = Modifier.size(30.dp)
-                )
-                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "${qibla.toInt()}°",
                     fontFamily = SakinaNumeralFont,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 38.sp,
-                    color = SakinaBrandColors.GoldBright
+                    fontSize = 32.sp,
+                    color = Color(0xFFE6CF94)
                 )
                 Text(
                     text = if (aligned) "على القبلة" else sakinaCardinal(qibla),
                     fontFamily = SakinaHeadingFont,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = if (aligned) SakinaBrandColors.StableEmerald else SakinaBrandColors.GoldBright
+                    fontSize = 16.sp,
+                    color = if (aligned) SakinaBrandColors.StableEmerald else Color(0xFFE6CF94)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = when {
                 !hasSensor -> "لا يوجد مستشعر اتجاه في هذا الهاتف"
@@ -203,91 +197,58 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             },
             fontFamily = SakinaHeadingFont,
             fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
+            fontSize = 14.sp,
             color = if (aligned) SakinaBrandColors.StableEmerald else SakinaBrandColors.LuminousIvory,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(18.dp))
-
-        SakinaGlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 18.dp,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_kaaba),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "$distanceKm كم عن مكة",
-                    fontFamily = SakinaBodyFont,
-                    fontSize = 14.sp,
-                    color = SakinaBrandColors.GoldBright
-                )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            QiblaTelemetryPill(glow = false) {
+                Image(painter = painterResource(id = R.drawable.ic_kaaba), contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("$distanceKm كم عن مكة", fontFamily = SakinaBodyFont, fontSize = 13.sp, color = Color(0xFFE6CF94))
             }
-        }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        SakinaGlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 18.dp,
-            glowGold = fieldStable,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            QiblaTelemetryPill(glow = fieldStable) {
                 Text(
                     text = "${magUt.roundToInt()} μT · ${if (fieldStable) "مجال مستقر" else "تشويش مغناطيسي"}",
                     fontFamily = SakinaBodyFont,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = if (fieldStable) SakinaBrandColors.StableEmerald else SakinaBrandColors.GoldBright
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        SakinaGlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 18.dp,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = null,
-                    tint = SakinaBrandColors.GoldBright,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = accLabel,
-                    fontFamily = SakinaBodyFont,
                     fontSize = 13.sp,
-                    color = SakinaBrandColors.GoldBright
+                    color = if (fieldStable) SakinaBrandColors.StableEmerald else Color(0xFFE6CF94)
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(100.dp))
+            QiblaTelemetryPill(glow = false) {
+                Icon(imageVector = Icons.Rounded.Check, contentDescription = null, tint = Color(0xFFE6CF94), modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(accLabel, fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = Color(0xFFE6CF94), maxLines = 1)
+            }
+        }
     }
+}
+
+@Composable
+private fun QiblaTelemetryPill(
+    glow: Boolean,
+    content: @Composable RowScope.() -> Unit
+) {
+    val pillShape = RoundedCornerShape(20.dp)
+    val borderBrush = if (glow) Brush.horizontalGradient(listOf(Color(0x664ADE80), Color(0xFFE6CF94), Color(0x664ADE80)))
+    else Sakina3DGoldBevelBrush
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(pillShape)
+            .background(Brush.verticalGradient(listOf(Color(0xD618222D), Color(0xEB0B0F15))))
+            .border(0.65.dp, borderBrush, pillShape)
+            .padding(horizontal = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+        content = content
+    )
 }
 
 @Composable
@@ -302,82 +263,46 @@ private fun SakinaAstrolabeDial(
     val ringRotation by animateFloatAsState(
         targetValue = -headingCont,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "astrolabeRing"
+        label = "astrolabe3DRing"
     )
-    val ringColor = if (aligned) SakinaBrandColors.StableEmerald else SakinaBrandColors.GoldBright
+    val accentGlow = if (aligned) SakinaBrandColors.StableEmerald else Color(0xFFE6CF94)
 
-    Canvas(modifier = modifier) {
-        val cx = size.width / 2f
-        val cy = size.height / 2f
-        val center = Offset(cx, cy)
-        val outerR = size.minDimension / 2f - 12.dp.toPx()
-
-        drawCircle(
-            brush = Brush.radialGradient(
-                listOf(SakinaBrandColors.ManuscriptGold.copy(alpha = 0.16f), Color.Transparent),
-                center = center,
-                radius = outerR * 1.05f
-            ),
-            radius = outerR * 1.05f,
-            center = center
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_astrolabe_dial),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { rotationZ = ringRotation }
         )
 
-        drawCircle(
-            brush = Brush.sweepGradient(
-                listOf(SakinaBrandColors.ManuscriptGold, ringColor, SakinaBrandColors.MutedGold, SakinaBrandColors.ManuscriptGold)
-            ),
-            radius = outerR,
-            center = center,
-            style = Stroke(width = 3.5.dp.toPx())
-        )
-        drawCircle(
-            color = SakinaBrandColors.ManuscriptGold.copy(alpha = 0.45f),
-            radius = outerR * 0.72f,
-            center = center,
-            style = Stroke(width = 1.5.dp.toPx())
-        )
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val cx = size.width / 2f
+            val cy = size.height / 2f
+            val outerR = size.minDimension / 2f - 14.dp.toPx()
 
-        rotate(degrees = ringRotation, pivot = center) {
-            val side = outerR * 1.02f
-            listOf(0f, 45f).forEach { angle ->
-                rotate(angle, pivot = center) {
-                    drawRect(
-                        color = SakinaBrandColors.ManuscriptGold.copy(alpha = 0.22f),
-                        topLeft = Offset(cx - side / 2f, cy - side / 2f),
-                        size = Size(side, side),
-                        style = Stroke(1.2.dp.toPx())
-                    )
+            rotate(degrees = ringRotation, pivot = Offset(cx, cy)) {
+                val qRad = Math.toRadians((qibla - 90f).toDouble())
+                val qPos = Offset(cx + (outerR - 18.dp.toPx()) * cos(qRad).toFloat(), cy + (outerR - 18.dp.toPx()) * sin(qRad).toFloat())
+                drawCircle(accentGlow.copy(alpha = 0.35f), 12.dp.toPx(), qPos)
+                drawCircle(accentGlow, 5.5.dp.toPx(), qPos)
+
+                if (sunUp) {
+                    val sRad = Math.toRadians((sunAz - 90f).toDouble())
+                    val sPos = Offset(cx + outerR * cos(sRad).toFloat(), cy + outerR * sin(sRad).toFloat())
+                    drawCircle(Brush.radialGradient(listOf(Color(0xFFFFF3B0), Color(0xFFFF9800), Color.Transparent), center = sPos, radius = 12.dp.toPx()), 12.dp.toPx(), sPos)
+                    drawCircle(Color(0xFFFFE082), 4.5.dp.toPx(), sPos)
                 }
             }
-            for (deg in 0 until 360 step 5) {
-                val major = deg % 30 == 0
-                val len = if (major) 14.dp.toPx() else 7.dp.toPx()
-                val rad = Math.toRadians((deg - 90).toDouble())
-                drawLine(
-                    color = SakinaBrandColors.GoldBright.copy(alpha = if (major) 0.95f else 0.35f),
-                    start = Offset(cx + (outerR - len) * cos(rad).toFloat(), cy + (outerR - len) * sin(rad).toFloat()),
-                    end = Offset(cx + outerR * cos(rad).toFloat(), cy + outerR * sin(rad).toFloat()),
-                    strokeWidth = if (major) 2.dp.toPx() else 1.dp.toPx()
-                )
-            }
-            val qRad = Math.toRadians((qibla - 90f).toDouble())
-            val qPos = Offset(cx + (outerR - 22.dp.toPx()) * cos(qRad).toFloat(), cy + (outerR - 22.dp.toPx()) * sin(qRad).toFloat())
-            drawCircle(ringColor.copy(alpha = 0.28f), 14.dp.toPx(), qPos)
-            drawCircle(ringColor, 6.dp.toPx(), qPos)
 
-            if (sunUp) {
-                val sRad = Math.toRadians((sunAz - 90f).toDouble())
-                val sPos = Offset(cx + (outerR - 10.dp.toPx()) * cos(sRad).toFloat(), cy + (outerR - 10.dp.toPx()) * sin(sRad).toFloat())
-                drawCircle(Color(0xFFFFB74D), 6.dp.toPx(), sPos)
+            val pointer = Path().apply {
+                moveTo(cx, cy - outerR - 6.dp.toPx())
+                lineTo(cx - 7.dp.toPx(), cy - outerR + 10.dp.toPx())
+                lineTo(cx + 7.dp.toPx(), cy - outerR + 10.dp.toPx())
+                close()
             }
+            drawPath(pointer, color = accentGlow)
         }
-
-        val tip = Path().apply {
-            moveTo(cx, cy - outerR - 4.dp.toPx())
-            lineTo(cx - 7.dp.toPx(), cy - outerR + 12.dp.toPx())
-            lineTo(cx + 7.dp.toPx(), cy - outerR + 12.dp.toPx())
-            close()
-        }
-        drawPath(path = tip, color = ringColor)
     }
 }
