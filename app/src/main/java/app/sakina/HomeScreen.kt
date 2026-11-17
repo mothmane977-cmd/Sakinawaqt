@@ -64,7 +64,7 @@ private fun ExpandableSection(title: String, sky: Sky, content: @Composable Colu
             Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(title, color = sky.ink, fontSize = 16.sp, fontFamily = NotoKufi, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text(title, color = sky.ink, fontSize = 16.sp, fontFamily = NotoNaskh, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             Icon(if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, contentDescription = null, tint = sky.accent)
         }
         AnimatedVisibility(visible = expanded) {
@@ -80,10 +80,11 @@ private fun HomeTab(
     val ink = sky.ink
     val hm = remember { SimpleDateFormat("HH:mm", Locale.US) }
     
-    Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp)) {
+    // استخدام Column مع padding لتقسيم الشاشة بالتساوي
+    Column(modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 6.dp)) {
         
-        // 1. صورة الخلفية (Mihrab)
-        Box(Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(bottomStart = 100.dp, bottomEnd = 100.dp))) {
+        // 1. الخلفية والساعة (الجزء العلوي)
+        Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(bottomStart = 60.dp, bottomEnd = 60.dp))) {
             Image(
                 painter = painterResource(id = R.drawable.bg_sky),
                 contentDescription = null,
@@ -91,33 +92,40 @@ private fun HomeTab(
                 contentScale = ContentScale.Crop
             )
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, sky.top))))
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxSize().padding(top = 30.dp)) {
-                Text(hm.format(now), color = ink, fontSize = 64.sp, fontFamily = InterFont, fontWeight = FontWeight.Bold)
-                Text("${Place.name(ctx)}  ·  $hijri", color = sky.accent, fontSize = 14.sp, fontFamily = NotoKufi)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally, 
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                TabularText(hm.format(now), 56.sp, ink, InterFont, FontWeight.Bold)
+                Text("${Place.name(ctx)}  ·  $hijri", color = sky.accent, fontSize = 14.sp, fontFamily = NotoNaskh)
             }
         }
 
-        // 2. بطاقة الصلاة القادمة
-        GlassCard(sky, Modifier.padding(top = 16.dp)) {
-            Text("الصلاة القادمة: ${NAMES[nxt.first]}", color = sky.ink2, fontSize = 14.sp, fontFamily = NotoSans)
+        // 2. بطاقة الصلاة القادمة (الجزء الأوسط)
+        GlassCard(sky, Modifier.weight(0.4f).padding(vertical = 8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("الصلاة القادمة", color = sky.ink2, fontSize = 13.sp, fontFamily = NotoNaskh)
+                Text(NAMES[nxt.first], color = sky.accent, fontSize = 16.sp, fontFamily = NotoNaskh, fontWeight = FontWeight.Bold)
+            }
             TabularText(
                 String.format(Locale.US, "%02d:%02d:%02d", left / 3600, (left % 3600) / 60, left % 60),
-                40.sp, sky.accent, InterFont, FontWeight.Bold
+                36.sp, sky.accent, InterFont, FontWeight.Bold
             )
         }
 
-        // 3. قائمة المواقيت (بخلفية عاجية)
-        val ivoryCard = RoundedCornerShape(24.dp)
+        // 3. قائمة المواقيت (الجزء السفلي)
+        val ivoryCard = RoundedCornerShape(20.dp)
         Column(
-            Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp).clip(ivoryCard).background(Color(0xFFFAF8F5)).padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            Modifier.weight(2.5f).fillMaxWidth().padding(bottom = 8.dp).clip(ivoryCard).background(Color(0xFFFAF8F5)).padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.SpaceEvenly // توزيع متساوٍ
         ) {
             events(ctx, 0).forEach { (i, t) ->
                 val isNext = i == nxt.first
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                         .background(if (isNext) sky.accent.copy(alpha = 0.15f) else Color.Transparent)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val iconRes = when(i) {
@@ -128,14 +136,11 @@ private fun HomeTab(
                         5 -> R.drawable.ic_isha
                         else -> R.drawable.ic_fajr
                     }
-                    Image(
-                        painter = painterResource(id = iconRes),
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(NAMES[i], color = Color(0xFF1C1613), fontSize = 18.sp, fontFamily = NotoKufi, fontWeight = if(isNext) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.weight(1f))
-                    TabularText(hm.format(t), 18.sp, Color(0xFF1C1613), InterFont, FontWeight.Medium)
+                    Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(8.dp))
+                    // النص هنا أصبح بخط النسخ
+                    Text(NAMES[i], color = Color(0xFF1C1613), fontSize = 16.sp, fontFamily = NotoNaskh, fontWeight = if(isNext) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.weight(1f))
+                    TabularText(hm.format(t), 16.sp, Color(0xFF1C1613), InterFont, FontWeight.Medium)
                 }
             }
         }
@@ -192,32 +197,33 @@ fun HomeScreen(ctx: Context) {
                 drawerContent = {
                     ModalDrawerSheet(drawerContainerColor = Color(0xFF0A0E12), drawerContentColor = sky.ink) {
                         Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Text("سكينة", color = sky.accent, fontSize = 28.sp, fontFamily = NotoKufi, fontWeight = FontWeight.Bold)
+                            Text("سكينة", color = sky.accent, fontSize = 28.sp, fontFamily = NotoNaskh, fontWeight = FontWeight.Bold)
                             
-                            GoldButton("المسبحة الإلكترونية", Modifier.fillMaxWidth()) {
+                            // الأزرار هنا أصبحت متوسطة وأنيقة
+                            GoldButton("المسبحة الإلكترونية") {
                                 scope.launch { drawerState.close() }
                                 tab = 2
                             }
                             
                             ExpandableSection("الموقع", sky) {
-                                Text("${Place.name(ctx)}", color = sky.ink2)
-                                GoldButton("تحديث الموقع", Modifier.fillMaxWidth()) { /* locate() */ }
+                                Text("${Place.name(ctx)}", color = sky.ink2, fontFamily = NotoNaskh)
+                                GoldButton("تحديث الموقع") { /* locate() */ }
                             }
                             
                             ExpandableSection("الإشعارات", sky) {
-                                Text("نوع التنبيه لكل صلاة", color = sky.ink2)
+                                Text("نوع التنبيه لكل صلاة", color = sky.ink2, fontFamily = NotoNaskh)
                             }
                             
                             ExpandableSection("الحساب والتاريخ", sky) {
-                                Text("الطريقة: ${Prefs.methodLabel(ctx)}", color = sky.ink2)
-                                GlassButton(sky, "تغيير طريقة الحساب", Modifier.fillMaxWidth()) { Prefs.cycleMethod(ctx); AlarmScheduler.scheduleNext(ctx); cfgVer++ }
+                                Text("الطريقة: ${Prefs.methodLabel(ctx)}", color = sky.ink2, fontFamily = NotoNaskh)
+                                GlassButton(sky, "تغيير طريقة الحساب") { Prefs.cycleMethod(ctx); AlarmScheduler.scheduleNext(ctx); cfgVer++ }
                             }
                             
                             ExpandableSection("صحة المنبه", sky) {
-                                Text("فحص الموثوقية", color = sky.ink2)
+                                Text("فحص الموثوقية", color = sky.ink2, fontFamily = NotoNaskh)
                             }
                             
-                            GlassButton(sky, "سجل التشخيص", Modifier.fillMaxWidth()) { }
+                            GlassButton(sky, "سجل التشخيص") { }
                         }
                     }
                 }
@@ -237,12 +243,12 @@ fun HomeScreen(ctx: Context) {
                             transitionSpec = { (fadeIn(tween(400)) + slideInHorizontally(initialOffsetX = { 50 })).togetherWith(fadeOut(tween(400))) },
                             label = "TabTransition", modifier = Modifier.weight(1f)
                         ) { currentTab ->
+                            // هنا نستخدم وزن 1 لكي تملأ الشاشة
                             if (currentTab == 0) HomeTab(Modifier.fillMaxSize(), ctx, sky, now, nxt, left, hijri)
                             else if (currentTab == 1) QiblaScreen(ctx, sky)
                             else if (currentTab == 2) TasbihScreen(sky)
                         }
                         
-                        // شريط التنقل السفلي
                         BrandNav(sky, listOf("الرئيسية", "القبلة"), tab) { if (tab != it) { tab = it; log = DiagLog.get(ctx) } }
                     }
                 }
