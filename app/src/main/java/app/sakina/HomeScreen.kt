@@ -80,22 +80,24 @@ private fun HomeTab(
     val ink = sky.ink
     val hm = remember { SimpleDateFormat("HH:mm", Locale.US) }
     
-    Column(modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 6.dp)) {
-        Box(Modifier.fillMaxWidth().height(260.dp), contentAlignment = Alignment.TopCenter) {
+    Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp)) {
+        
+        // 1. صورة الخلفية (Mihrab)
+        Box(Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(bottomStart = 100.dp, bottomEnd = 100.dp))) {
             Image(
                 painter = painterResource(id = R.drawable.bg_sky),
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(bottomStart = 100.dp, bottomEnd = 100.dp)),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, sky.top))))
-            
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(top = 40.dp)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxSize().padding(top = 30.dp)) {
                 Text(hm.format(now), color = ink, fontSize = 64.sp, fontFamily = InterFont, fontWeight = FontWeight.Bold)
                 Text("${Place.name(ctx)}  ·  $hijri", color = sky.accent, fontSize = 14.sp, fontFamily = NotoKufi)
             }
         }
 
+        // 2. بطاقة الصلاة القادمة
         GlassCard(sky, Modifier.padding(top = 16.dp)) {
             Text("الصلاة القادمة: ${NAMES[nxt.first]}", color = sky.ink2, fontSize = 14.sp, fontFamily = NotoSans)
             TabularText(
@@ -104,9 +106,10 @@ private fun HomeTab(
             )
         }
 
+        // 3. قائمة المواقيت (بخلفية عاجية)
         val ivoryCard = RoundedCornerShape(24.dp)
         Column(
-            Modifier.fillMaxWidth().padding(top = 16.dp).clip(ivoryCard).background(Color(0xFFFAF8F5)).padding(12.dp),
+            Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp).clip(ivoryCard).background(Color(0xFFFAF8F5)).padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             events(ctx, 0).forEach { (i, t) ->
@@ -125,11 +128,10 @@ private fun HomeTab(
                         5 -> R.drawable.ic_isha
                         else -> R.drawable.ic_fajr
                     }
-                    Icon(
+                    Image(
                         painter = painterResource(id = iconRes),
                         contentDescription = null,
-                        tint = if (isNext) sky.accent else Color(0xFF1C1613),
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                     Spacer(Modifier.width(12.dp))
                     Text(NAMES[i], color = Color(0xFF1C1613), fontSize = 18.sp, fontFamily = NotoKufi, fontWeight = if(isNext) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.weight(1f))
@@ -240,6 +242,7 @@ fun HomeScreen(ctx: Context) {
                             else if (currentTab == 2) TasbihScreen(sky)
                         }
                         
+                        // شريط التنقل السفلي
                         BrandNav(sky, listOf("الرئيسية", "القبلة"), tab) { if (tab != it) { tab = it; log = DiagLog.get(ctx) } }
                     }
                 }
