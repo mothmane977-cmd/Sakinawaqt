@@ -1,5 +1,6 @@
 package app.sakina
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -28,10 +30,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -40,6 +44,16 @@ enum class SakinaNavTab(val labelAr: String, val icon: ImageVector) {
     QIBLA("القبلة", Icons.Rounded.Explore),
     SETTINGS("الإعدادات", Icons.Rounded.Settings)
 }
+
+val Sakina3DGoldBevelBrush = Brush.linearGradient(
+    listOf(
+        Color(0xFF7A5B1F),
+        SakinaBrandColors.GoldBright,
+        Color(0xFFFFF4C2),
+        SakinaBrandColors.ManuscriptGold,
+        Color(0xFF6B4F1A)
+    )
+)
 
 @Composable
 fun SakinaBackgroundLayer(
@@ -92,15 +106,8 @@ fun SakinaGlassCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shape: Shape = RoundedCornerShape(cornerRadius)
-    val borderBrush = if (glowGold) {
-        Brush.verticalGradient(
-            listOf(SakinaBrandColors.GoldBright.copy(alpha = 0.75f), SakinaBrandColors.ManuscriptGold.copy(alpha = 0.25f))
-        )
-    } else {
-        Brush.verticalGradient(
-            listOf(SakinaBrandColors.ManuscriptGold.copy(alpha = 0.42f), Color(0x22FFFFFF))
-        )
-    }
+    val borderBrush = if (glowGold) Sakina3DGoldBevelBrush
+    else Brush.verticalGradient(listOf(SakinaBrandColors.ManuscriptGold.copy(alpha = 0.45f), Color(0x22FFFFFF)))
 
     Column(
         modifier = modifier
@@ -109,15 +116,69 @@ fun SakinaGlassCard(
                 else Modifier
             )
             .clip(shape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(SakinaBrandColors.GlassTop, SakinaBrandColors.GlassBottom)
-                )
-            )
+            .background(Brush.verticalGradient(listOf(SakinaBrandColors.GlassTop, SakinaBrandColors.GlassBottom)))
             .border(0.9.dp, borderBrush, shape)
             .padding(contentPadding),
         content = content
     )
+}
+
+@Composable
+fun SakinaDrawerPillItem(
+    @DrawableRes iconRes: Int,
+    title: String,
+    badge: String = "",
+    onClick: () -> Unit
+) {
+    val pillShape = RoundedCornerShape(22.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .shadow(6.dp, pillShape, ambientColor = Color.Black, spotColor = SakinaBrandColors.ManuscriptGold)
+            .clip(pillShape)
+            .background(Brush.verticalGradient(listOf(Color(0xE01A2430), Color(0xF50B0F15))))
+            .border(0.9.dp, Sakina3DGoldBevelBrush, pillShape)
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(CircleShape)
+                    .background(Brush.radialGradient(listOf(Color(0x44F3DC8B), Color(0x18131B22))))
+                    .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = title,
+                fontFamily = SakinaEditorialFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = SakinaBrandColors.LuminousIvory,
+                maxLines = 1
+            )
+        }
+        if (badge.isNotEmpty()) {
+            Text(
+                text = badge,
+                fontFamily = SakinaBodyFont,
+                fontSize = 11.sp,
+                color = SakinaBrandColors.GoldBright,
+                maxLines = 1
+            )
+        }
+    }
 }
 
 @Composable
@@ -130,26 +191,13 @@ fun SakinaBottomPillBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .padding(horizontal = 22.dp, vertical = 10.dp)
             .navigationBarsPadding()
+            .shadow(18.dp, pillShape, ambientColor = Color.Black, spotColor = SakinaBrandColors.ManuscriptGold)
             .clip(pillShape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xD919222C), Color(0xF00B0F15))
-                )
-            )
-            .border(
-                0.9.dp,
-                Brush.horizontalGradient(
-                    listOf(
-                        SakinaBrandColors.ManuscriptGold.copy(alpha = 0.25f),
-                        SakinaBrandColors.ManuscriptGold.copy(alpha = 0.65f),
-                        SakinaBrandColors.ManuscriptGold.copy(alpha = 0.25f)
-                    )
-                ),
-                pillShape
-            )
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .background(Brush.verticalGradient(listOf(Color(0xF21A2430), Color(0xFA080B10))))
+            .border(1.dp, Sakina3DGoldBevelBrush, pillShape)
+            .padding(horizontal = 6.dp, vertical = 5.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -162,24 +210,23 @@ fun SakinaBottomPillBar(
                     if (selected) SakinaBrandColors.GoldBright else SakinaBrandColors.SoftSilver,
                     label = "tabColor"
                 )
+                val tabShape = RoundedCornerShape(20.dp)
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(tabShape)
                         .then(
                             if (selected) {
-                                Modifier.background(
-                                    Brush.radialGradient(
-                                        listOf(SakinaBrandColors.ManuscriptGold.copy(alpha = 0.24f), Color.Transparent)
-                                    )
-                                )
+                                Modifier
+                                    .background(Brush.verticalGradient(listOf(Color(0x3AD4AF37), Color(0x140A0E12))))
+                                    .border(0.7.dp, Sakina3DGoldBevelBrush, tabShape)
                             } else Modifier
                         )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { onTabSelected(tab) }
-                        .padding(vertical = 6.dp),
+                        .padding(vertical = 5.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -187,9 +234,9 @@ fun SakinaBottomPillBar(
                             imageVector = tab.icon,
                             contentDescription = tab.labelAr,
                             tint = textColor,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.height(3.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = tab.labelAr,
                             fontFamily = SakinaHeadingFont,
@@ -213,43 +260,42 @@ fun SakinaGoldSwitch(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val thumbOffset by animateDpAsState(if (checked) 32.dp else 4.dp, label = "switchThumb")
-    val borderBrush = if (checked) {
-        Brush.horizontalGradient(listOf(SakinaBrandColors.ManuscriptGold, SakinaBrandColors.GoldBright))
-    } else {
-        Brush.horizontalGradient(listOf(Color(0x55FFFFFF), Color(0x33FFFFFF)))
-    }
+    val thumbOffset by animateDpAsState(if (checked) 36.dp else 4.dp, label = "switchThumb")
+    val borderBrush = if (checked) Sakina3DGoldBevelBrush
+    else Brush.horizontalGradient(listOf(Color(0x55FFFFFF), Color(0x33FFFFFF)))
 
-    Box(
-        modifier = modifier
-            .width(64.dp)
-            .height(32.dp)
-            .clip(CircleShape)
-            .background(if (checked) Color(0x44D4AF37) else Color(0x331B2531))
-            .border(1.dp, borderBrush, CircleShape)
-            .clickable { onCheckedChange(!checked) },
-        contentAlignment = Alignment.CenterStart
-    ) {
-        if (checked) {
-            Text(
-                text = "ON",
-                fontFamily = SakinaNumeralFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-                color = SakinaBrandColors.GoldBright,
-                modifier = Modifier.padding(start = 10.dp)
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Box(
+            modifier = modifier
+                .width(66.dp)
+                .height(32.dp)
+                .clip(CircleShape)
+                .background(if (checked) Color(0x44D4AF37) else Color(0x331B2531))
+                .border(1.dp, borderBrush, CircleShape)
+                .clickable { onCheckedChange(!checked) },
+            contentAlignment = Alignment.CenterStart
+        ) {
+            if (checked) {
+                Text(
+                    text = "ON",
+                    fontFamily = SakinaNumeralFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    color = SakinaBrandColors.GoldBright,
+                    modifier = Modifier.padding(start = 10.dp)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .offset(x = thumbOffset)
+                    .size(24.dp)
+                    .shadow(8.dp, CircleShape, ambientColor = SakinaBrandColors.GoldBright, spotColor = SakinaBrandColors.GoldBright)
+                    .clip(CircleShape)
+                    .background(
+                        if (checked) Brush.radialGradient(listOf(Color(0xFFFFF4C2), SakinaBrandColors.GoldBright, SakinaBrandColors.ManuscriptGold))
+                        else Brush.radialGradient(listOf(Color(0xFF8B949E), Color(0xFF4B5563)))
+                    )
             )
         }
-        Box(
-            modifier = Modifier
-                .offset(x = thumbOffset)
-                .size(24.dp)
-                .shadow(8.dp, CircleShape, ambientColor = SakinaBrandColors.GoldBright, spotColor = SakinaBrandColors.GoldBright)
-                .clip(CircleShape)
-                .background(
-                    if (checked) Brush.radialGradient(listOf(SakinaBrandColors.GoldBright, SakinaBrandColors.ManuscriptGold))
-                    else Brush.radialGradient(listOf(Color(0xFF8B949E), Color(0xFF4B5563)))
-                )
-        )
     }
 }
