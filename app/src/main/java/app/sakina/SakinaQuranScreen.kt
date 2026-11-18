@@ -2,6 +2,7 @@ package app.sakina
 
 import android.content.Context
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -255,6 +256,7 @@ private fun buildMushafPages(surahs: List<SurahEntry>): List<MushafPageData> {
     return pages
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
     val theme = LocalSakinaTheme.current

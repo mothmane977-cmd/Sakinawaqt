@@ -846,7 +846,7 @@ private fun SakinaHomeContent(ctx: Context) {
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             rows.forEach { prayer ->
-                val cycleAction = {
+                val cycleAction: () -> Unit = {
                     val nextMode = when (prayer.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
                     Modes.set(ctx, prayer.keyNameAr, nextMode)
                     AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
