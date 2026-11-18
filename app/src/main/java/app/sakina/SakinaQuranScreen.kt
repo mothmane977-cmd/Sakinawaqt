@@ -176,7 +176,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 24.dp, vertical = 6.dp)) {
-            Text("القرآن الكريم", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = theme.accentBright)
+            Text(LocalSakinaStrings.current.quranTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = theme.accentBright)
         }
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -206,7 +206,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
             Icon(Icons.Rounded.Search, contentDescription = null, tint = theme.accentGold, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Box(modifier = Modifier.weight(1f)) {
-                if (searchQuery.isEmpty()) Text("ابحث باسم السورة أو رقمها...", fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.SoftSilver)
+                if (searchQuery.isEmpty()) Text(LocalSakinaStrings.current.searchSurahHint, fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.SoftSilver)
                 BasicTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -226,12 +226,12 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                     Image(painter = painterResource(id = R.drawable.ic_adhkar), contentDescription = null, modifier = Modifier.size(28.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text("آخر قراءة: ${lastSurahMeta.name}", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright)
+                        Text("${LocalSakinaStrings.current.lastReadLabel}: ${lastSurahMeta.name}", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright)
                         Text("الرواية: ${riwaya.labelAr}", fontFamily = SakinaBodyFont, fontSize = 11.sp, color = SakinaBrandColors.SoftSilver)
                     }
                 }
                 Box(modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Brush.horizontalGradient(listOf(theme.accentGold, theme.accentBright))).padding(horizontal = 10.dp, vertical = 5.dp)) {
-                    Text("متابعة", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = theme.bgDeep)
+                    Text(LocalSakinaStrings.current.resumeLabel, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = theme.bgDeep)
                 }
             }
         }

@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,7 +79,7 @@ fun String.toWesternDigits(): String {
 @Composable
 fun SakinaTitle3D(
     text: String,
-    fontSize: TextUnit = 24.sp,
+    fontSize: TextUnit = 23.sp,
     modifier: Modifier = Modifier
 ) {
     Text(
@@ -127,7 +128,7 @@ fun SakinaBackIconButton(
 @Composable
 fun SakinaStarPolygonBadge(
     @DrawableRes iconRes: Int,
-    size: Dp = 36.dp,
+    size: Dp = 34.dp,
     modifier: Modifier = Modifier
 ) {
     val theme = LocalSakinaTheme.current
@@ -191,16 +192,16 @@ fun SakinaBackgroundLayer(
 
         content()
 
-        // Real 3D Embossed Multi-foil Gold Mihrab Arch across full screen width (bg_mihrab.png)
+        // Slender, wide, delicate 3D Gold Mihrab Arch touching the top edge (bg_mihrab.png)
         if (showMihrabFrame) {
             Image(
                 painter = painterResource(id = R.drawable.bg_mihrab),
                 contentDescription = null,
-                contentScale = ContentScale.FillBounds,
+                contentScale = ContentScale.FillWidth,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .statusBarsPadding()
-                    .navigationBarsPadding()
+                    .align(Alignment.TopCenter)
             )
         }
     }
@@ -209,42 +210,19 @@ fun SakinaBackgroundLayer(
 @Composable
 fun SakinaOrnamentCartouche(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 32.dp, vertical = 10.dp),
     content: @Composable BoxScope.() -> Unit
 ) {
-    val theme = LocalSakinaTheme.current
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            val w = size.width
-            val h = size.height
-            val tip = 18.dp.toPx()
-            val notch = 6.dp.toPx()
-            // Multi-lobed Islamic cartouche matching 19829.jpg
-            val path = Path().apply {
-                moveTo(tip, 0f)
-                lineTo(w - tip, 0f)
-                quadraticBezierTo(w - tip + notch, notch, w - notch, h * 0.32f)
-                lineTo(w, h * 0.5f)
-                lineTo(w - notch, h * 0.68f)
-                quadraticBezierTo(w - tip + notch, h - notch, w - tip, h)
-                lineTo(tip, h)
-                quadraticBezierTo(tip - notch, h - notch, notch, h * 0.68f)
-                lineTo(0f, h * 0.5f)
-                lineTo(notch, h * 0.32f)
-                quadraticBezierTo(tip - notch, notch, tip, 0f)
-                close()
-            }
-            drawPath(path, brush = Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.95f), theme.bgDeep.copy(alpha = 0.98f))))
-            drawPath(path, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 1.6.dp.toPx()))
-            // Top & bottom floral diamond finials (like 19829.jpg)
-            val d = 3.5.dp.toPx()
-            listOf(Offset(w * 0.5f, 0f), Offset(w * 0.5f, h)).forEach { c ->
-                val f = Path().apply {
-                    moveTo(c.x, c.y - d); lineTo(c.x + d * 1.4f, c.y); lineTo(c.x, c.y + d); lineTo(c.x - d * 1.4f, c.y); close()
-                }
-                drawPath(f, brush = Sakina3DGoldBevelBrush)
-            }
-        }
+    Box(
+        modifier = modifier.defaultMinSize(minWidth = 210.dp, minHeight = 52.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_cartouche),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.matchParentSize()
+        )
         Box(modifier = Modifier.padding(contentPadding), contentAlignment = Alignment.Center, content = content)
     }
 }
@@ -274,31 +252,32 @@ fun SakinaParchmentPanel(
             }
             .border(1.5.dp, Sakina3DGoldBevelBrush, shape)
     ) {
-        // Real 3D Gilded Islamic Arabesque Ornaments in all 4 corners!
-        val cSize = 26.dp
+        // Fixed 4-corner arabesque placement using physical AbsoluteAlignment so RTL/LTR never flips them!
+        // ic_corner_arabesque.png has its right-angle spine at the TOP-LEFT.
+        val cSize = 24.dp
         Image(
             painter = painterResource(id = R.drawable.ic_corner_arabesque),
             contentDescription = null,
-            alpha = 0.85f,
-            modifier = Modifier.size(cSize).align(Alignment.TopEnd).padding(2.dp).graphicsLayer { scaleX = -1f }
+            alpha = 0.88f,
+            modifier = Modifier.size(cSize).align(AbsoluteAlignment.TopLeft).padding(2.dp)
         )
         Image(
             painter = painterResource(id = R.drawable.ic_corner_arabesque),
             contentDescription = null,
-            alpha = 0.85f,
-            modifier = Modifier.size(cSize).align(Alignment.TopStart).padding(2.dp)
+            alpha = 0.88f,
+            modifier = Modifier.size(cSize).align(AbsoluteAlignment.TopRight).padding(2.dp).graphicsLayer { rotationZ = 90f }
         )
         Image(
             painter = painterResource(id = R.drawable.ic_corner_arabesque),
             contentDescription = null,
-            alpha = 0.85f,
-            modifier = Modifier.size(cSize).align(Alignment.BottomStart).padding(2.dp).graphicsLayer { scaleY = -1f }
+            alpha = 0.88f,
+            modifier = Modifier.size(cSize).align(AbsoluteAlignment.BottomRight).padding(2.dp).graphicsLayer { rotationZ = 180f }
         )
         Image(
             painter = painterResource(id = R.drawable.ic_corner_arabesque),
             contentDescription = null,
-            alpha = 0.85f,
-            modifier = Modifier.size(cSize).align(Alignment.BottomEnd).padding(2.dp).graphicsLayer { scaleX = -1f; scaleY = -1f }
+            alpha = 0.88f,
+            modifier = Modifier.size(cSize).align(AbsoluteAlignment.BottomLeft).padding(2.dp).graphicsLayer { rotationZ = 270f }
         )
 
         Column(modifier = Modifier.fillMaxWidth().padding(contentPadding), content = content)

@@ -20,11 +20,14 @@ import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +46,7 @@ private data class BrandPrayerRow(
     val displayTitle: String,
     val timeText: String,
     @DrawableRes val iconRes: Int,
+    @DrawableRes val bgRes: Int,
     val isNext: Boolean,
     val mode: Int
 )
@@ -54,6 +58,15 @@ private fun iconForPrayer(nameAr: String): Int = when (nameAr) {
     "العصر" -> R.drawable.ic_asr
     "المغرب" -> R.drawable.ic_maghrib
     else -> R.drawable.ic_isha
+}
+
+@DrawableRes
+private fun bgForPrayer(nameAr: String): Int = when (nameAr) {
+    "الفجر" -> R.drawable.bg_header_mosque
+    "الظهر" -> R.drawable.bg_header_kaaba
+    "العصر" -> R.drawable.bg_header_madinah
+    "المغرب" -> R.drawable.bg_header_adhkar
+    else -> R.drawable.bg_header_quran
 }
 
 private val HOME_HIJRI_MONTHS = listOf(
@@ -154,28 +167,28 @@ fun HomeScreen(ctx: Context) {
                         SakinaDrawerPillItem(R.drawable.ic_alarm, s.alarmTitle) {
                             scope.launch { drawerState.close() }; openedFromDrawer = true; extraSection = ExtraSection.ALARM
                         }
-                        SakinaDrawerPillItem(R.drawable.ic_sunan, "السنن الرواتب") {
+                        SakinaDrawerPillItem(R.drawable.ic_sunan, s.sunanTitle) {
                             scope.launch { drawerState.close() }
-                            hadithTitle = "السنن الرواتب (12 ركعة)"
+                            hadithTitle = s.sunanTitle
                             hadithBody = "• الفجر (2 قبلها) | الظهر (4 قبلها + 2 بعدها) | المغرب (2 بعدها) | العشاء (2 بعدها)\n\nالحديث: عن أم حبيبة رضي الله عنها قالت: سمعت رسول الله ﷺ يقول: «ما من عبد مسلم يصلي لله كل يوم ثنتي عشرة ركعة تطوعاً غير الفريضة إلا بنى الله له بيتاً في الجنة».\nالإسناد: رواه مسلم في صحيحه (رقم 728).".toWesternDigits()
                         }
-                        SakinaDrawerPillItem(R.drawable.ic_dhuhr, "صلاة الضحى") {
+                        SakinaDrawerPillItem(R.drawable.ic_dhuhr, s.duhaTitle) {
                             scope.launch { drawerState.close() }
                             val events = PrayerEngine.events(ctx, 0)
                             val hm = SimpleDateFormat("HH:mm", Locale.US)
                             val duhaStart = hm.format(Date(events.first { it.first == 1 }.second.time + 15 * 60_000L))
                             val duhaEnd = hm.format(Date(events.first { it.first == 2 }.second.time - 10 * 60_000L))
-                            hadithTitle = "صلاة الضحى ($duhaStart – $duhaEnd)"
+                            hadithTitle = "${s.duhaTitle} ($duhaStart – $duhaEnd)"
                             hadithBody = "الحديث: عن أبي ذر رضي الله عنه عن النبي ﷺ أنه قال: «يصبح على كل سلامى من أحدكم صدقة... ويجزئ من ذلك ركعتان يركعهما من الضحى».\nالإسناد: رواه مسلم في صحيحه (رقم 720).".toWesternDigits()
                         }
-                        SakinaDrawerPillItem(R.drawable.ic_isha, "قيام الليل") {
+                        SakinaDrawerPillItem(R.drawable.ic_isha, s.qiyamTitle) {
                             scope.launch { drawerState.close() }
-                            hadithTitle = "قيام الليل والثلث الأخير"
+                            hadithTitle = s.qiyamTitle
                             hadithBody = "الحديث: عن أبي هريرة رضي الله عنه أن رسول الله ﷺ قال: «ينزل ربنا تبارك وتعالى كل ليلة إلى السماء الدنيا حين يبقى ثلث الليل الآخر يقول: من يدعوني فأستجيب له، من يسألني فأعطيه، من يستغفرني فأغفر له».\nالإسناد: متفق عليه؛ رواه البخاري (1145) ومسلم (758).".toWesternDigits()
                         }
-                        SakinaDrawerPillItem(R.drawable.ic_calendar, "صيام التطوع والمناسبات") {
+                        SakinaDrawerPillItem(R.drawable.ic_calendar, s.fastingTitle) {
                             scope.launch { drawerState.close() }
-                            hadithTitle = "صيام التطوع والمناسبات"
+                            hadithTitle = s.fastingTitle
                             hadithBody = "${occasionWithGregorian(Prefs.hijriOffset(ctx))}\n\nالحديث: عن أبي قتادة الأنصاري رضي الله عنه أن رسول الله ﷺ سُئل عن صوم يوم الإثنين فقال: «ذاك يوم ولدت فيه، ويوم بعثت أو أنزل علي فيه».\nالإسناد: رواه مسلم (رقم 1162)، وروى البخاري (1981) وصية النبي ﷺ بصيام ثلاثة أيام من كل شهر (الأيام البيض: 13، 14، 15).".toWesternDigits()
                         }
                         SakinaDrawerPillItem(R.drawable.ic_settings, s.settingsTitle) {
@@ -213,15 +226,15 @@ fun HomeScreen(ctx: Context) {
                     }
 
                     if (extraSection == ExtraSection.NONE) {
-                        // Right corner: Menu Button
+                        // FIXED Physical Right Corner (AbsoluteAlignment.TopRight): Menu Button
                         Box(
                             modifier = Modifier
-                                .align(Alignment.TopStart)
+                                .align(AbsoluteAlignment.TopRight)
                                 .statusBarsPadding()
-                                .padding(start = 24.dp, top = 32.dp)
+                                .padding(end = 18.dp, top = 16.dp)
                                 .size(30.dp)
                                 .clip(CircleShape)
-                                .background(currentTheme.bgDeep.copy(alpha = 0.82f))
+                                .background(currentTheme.bgDeep.copy(alpha = 0.85f))
                                 .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
                                 .clickable { scope.launch { drawerState.open() } },
                             contentAlignment = Alignment.Center
@@ -229,12 +242,12 @@ fun HomeScreen(ctx: Context) {
                             Image(painter = painterResource(id = R.drawable.ic_menu), contentDescription = "Menu", modifier = Modifier.size(15.dp))
                         }
 
-                        // Left corner (#5): Petite Language Switcher with custom globe icon & flag (replaces old Settings icon!)
+                        // FIXED Physical Left Corner (AbsoluteAlignment.TopLeft): Language Switcher NEVER moves when switching RTL/LTR!
                         Row(
                             modifier = Modifier
-                                .align(Alignment.TopEnd)
+                                .align(AbsoluteAlignment.TopLeft)
                                 .statusBarsPadding()
-                                .padding(end = 24.dp, top = 32.dp)
+                                .padding(start = 18.dp, top = 16.dp)
                                 .height(28.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(currentTheme.bgDeep.copy(alpha = 0.85f))
@@ -247,11 +260,7 @@ fun HomeScreen(ctx: Context) {
                                 .padding(horizontal = 7.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_language),
-                                contentDescription = "Language",
-                                modifier = Modifier.size(14.dp)
-                            )
+                            Image(painter = painterResource(id = R.drawable.ic_language), contentDescription = "Language", modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = "${currentLang.flag} ${currentLang.code.uppercase()}",
@@ -317,8 +326,9 @@ private fun SakinaHomeContent(ctx: Context) {
     val countdownText = String.format(Locale.US, "%02d:%02d:%02d", remSec / 3600, (remSec % 3600) / 60, remSec % 60).toWesternDigits()
 
     val rows = remember(todayPrayers, nextIndexToday, dayOffset, modeTick, s) {
+        val highlightIdx = if (nextIndexToday >= 0) nextIndexToday else 0
         todayPrayers.mapIndexed { idx, (keyAr, date) ->
-            BrandPrayerRow(keyAr, s.prayers[idx], hmFmt.format(date).toWesternDigits(), iconForPrayer(keyAr), dayOffset == 0 && idx == nextIndexToday, Modes.get(ctx, keyAr))
+            BrandPrayerRow(keyAr, s.prayers[idx], hmFmt.format(date).toWesternDigits(), iconForPrayer(keyAr), bgForPrayer(keyAr), idx == highlightIdx, Modes.get(ctx, keyAr))
         }
     }
 
@@ -326,7 +336,7 @@ private fun SakinaHomeContent(ctx: Context) {
         Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dayOffset) }
     }
     val datePillText = remember(viewedCal) {
-        val g = SimpleDateFormat("EEEE dd MMMM yyyy", Locale("ar")).format(viewedCal.time).toWesternDigits()
+        val g = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(viewedCal.time).toWesternDigits()
         val ic = IslamicCalendar().apply {
             timeInMillis = viewedCal.timeInMillis
             add(IslamicCalendar.DAY_OF_MONTH, Prefs.hijriOffset(ctx))
@@ -340,104 +350,87 @@ private fun SakinaHomeContent(ctx: Context) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 22.dp, end = 22.dp, top = 76.dp, bottom = 78.dp),
+            .padding(start = 18.dp, end = 18.dp, top = 52.dp, bottom = 76.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // 1. Header organized like 19829.jpg: 3D Title + Ornamental Divider + Date Pill with arrows + Today badge
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            SakinaTitle3D(text = s.appName, fontSize = 24.sp)
-            Spacer(Modifier.height(4.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
+            SakinaTitle3D(text = s.appName, fontSize = 23.sp)
+            Spacer(Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(
-                    modifier = Modifier.size(24.dp).clip(CircleShape).background(theme.bgCard).border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape).clickable { dayOffset-- },
+                    modifier = Modifier.size(22.dp).clip(CircleShape).background(theme.bgCard).border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape).clickable { dayOffset-- },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(16.dp))
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(15.dp))
                 }
                 Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(theme.bgCard.copy(alpha = 0.88f))
-                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(theme.bgCard.copy(alpha = 0.88f)).border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp)).padding(horizontal = 10.dp, vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(datePillText, fontFamily = SakinaEditorialFont, fontSize = 11.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1)
+                    Image(painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null, modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(5.dp))
+                    Text(datePillText, fontFamily = SakinaEditorialFont, fontSize = 10.5.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1)
                 }
                 Box(
-                    modifier = Modifier.size(24.dp).clip(CircleShape).background(theme.bgCard).border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape).clickable { dayOffset++ },
+                    modifier = Modifier.size(22.dp).clip(CircleShape).background(theme.bgCard).border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape).clickable { dayOffset++ },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(16.dp))
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(15.dp))
                 }
             }
             if (dayOffset != 0) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(3.dp))
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF0F3D3E))
-                        .border(0.7.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
-                        .clickable { dayOffset = 0 }
-                        .padding(horizontal = 12.dp, vertical = 2.dp)
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xFF0F3D3E)).border(0.7.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp)).clickable { dayOffset = 0 }.padding(horizontal = 10.dp, vertical = 2.dp)
                 ) {
-                    Text("اليوم", fontFamily = SakinaEditorialFont, fontSize = 10.5.sp, color = theme.accentBright)
+                    Text(s.todayLabel, fontFamily = SakinaEditorialFont, fontSize = 10.sp, color = theme.accentBright)
                 }
             }
         }
 
-        // 2. Unified Card Container like 19829.jpg: Dark Navy Top Header with Cartouche + Parchment Rows Below
-        SakinaGlassCard(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 22.dp,
-            glowGold = true,
-            contentPadding = PaddingValues(0.dp)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp, start = 14.dp, end = 14.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "❖ ${s.nextPrayer}: $nextDisplayName · ${Place.name(ctx)} ❖",
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    color = theme.accentBright,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(Modifier.height(6.dp))
-                SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 26.dp, vertical = 6.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(painter = painterResource(id = R.drawable.ic_fajr), contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(10.dp))
-                        Text(countdownText, fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 26.sp, color = theme.accentBright, style = TextStyle(fontFeatureSettings = "tnum"))
-                    }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("❖ ${s.nextPrayer}: $nextDisplayName · ${Place.name(ctx)} ❖", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(4.dp))
+            SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 32.dp, vertical = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(painter = painterResource(id = R.drawable.ic_fajr), contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(countdownText, fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 25.sp, color = theme.accentBright, style = TextStyle(fontFeatureSettings = "tnum"))
                 }
             }
+        }
+
+        // Prayer rows: Next prayer is separated, larger, and has a full-bleed high-res image background (#8)!
+        val nextRow = rows.firstOrNull { it.isNext } ?: rows.first()
+        val otherRows = rows.filter { it != nextRow }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SakinaFeaturedNextPrayerCard(
+                prayer = nextRow,
+                nextLabel = s.nextPrayer,
+                onCycleMode = {
+                    val nextMode = when (nextRow.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
+                    Modes.set(ctx, nextRow.keyNameAr, nextMode)
+                    AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
+                }
+            )
 
             SakinaParchmentPanel(
                 modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 20.dp,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                cornerRadius = 18.dp,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
             ) {
-                rows.forEachIndexed { index, prayer ->
+                otherRows.forEachIndexed { index, prayer ->
                     SakinaPrayerRow(
                         prayer = prayer,
                         onCycleMode = {
                             val nextMode = when (prayer.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
                             Modes.set(ctx, prayer.keyNameAr, nextMode)
-                            AlarmScheduler.scheduleNext(ctx)
-                            SakinaLiveNotifier.update(ctx)
-                            modeTick++
+                            AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
                         }
                     )
-                    if (index < rows.lastIndex) HorizontalDivider(color = Color(0x22C5A059))
+                    if (index < otherRows.lastIndex) HorizontalDivider(color = Color(0x22C5A059))
                 }
             }
         }
@@ -445,23 +438,83 @@ private fun SakinaHomeContent(ctx: Context) {
 }
 
 @Composable
+private fun SakinaFeaturedNextPrayerCard(
+    prayer: BrandPrayerRow,
+    nextLabel: String,
+    onCycleMode: () -> Unit
+) {
+    val theme = LocalSakinaTheme.current
+    val shape = RoundedCornerShape(18.dp)
+    val modeIcon = when (prayer.mode) {
+        2 -> Icons.Rounded.Vibration
+        3 -> Icons.Rounded.NotificationsOff
+        else -> Icons.Rounded.NotificationsActive
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(58.dp)
+            .shadow(10.dp, shape, ambientColor = theme.accentGold, spotColor = theme.accentGold)
+            .clip(shape)
+            .border(1.5.dp, Sakina3DGoldBevelBrush, shape)
+    ) {
+        Image(
+            painter = painterResource(id = prayer.bgRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.horizontalGradient(listOf(Color(0xCC071422), Color(0x99071422), Color(0xCC071422))))
+        )
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = modeIcon,
+                    contentDescription = null,
+                    tint = if (prayer.mode == 3) SakinaBrandColors.SoftSilver else theme.accentBright,
+                    modifier = Modifier.size(20.dp).clickable { onCycleMode() }
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(prayer.displayTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = theme.accentBright)
+                    Text(nextLabel, fontFamily = SakinaBodyFont, fontSize = 10.sp, color = SakinaBrandColors.LuminousIvory)
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = prayer.timeText.toWesternDigits(),
+                    fontFamily = SakinaNumeralFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = theme.accentBright,
+                    style = TextStyle(fontFeatureSettings = "tnum")
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 36.dp)
+            }
+        }
+    }
+}
+
+@Composable
 private fun SakinaPrayerRow(prayer: BrandPrayerRow, onCycleMode: () -> Unit) {
-    val bgColor = if (prayer.isNext) Color(0x28C5A059) else Color.Transparent
     val modeIcon = when (prayer.mode) {
         2 -> Icons.Rounded.Vibration
         3 -> Icons.Rounded.NotificationsOff
         else -> Icons.Rounded.NotificationsActive
     }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(bgColor)
-            .padding(horizontal = 6.dp, vertical = 5.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Right side (in RTL): Diamond ornament + Prayer Name
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = modeIcon,
@@ -470,26 +523,19 @@ private fun SakinaPrayerRow(prayer: BrandPrayerRow, onCycleMode: () -> Unit) {
                 modifier = Modifier.size(17.dp).clickable { onCycleMode() }
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = prayer.displayTitle,
-                fontFamily = SakinaEditorialFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = if (prayer.isNext) Color(0xFF0F3D3E) else SakinaInkDark
-            )
+            Text(prayer.displayTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = SakinaInkDark)
         }
-        // Left side (in RTL): Prayer Time + Star/Hexagon Polygon Badge (like 19829.jpg!)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = prayer.timeText.toWesternDigits(),
                 fontFamily = SakinaNumeralFont,
-                fontWeight = if (prayer.isNext) FontWeight.Bold else FontWeight.SemiBold,
-                fontSize = 14.5.sp,
-                color = if (prayer.isNext) Color(0xFF0F3D3E) else SakinaInkDark,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = SakinaInkDark,
                 style = TextStyle(fontFeatureSettings = "tnum")
             )
             Spacer(modifier = Modifier.width(10.dp))
-            SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 32.dp)
+            SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 30.dp)
         }
     }
 }

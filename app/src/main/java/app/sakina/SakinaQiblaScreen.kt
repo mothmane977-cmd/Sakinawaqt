@@ -144,7 +144,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("اتجاه القبلة · ${Place.name(ctx)}", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = theme.accentBright, textAlign = TextAlign.Center)
+        Text("${LocalSakinaStrings.current.qiblaTitle} · ${Place.name(ctx)}", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = theme.accentBright, textAlign = TextAlign.Center)
 
         Box(modifier = Modifier.size(240.dp), contentAlignment = Alignment.Center) {
             SakinaAstrolabeDial(qibla.toFloat(), cont, sun.first.toFloat(), sunUp, aligned, Modifier.fillMaxSize())

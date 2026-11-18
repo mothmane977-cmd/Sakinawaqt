@@ -57,7 +57,7 @@ private val ADHKAR_CATEGORIES = listOf(
         "عند الدخول: بسم الله، والصلاة والسلام على رسول الله، اللهم افتح لي أبواب رحمتك.",
         "عند الخروج (بالرجل اليسرى): بسم الله، والصلاة والسلام على رسول الله، اللهم إني أسألك من فضلك، اللهم اعصمني من الشيطان الرجيم."
     )),
-    DhikrCategory("أذكار الدخول والخروج من البيت", R.drawable.ic_star_ornament, listOf(
+    DhikrCategory("أذكار الدخول والخروج من البيت", R.drawable.ic_home_adhkar, listOf(
         "عند الدخول: بسم الله ولجنا، وبسم الله خرجنا، وعلى الله ربنا توكلنا، ثم ليسلّم على أهله.",
         "فضل التسمية عند الدخول: إذا ذكر الله عند دخوله وعند طعامه قال الشيطان: لا مبيت لكم ولا عشاء (رواه مسلم).",
         "عند الخروج: بسم الله، توكلت على الله، ولا حول ولا قوة إلا بالله.",
@@ -139,7 +139,7 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 24.dp, vertical = 5.dp)) {
-            Text("الأذكار والمسبحة", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = theme.accentBright)
+            Text(LocalSakinaStrings.current.adhkarTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = theme.accentBright)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -163,7 +163,7 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Image(painter = painterResource(id = R.drawable.ic_tasbih), contentDescription = null, modifier = Modifier.size(46.dp))
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("ورد التسبيح (اضغط للعد)", fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.LuminousIvory)
+                    Text(LocalSakinaStrings.current.tasbihPrompt, fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.LuminousIvory)
                     Spacer(Modifier.height(4.dp))
                     SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 22.dp, vertical = 5.dp)) {
                         Text("$count".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = theme.accentBright)
@@ -177,11 +177,27 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
 
 @Composable
 private fun AdhkarTile(cat: DhikrCategory, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    SakinaParchmentPanel(modifier = modifier.height(74.dp).clickable { onClick() }, cornerRadius = 14.dp, contentPadding = PaddingValues(8.dp)) {
-        Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Image(painter = painterResource(id = cat.iconRes), contentDescription = null, modifier = Modifier.size(22.dp))
+    val s = LocalSakinaStrings.current
+    val idx = ADHKAR_CATEGORIES.indexOf(cat).coerceAtLeast(0)
+    val localizedTitle = s.adhkarCatTitles.getOrElse(idx) { cat.title }
+    SakinaParchmentPanel(modifier = modifier.height(86.dp).clickable { onClick() }, cornerRadius = 16.dp, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Image(painter = painterResource(id = cat.iconRes), contentDescription = null, modifier = Modifier.size(24.dp))
             Spacer(Modifier.height(4.dp))
-            Text(cat.title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = SakinaInkDark, textAlign = TextAlign.Center, maxLines = 1)
+            Text(
+                text = localizedTitle,
+                fontFamily = SakinaEditorialFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.5.sp,
+                lineHeight = 14.5.sp,
+                color = SakinaInkDark,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
         }
     }
 }
