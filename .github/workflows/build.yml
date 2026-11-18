@@ -16,10 +16,12 @@ jobs:
         with:
           gradle-version: 8.7
 
-      # تجهيز المصحف الكامل (حفص وورش) أوفلاين
-      - name: Bundle Offline Quran (Hafs & Warsh)
+      # تجهيز خط النسخ الأصيل (Amiri) + المصحف الكامل (حفص وورش) أوفلاين
+      - name: Bundle Amiri Naskh Font & Offline Quran (Hafs & Warsh)
         run: |
-          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/res/font app/src/main/assets
+          curl -L -s "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf" -o app/src/main/res/font/noto_naskh_arabic_regular.ttf
+          curl -L -s "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Bold.ttf" -o app/src/main/res/font/noto_naskh_arabic_bold.ttf
           python3 - << 'EOF'
           import json, urllib.request
           sources = {
@@ -35,7 +37,7 @@ jobs:
                   grouped.setdefault(ch, []).append(f"{item['text']} ({item['verse']})")
               with open(f"app/src/main/assets/{out_name}", "w", encoding="utf-8") as f:
                   json.dump(grouped, f, ensure_ascii=False)
-          print("Bundled Hafs & Warsh offline JSONs successfully")
+          print("Bundled Amiri font and Hafs & Warsh offline JSONs successfully")
           EOF
 
       # بناء نسخة الـ Release
