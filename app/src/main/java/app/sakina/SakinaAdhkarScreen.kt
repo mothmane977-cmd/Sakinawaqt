@@ -63,7 +63,7 @@ private val ADHKAR_CATEGORIES = listOf(
         "عند الخروج: بسم الله، توكلت على الله، ولا حول ولا قوة إلا بالله.",
         "عند الخروج: اللهم إني أعوذ بك أن أضل أو أُضل، أو أزل أو أُزل، أو أظلم أو أُظلم، أو أجهل أو يُجهل عليّ."
     )),
-    DhikrCategory("بعد الصلاة", R.drawable.ic_asr, listOf(
+    DhikrCategory("أذكار بعد الصلاة", R.drawable.ic_asr, listOf(
         "أستغفر الله (3 مرات)، اللهم أنت السلام ومنك السلام تباركت يا ذا الجلال والإكرام.",
         "لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير، اللهم لا مانع لما أعطيت.",
         "سبحان الله (33)، الحمد لله (33)، الله أكبر (33)، وتمام المائة: لا إله إلا الله وحده لا شريك له.",
@@ -134,11 +134,11 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 18.dp, end = 18.dp, top = 74.dp, bottom = 80.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 52.dp, bottom = 76.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 24.dp, vertical = 5.dp)) {
+        SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)) {
             Text(LocalSakinaStrings.current.adhkarTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = theme.accentBright)
         }
 
@@ -165,7 +165,7 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(LocalSakinaStrings.current.tasbihPrompt, fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.LuminousIvory)
                     Spacer(Modifier.height(4.dp))
-                    SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 22.dp, vertical = 5.dp)) {
+                    SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 36.dp, vertical = 6.dp)) {
                         Text("$count".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = theme.accentBright)
                     }
                 }

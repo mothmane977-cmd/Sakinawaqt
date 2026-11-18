@@ -3,15 +3,11 @@ package app.sakina
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -22,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
@@ -30,6 +27,7 @@ import kotlin.math.roundToInt
 fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier = Modifier) {
     BackHandler { onBackClick() }
     val theme = LocalSakinaTheme.current
+    val s = LocalSakinaStrings.current
     val sp = remember { ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE) }
 
     var suhoorEnabled by remember { mutableStateOf(sp.getBoolean("suhoor_enabled", true)) }
@@ -45,35 +43,22 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
             .statusBarsPadding()
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(start = 18.dp, end = 18.dp, top = 74.dp, bottom = 84.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 54.dp, bottom = 80.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(theme.bgCard)
-                    .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
-                    .clickable { onBackClick() }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("رجوع", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = theme.accentBright)
+            SakinaBackIconButton(onClick = onBackClick)
+            SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 32.dp, vertical = 6.dp)) {
+                Text(s.alarmTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = theme.accentBright, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 5.dp)) {
-                Text("المنبه والتنبيهات", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = theme.accentBright)
-            }
-            Spacer(Modifier.width(44.dp))
+            Spacer(Modifier.size(32.dp))
         }
 
-        // Suhoor time selector
         SakinaGlassCard(modifier = Modifier.fillMaxWidth(), glowGold = suhoorEnabled) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text("منبه السحور والتهجد", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = theme.accentBright)
-                    Text("$suhoorOffset دقيقة قبل الفجر".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.SoftSilver)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(s.suhoorTitle, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = theme.accentBright, maxLines = 1)
+                    Text("$suhoorOffset ${s.minsBeforeFajr}".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver, maxLines = 1)
                 }
                 SakinaGoldSwitch(checked = suhoorEnabled, onCheckedChange = {
                     suhoorEnabled = it; sp.edit().putBoolean("suhoor_enabled", it).apply()
@@ -84,23 +69,17 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                 listOf(20, 30, 40, 60).forEach { mins ->
                     val sel = mins == suhoorOffset
                     Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(32.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (sel) theme.accentGold else Color(0x22FFFFFF))
-                            .clickable { suhoorOffset = mins; sp.edit().putInt("suhoor_offset", mins).apply() },
+                        modifier = Modifier.weight(1f).height(30.dp).clip(RoundedCornerShape(10.dp)).background(if (sel) theme.accentGold else Color(0x22FFFFFF)).clickable { suhoorOffset = mins; sp.edit().putInt("suhoor_offset", mins).apply() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("$mins د".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory)
+                        Text("$mins ${s.minuteShort}".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory)
                     }
                 }
             }
         }
 
-        // Volume Slider & Fade
         SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-            Text("درجة صوت الأذان والمنبه: ${(volumePct * 100).roundToInt()}%".toWesternDigits(), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
+            Text("${s.volumeLabel}: ${(volumePct * 100).roundToInt()}%".toWesternDigits(), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright)
             Slider(
                 value = volumePct,
                 onValueChange = { volumePct = it; sp.edit().putFloat("alarm_volume", it).apply() },
@@ -108,53 +87,41 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                 colors = SliderDefaults.colors(thumbColor = theme.accentBright, activeTrackColor = theme.accentGold)
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("تدرّج صوت الفجر الهادئ", fontFamily = SakinaBodyFont, fontSize = 13.sp, color = SakinaBrandColors.LuminousIvory)
+                Text(s.fajrFadeLabel, fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
                 SakinaGoldSwitch(checked = fajrFade, onCheckedChange = {
                     fajrFade = it; Prefs.setFajrFade(ctx, it)
                 })
             }
         }
 
-        // Sound Type Selector
         SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-            Text("اختيار صوت المنبه الافتراضي", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
+            Text(s.defaultSoundLabel, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright)
             Spacer(Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Modes.labels.forEachIndexed { idx, label ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                s.soundModes.forEachIndexed { idx, label ->
                     val sel = idx == selectedSound
                     Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(34.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (sel) theme.accentGold else Color(0x22FFFFFF))
-                            .clickable {
-                                selectedSound = idx
-                                PRAYER_NAMES.filter { it != "الشروق" }.forEach { Modes.set(ctx, it, idx) }
-                                AlarmScheduler.scheduleNext(ctx)
-                            },
+                        modifier = Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(10.dp)).background(if (sel) theme.accentGold else Color(0x22FFFFFF)).clickable {
+                            selectedSound = idx
+                            PRAYER_NAMES.filter { it != "الشروق" }.forEach { Modes.set(ctx, it, idx) }
+                            AlarmScheduler.scheduleNext(ctx)
+                        },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(label, fontFamily = SakinaBodyFont, fontSize = 10.5.sp, color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory, maxLines = 1)
+                        Text(label, fontFamily = SakinaBodyFont, fontSize = 10.sp, color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
         }
 
-        // Test Alarm Button
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp)
-                .clip(RoundedCornerShape(22.dp))
-                .background(Brush.horizontalGradient(listOf(theme.accentGold, theme.accentBright)))
-                .clickable {
-                    AlarmScheduler.scheduleTest(ctx)
-                    statusMsg = "تمت جدولة تجربة المنبه بعد 10 ثوانٍ".toWesternDigits()
-                },
+            modifier = Modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(21.dp)).background(Brush.horizontalGradient(listOf(theme.accentGold, theme.accentBright))).clickable {
+                AlarmScheduler.scheduleTest(ctx)
+                statusMsg = s.testAlarmScheduled.toWesternDigits()
+            },
             contentAlignment = Alignment.Center
         ) {
-            Text(if (statusMsg.isEmpty()) "اختبار رنين المنبه الآن (بعد 10 ثوانٍ)".toWesternDigits() else statusMsg, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.bgDeep)
+            Text(if (statusMsg.isEmpty()) s.testAlarmBtn.toWesternDigits() else statusMsg, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.bgDeep, maxLines = 1)
         }
     }
 }

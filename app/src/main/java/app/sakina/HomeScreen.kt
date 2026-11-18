@@ -29,9 +29,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -69,23 +71,18 @@ private fun bgForPrayer(nameAr: String): Int = when (nameAr) {
     else -> R.drawable.bg_header_quran
 }
 
-private val HOME_HIJRI_MONTHS = listOf(
-    "محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة",
-    "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"
-)
-
-private fun occasionWithGregorian(hijriOffset: Int): String {
+private fun occasionWithGregorian(hijriOffset: Int, isArOrUr: Boolean): String {
     val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, hijriOffset) }
     val ic = IslamicCalendar().apply { timeInMillis = cal.timeInMillis }
     val y = ic.get(IslamicCalendar.YEAR)
     val occasions = listOf(
-        Triple(IslamicCalendar.RAJAB, 27, "الإسراء والمعراج"),
-        Triple(IslamicCalendar.RAMADAN, 1, "بداية شهر رمضان"),
-        Triple(IslamicCalendar.SHAWWAL, 1, "عيد الفطر المبارك"),
-        Triple(IslamicCalendar.DHU_AL_HIJJAH, 9, "يوم عرفة"),
-        Triple(IslamicCalendar.MUHARRAM, 1, "رأس السنة الهجرية")
+        Triple(IslamicCalendar.RAJAB, 27, if (isArOrUr) "الإسراء والمعراج" else "Isra & Mi'raj"),
+        Triple(IslamicCalendar.RAMADAN, 1, if (isArOrUr) "بداية شهر رمضان" else "Start of Ramadan"),
+        Triple(IslamicCalendar.SHAWWAL, 1, if (isArOrUr) "عيد الفطر المبارك" else "Eid al-Fitr"),
+        Triple(IslamicCalendar.DHU_AL_HIJJAH, 9, if (isArOrUr) "يوم عرفة" else "Day of Arafah"),
+        Triple(IslamicCalendar.MUHARRAM, 1, if (isArOrUr) "رأس السنة الهجرية" else "Islamic New Year")
     )
-    var bestTitle = "رمضان المبارك"
+    var bestTitle = occasions[1].third
     var bestDays = Int.MAX_VALUE
     var bestMs = cal.timeInMillis
     val nowMs = ic.timeInMillis
@@ -99,7 +96,8 @@ private fun occasionWithGregorian(hijriOffset: Int): String {
         }
     }
     val gStr = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(Date(bestMs))
-    return "• $bestTitle: بعد $bestDays يوماً (الموافق $gStr م)".toWesternDigits()
+    return if (isArOrUr) "• $bestTitle: بعد $bestDays يوماً (الموافق $gStr م)".toWesternDigits()
+    else "• $bestTitle: in $bestDays days ($gStr)".toWesternDigits()
 }
 
 @Composable
@@ -144,10 +142,12 @@ fun HomeScreen(ctx: Context) {
 
     SakinaBrandTheme(theme = currentTheme, lang = currentLang) {
         val s = LocalSakinaStrings.current
+        val isArOrUr = currentLang == SakinaLang.AR || currentLang == SakinaLang.UR
+
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
-                ModalDrawerSheet(drawerContainerColor = currentTheme.bgDeep, modifier = Modifier.width(292.dp)) {
+                ModalDrawerSheet(drawerContainerColor = currentTheme.bgDeep, modifier = Modifier.width(288.dp)) {
                     Column(
                         modifier = Modifier.fillMaxHeight().padding(horizontal = 16.dp, vertical = 22.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -170,7 +170,11 @@ fun HomeScreen(ctx: Context) {
                         SakinaDrawerPillItem(R.drawable.ic_sunan, s.sunanTitle) {
                             scope.launch { drawerState.close() }
                             hadithTitle = s.sunanTitle
-                            hadithBody = "• الفجر (2 قبلها) | الظهر (4 قبلها + 2 بعدها) | المغرب (2 بعدها) | العشاء (2 بعدها)\n\nالحديث: عن أم حبيبة رضي الله عنها قالت: سمعت رسول الله ﷺ يقول: «ما من عبد مسلم يصلي لله كل يوم ثنتي عشرة ركعة تطوعاً غير الفريضة إلا بنى الله له بيتاً في الجنة».\nالإسناد: رواه مسلم في صحيحه (رقم 728).".toWesternDigits()
+                            hadithBody = if (isArOrUr) {
+                                "• ${s.prayers[0]} (2) | ${s.prayers[1]} (4+2) | ${s.prayers[3]} (2) | ${s.prayers[4]} (2)\n\nالحديث: عن أم حبيبة رضي الله عنها قالت: سمعت رسول الله ﷺ يقول: «ما من عبد مسلم يصلي لله كل يوم ثنتي عشرة ركعة تطوعاً غير الفريضة إلا بنى الله له بيتاً في الجنة».\nالإسناد: رواه مسلم في صحيحه (رقم 728).".toWesternDigits()
+                            } else {
+                                "• ${s.prayers[0]} (2 before) | ${s.prayers[1]} (4 before + 2 after) | ${s.prayers[3]} (2 after) | ${s.prayers[4]} (2 after)\n\nHadith: Umm Habibah narrated that the Messenger of Allah ﷺ said: 'Whoever prays twelve voluntary rak'ahs every day, Allah will build a house for him in Paradise.'\nSource: Sahih Muslim (728).".toWesternDigits()
+                            }
                         }
                         SakinaDrawerPillItem(R.drawable.ic_dhuhr, s.duhaTitle) {
                             scope.launch { drawerState.close() }
@@ -179,17 +183,29 @@ fun HomeScreen(ctx: Context) {
                             val duhaStart = hm.format(Date(events.first { it.first == 1 }.second.time + 15 * 60_000L))
                             val duhaEnd = hm.format(Date(events.first { it.first == 2 }.second.time - 10 * 60_000L))
                             hadithTitle = "${s.duhaTitle} ($duhaStart – $duhaEnd)"
-                            hadithBody = "الحديث: عن أبي ذر رضي الله عنه عن النبي ﷺ أنه قال: «يصبح على كل سلامى من أحدكم صدقة... ويجزئ من ذلك ركعتان يركعهما من الضحى».\nالإسناد: رواه مسلم في صحيحه (رقم 720).".toWesternDigits()
+                            hadithBody = if (isArOrUr) {
+                                "الحديث: عن أبي ذر رضي الله عنه عن النبي ﷺ أنه قال: «يصبح على كل سلامى من أحدكم صدقة... ويجزئ من ذلك ركعتان يركعهما من الضحى».\nالإسناد: رواه مسلم في صحيحه (رقم 720).".toWesternDigits()
+                            } else {
+                                "Hadith: Abu Dharr narrated that the Prophet ﷺ said: 'Charity is due upon every joint of a person every morning... and two rak'ahs of Duha suffice for that.'\nSource: Sahih Muslim (720).".toWesternDigits()
+                            }
                         }
                         SakinaDrawerPillItem(R.drawable.ic_isha, s.qiyamTitle) {
                             scope.launch { drawerState.close() }
                             hadithTitle = s.qiyamTitle
-                            hadithBody = "الحديث: عن أبي هريرة رضي الله عنه أن رسول الله ﷺ قال: «ينزل ربنا تبارك وتعالى كل ليلة إلى السماء الدنيا حين يبقى ثلث الليل الآخر يقول: من يدعوني فأستجيب له، من يسألني فأعطيه، من يستغفرني فأغفر له».\nالإسناد: متفق عليه؛ رواه البخاري (1145) ومسلم (758).".toWesternDigits()
+                            hadithBody = if (isArOrUr) {
+                                "الحديث: عن أبي هريرة رضي الله عنه أن رسول الله ﷺ قال: «ينزل ربنا تبارك وتعالى كل ليلة إلى السماء الدنيا حين يبقى ثلث الليل الآخر يقول: من يدعوني فأستجيب له، من يسألني فأعطيه، من يستغفرني فأغفر له».\nالإسناد: متفق عليه؛ رواه البخاري (1145) ومسلم (758).".toWesternDigits()
+                            } else {
+                                "Hadith: Abu Hurayrah narrated that the Messenger of Allah ﷺ said: 'Our Lord descends every night to the lowest heaven in the last third of the night, saying: Who calls upon Me that I may answer him? Who asks of Me that I may give him? Who seeks My forgiveness that I may forgive him?'\nSource: Sahih al-Bukhari (1145) & Sahih Muslim (758).".toWesternDigits()
+                            }
                         }
                         SakinaDrawerPillItem(R.drawable.ic_calendar, s.fastingTitle) {
                             scope.launch { drawerState.close() }
                             hadithTitle = s.fastingTitle
-                            hadithBody = "${occasionWithGregorian(Prefs.hijriOffset(ctx))}\n\nالحديث: عن أبي قتادة الأنصاري رضي الله عنه أن رسول الله ﷺ سُئل عن صوم يوم الإثنين فقال: «ذاك يوم ولدت فيه، ويوم بعثت أو أنزل علي فيه».\nالإسناد: رواه مسلم (رقم 1162)، وروى البخاري (1981) وصية النبي ﷺ بصيام ثلاثة أيام من كل شهر (الأيام البيض: 13، 14، 15).".toWesternDigits()
+                            hadithBody = if (isArOrUr) {
+                                "${occasionWithGregorian(Prefs.hijriOffset(ctx), true)}\n\nالحديث: عن أبي قتادة الأنصاري رضي الله عنه أن رسول الله ﷺ سُئل عن صوم يوم الإثنين فقال: «ذاك يوم ولدت فيه، ويوم بعثت أو أنزل علي فيه».\nالإسناد: رواه مسلم (رقم 1162)، وروى البخاري (1981) وصية النبي ﷺ بصيام ثلاثة أيام من كل شهر (الأيام البيض: 13، 14، 15).".toWesternDigits()
+                            } else {
+                                "${occasionWithGregorian(Prefs.hijriOffset(ctx), false)}\n\nHadith: Fast Mondays & Thursdays (Sahih Muslim 1162) and the Three White Days (13th, 14th, 15th of every Hijri month — Sahih al-Bukhari 1981).".toWesternDigits()
+                            }
                         }
                         SakinaDrawerPillItem(R.drawable.ic_settings, s.settingsTitle) {
                             scope.launch { drawerState.close() }; openedFromDrawer = true; extraSection = ExtraSection.SETTINGS
@@ -226,48 +242,53 @@ fun HomeScreen(ctx: Context) {
                     }
 
                     if (extraSection == ExtraSection.NONE) {
-                        // FIXED Physical Right Corner (AbsoluteAlignment.TopRight): Menu Button
+                        // Top-Right Menu Button (30.dp circle)
                         Box(
                             modifier = Modifier
                                 .align(AbsoluteAlignment.TopRight)
                                 .statusBarsPadding()
-                                .padding(end = 18.dp, top = 16.dp)
+                                .padding(end = 16.dp, top = 14.dp)
                                 .size(30.dp)
                                 .clip(CircleShape)
-                                .background(currentTheme.bgDeep.copy(alpha = 0.85f))
-                                .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
+                                .background(currentTheme.bgDeep.copy(alpha = 0.88f))
+                                .border(0.9.dp, Sakina3DGoldBevelBrush, CircleShape)
                                 .clickable { scope.launch { drawerState.open() } },
                             contentAlignment = Alignment.Center
                         ) {
                             Image(painter = painterResource(id = R.drawable.ic_menu), contentDescription = "Menu", modifier = Modifier.size(15.dp))
                         }
 
-                        // FIXED Physical Left Corner (AbsoluteAlignment.TopLeft): Language Switcher NEVER moves when switching RTL/LTR!
-                        Row(
+                        // Top-Left Language Switcher (#10): Exact same 30.dp circular size as Menu button for 100% symmetry!
+                        // Combines globe icon + 2-letter language code without the flag.
+                        Box(
                             modifier = Modifier
                                 .align(AbsoluteAlignment.TopLeft)
                                 .statusBarsPadding()
-                                .padding(start = 18.dp, top = 16.dp)
-                                .height(28.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(currentTheme.bgDeep.copy(alpha = 0.85f))
-                                .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                                .padding(start = 16.dp, top = 14.dp)
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(currentTheme.bgDeep.copy(alpha = 0.88f))
+                                .border(0.9.dp, Sakina3DGoldBevelBrush, CircleShape)
                                 .clickable {
                                     val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
                                     currentLang = next
                                     sp.edit().putString("app_lang", next.code).apply()
-                                }
-                                .padding(horizontal = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Image(painter = painterResource(id = R.drawable.ic_language), contentDescription = "Language", modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_language),
+                                contentDescription = "Language",
+                                alpha = 0.30f,
+                                modifier = Modifier.size(20.dp)
+                            )
                             Text(
-                                text = "${currentLang.flag} ${currentLang.code.uppercase()}",
+                                text = currentLang.code.uppercase(),
                                 fontFamily = SakinaNumeralFont,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 9.5.sp,
-                                color = currentTheme.accentBright
+                                color = currentTheme.accentBright,
+                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                             )
                         }
                     }
@@ -286,7 +307,7 @@ fun HomeScreen(ctx: Context) {
                 onDismissRequest = { hadithTitle = null },
                 containerColor = currentTheme.bgCard,
                 title = { Text(hadithTitle!!, fontFamily = SakinaHeadingFont, color = currentTheme.accentBright) },
-                text = { Text(hadithBody!!, fontFamily = SakinaBodyFont, color = SakinaBrandColors.LuminousIvory, lineHeight = 24.sp) },
+                text = { Text(hadithBody!!, fontFamily = SakinaBodyFont, color = SakinaBrandColors.LuminousIvory, lineHeight = 22.sp) },
                 confirmButton = {
                     SakinaBackIconButton(onClick = { hadithTitle = null; scope.launch { drawerState.open() } })
                 }
@@ -302,6 +323,7 @@ private fun SakinaHomeContent(ctx: Context) {
     var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var dayOffset by remember { mutableIntStateOf(0) }
     var modeTick by remember { mutableIntStateOf(0) }
+    var analogPrimary by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         SakinaLiveNotifier.update(ctx)
@@ -325,23 +347,33 @@ private fun SakinaHomeContent(ctx: Context) {
     val remSec = ((nextTimeMs - nowMs).coerceAtLeast(0L) / 1000L)
     val countdownText = String.format(Locale.US, "%02d:%02d:%02d", remSec / 3600, (remSec % 3600) / 60, remSec % 60).toWesternDigits()
 
+    // Keep all 5 prayers in their natural chronological order (#6): الفجر، الظهر، العصر، المغرب، العشاء
     val rows = remember(todayPrayers, nextIndexToday, dayOffset, modeTick, s) {
         val highlightIdx = if (nextIndexToday >= 0) nextIndexToday else 0
         todayPrayers.mapIndexed { idx, (keyAr, date) ->
-            BrandPrayerRow(keyAr, s.prayers[idx], hmFmt.format(date).toWesternDigits(), iconForPrayer(keyAr), bgForPrayer(keyAr), idx == highlightIdx, Modes.get(ctx, keyAr))
+            BrandPrayerRow(
+                keyNameAr = keyAr,
+                displayTitle = s.prayers.getOrElse(idx) { keyAr },
+                timeText = hmFmt.format(date).toWesternDigits(),
+                iconRes = iconForPrayer(keyAr),
+                bgRes = bgForPrayer(keyAr),
+                isNext = idx == highlightIdx,
+                mode = Modes.get(ctx, keyAr)
+            )
         }
     }
 
     val viewedCal = remember(dayOffset, nowMs / 3_600_000L) {
         Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dayOffset) }
     }
-    val datePillText = remember(viewedCal) {
+    val datePillText = remember(viewedCal, s) {
         val g = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(viewedCal.time).toWesternDigits()
         val ic = IslamicCalendar().apply {
             timeInMillis = viewedCal.timeInMillis
             add(IslamicCalendar.DAY_OF_MONTH, Prefs.hijriOffset(ctx))
         }
-        val h = "${ic.get(IslamicCalendar.DAY_OF_MONTH)} ${HOME_HIJRI_MONTHS[ic.get(IslamicCalendar.MONTH).coerceIn(0, 11)]} ${ic.get(IslamicCalendar.YEAR)}".toWesternDigits()
+        val hMonth = s.hijriMonths.getOrElse(ic.get(IslamicCalendar.MONTH).coerceIn(0, 11)) { "" }
+        val h = "${ic.get(IslamicCalendar.DAY_OF_MONTH)} $hMonth ${ic.get(IslamicCalendar.YEAR)}".toWesternDigits()
         "$g · $h"
     }
 
@@ -350,87 +382,198 @@ private fun SakinaHomeContent(ctx: Context) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 18.dp, end = 18.dp, top = 52.dp, bottom = 76.dp),
+            .padding(start = 14.dp, end = 14.dp, top = 46.dp, bottom = 72.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
+        // Top Header: App Title + Date Pill + Location with GPS Icon directly underneath (#12)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            SakinaTitle3D(text = s.appName, fontSize = 23.sp)
+            SakinaTitle3D(text = s.appName, fontSize = 21.sp)
             Spacer(Modifier.height(2.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 Box(
-                    modifier = Modifier.size(22.dp).clip(CircleShape).background(theme.bgCard).border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape).clickable { dayOffset-- },
+                    modifier = Modifier
+                        .size(21.dp)
+                        .clip(CircleShape)
+                        .background(theme.bgCard)
+                        .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
+                        .clickable { dayOffset-- },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(15.dp))
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(14.dp))
                 }
                 Row(
-                    modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(theme.bgCard.copy(alpha = 0.88f)).border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp)).padding(horizontal = 10.dp, vertical = 3.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(theme.bgCard.copy(alpha = 0.88f))
+                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                        .padding(horizontal = 9.dp, vertical = 2.5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null, modifier = Modifier.size(12.dp))
-                    Spacer(Modifier.width(5.dp))
-                    Text(datePillText, fontFamily = SakinaEditorialFont, fontSize = 10.5.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1)
+                    Image(painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null, modifier = Modifier.size(11.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(datePillText, fontFamily = SakinaEditorialFont, fontSize = 10.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Box(
-                    modifier = Modifier.size(22.dp).clip(CircleShape).background(theme.bgCard).border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape).clickable { dayOffset++ },
+                    modifier = Modifier
+                        .size(21.dp)
+                        .clip(CircleShape)
+                        .background(theme.bgCard)
+                        .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
+                        .clickable { dayOffset++ },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(15.dp))
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(14.dp))
                 }
             }
-            if (dayOffset != 0) {
-                Spacer(Modifier.height(3.dp))
-                Box(
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Color(0xFF0F3D3E)).border(0.7.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp)).clickable { dayOffset = 0 }.padding(horizontal = 10.dp, vertical = 2.dp)
-                ) {
-                    Text(s.todayLabel, fontFamily = SakinaEditorialFont, fontSize = 10.sp, color = theme.accentBright)
+            Spacer(Modifier.height(2.dp))
+            // Location + GPS Icon right under the Date (#12)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_location),
+                    contentDescription = null,
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = Place.name(ctx),
+                    fontFamily = SakinaEditorialFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    color = theme.accentBright
+                )
+                if (dayOffset != 0) {
+                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF0F3D3E))
+                            .border(0.7.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(10.dp))
+                            .clickable { dayOffset = 0 }
+                            .padding(horizontal = 8.dp, vertical = 1.dp)
+                    ) {
+                        Text(s.todayLabel, fontFamily = SakinaEditorialFont, fontSize = 9.5.sp, color = theme.accentBright)
+                    }
                 }
             }
         }
 
+        // Next Prayer Countdown Cartouche (well-spaced numerals) + Luxury Analog Clock right beside it (#11)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("❖ ${s.nextPrayer}: $nextDisplayName · ${Place.name(ctx)} ❖", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(4.dp))
-            SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 32.dp, vertical = 8.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(painter = painterResource(id = R.drawable.ic_fajr), contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(10.dp))
-                    Text(countdownText, fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 25.sp, color = theme.accentBright, style = TextStyle(fontFeatureSettings = "tnum"))
+            Text(
+                text = "❖ ${s.nextPrayer}: $nextDisplayName ❖",
+                fontFamily = SakinaEditorialFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = theme.accentBright,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(3.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                SakinaOrnamentCartouche(
+                    contentPadding = PaddingValues(horizontal = 36.dp, vertical = 8.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(painter = painterResource(id = R.drawable.ic_fajr), contentDescription = null, modifier = Modifier.size(17.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = if (analogPrimary) hmFmt.format(Date(nowMs)).toWesternDigits() else countdownText,
+                            fontFamily = SakinaNumeralFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 19.5.sp,
+                            color = theme.accentBright,
+                            maxLines = 1,
+                            style = TextStyle(
+                                fontFeatureSettings = "tnum",
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            )
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                // Analog Clock beside the cartouche (#11) — tap to toggle live time / countdown focus
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable { analogPrimary = !analogPrimary },
+                    contentAlignment = Alignment.Center
+                ) {
+                    SakinaAnalogClockDial(
+                        timeMs = nowMs,
+                        size = if (analogPrimary) 48.dp else 42.dp
+                    )
                 }
             }
         }
 
-        // Prayer rows: Next prayer is separated, larger, and has a full-bleed high-res image background (#8)!
-        val nextRow = rows.firstOrNull { it.isNext } ?: rows.first()
-        val otherRows = rows.filter { it != nextRow }
+        // Chronological 5 Prayers List (#6):
+        // Keeps الفجر -> الظهر -> العصر -> المغرب -> العشاء in exact order!
+        // Whichever prayer is next is rendered in-place as the separated, larger photo-backed card.
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            val nextIdx = rows.indexOfFirst { it.isNext }.coerceAtLeast(0)
+            val beforeRows = rows.subList(0, nextIdx)
+            val featuredRow = rows[nextIdx]
+            val afterRows = rows.subList(nextIdx + 1, rows.size)
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (beforeRows.isNotEmpty()) {
+                SakinaParchmentPanel(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    beforeRows.forEachIndexed { i, p ->
+                        SakinaPrayerRow(
+                            prayer = p,
+                            onCycleMode = {
+                                val nextMode = when (p.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
+                                Modes.set(ctx, p.keyNameAr, nextMode)
+                                AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
+                            }
+                        )
+                        if (i < beforeRows.lastIndex) HorizontalDivider(color = Color(0x22C5A059))
+                    }
+                }
+            }
+
             SakinaFeaturedNextPrayerCard(
-                prayer = nextRow,
+                prayer = featuredRow,
                 nextLabel = s.nextPrayer,
                 onCycleMode = {
-                    val nextMode = when (nextRow.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
-                    Modes.set(ctx, nextRow.keyNameAr, nextMode)
+                    val nextMode = when (featuredRow.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
+                    Modes.set(ctx, featuredRow.keyNameAr, nextMode)
                     AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
                 }
             )
 
-            SakinaParchmentPanel(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 18.dp,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                otherRows.forEachIndexed { index, prayer ->
-                    SakinaPrayerRow(
-                        prayer = prayer,
-                        onCycleMode = {
-                            val nextMode = when (prayer.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
-                            Modes.set(ctx, prayer.keyNameAr, nextMode)
-                            AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
-                        }
-                    )
-                    if (index < otherRows.lastIndex) HorizontalDivider(color = Color(0x22C5A059))
+            if (afterRows.isNotEmpty()) {
+                SakinaParchmentPanel(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 16.dp,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    afterRows.forEachIndexed { i, p ->
+                        SakinaPrayerRow(
+                            prayer = p,
+                            onCycleMode = {
+                                val nextMode = when (p.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
+                                Modes.set(ctx, p.keyNameAr, nextMode)
+                                AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
+                            }
+                        )
+                        if (i < afterRows.lastIndex) HorizontalDivider(color = Color(0x22C5A059))
+                    }
                 }
             }
         }
@@ -444,7 +587,7 @@ private fun SakinaFeaturedNextPrayerCard(
     onCycleMode: () -> Unit
 ) {
     val theme = LocalSakinaTheme.current
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(16.dp)
     val modeIcon = when (prayer.mode) {
         2 -> Icons.Rounded.Vibration
         3 -> Icons.Rounded.NotificationsOff
@@ -453,7 +596,7 @@ private fun SakinaFeaturedNextPrayerCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(58.dp)
+            .height(54.dp)
             .shadow(10.dp, shape, ambientColor = theme.accentGold, spotColor = theme.accentGold)
             .clip(shape)
             .border(1.5.dp, Sakina3DGoldBevelBrush, shape)
@@ -467,24 +610,52 @@ private fun SakinaFeaturedNextPrayerCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.horizontalGradient(listOf(Color(0xCC071422), Color(0x99071422), Color(0xCC071422))))
+                .background(Brush.horizontalGradient(listOf(Color(0xD8071422), Color(0x99071422), Color(0xD8071422))))
         )
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
                 Icon(
                     imageVector = modeIcon,
                     contentDescription = null,
                     tint = if (prayer.mode == 3) SakinaBrandColors.SoftSilver else theme.accentBright,
-                    modifier = Modifier.size(20.dp).clickable { onCycleMode() }
+                    modifier = Modifier.size(19.dp).clickable { onCycleMode() }
                 )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(prayer.displayTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = theme.accentBright)
-                    Text(nextLabel, fontFamily = SakinaBodyFont, fontSize = 10.sp, color = SakinaBrandColors.LuminousIvory)
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = prayer.displayTitle,
+                        fontFamily = SakinaEditorialFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.5.sp,
+                        lineHeight = 17.sp,
+                        color = theme.accentBright,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                    )
+                    Spacer(modifier = Modifier.height(1.dp))
+                    Text(
+                        text = nextLabel,
+                        fontFamily = SakinaBodyFont,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 9.5.sp,
+                        lineHeight = 11.sp,
+                        color = SakinaBrandColors.LuminousIvory,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                    )
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -492,12 +663,15 @@ private fun SakinaFeaturedNextPrayerCard(
                     text = prayer.timeText.toWesternDigits(),
                     fontFamily = SakinaNumeralFont,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
+                    fontSize = 17.sp,
                     color = theme.accentBright,
-                    style = TextStyle(fontFeatureSettings = "tnum")
+                    style = TextStyle(
+                        fontFeatureSettings = "tnum",
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    )
                 )
-                Spacer(modifier = Modifier.width(10.dp))
-                SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 36.dp)
+                Spacer(modifier = Modifier.width(8.dp))
+                SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 34.dp)
             }
         }
     }
@@ -511,31 +685,43 @@ private fun SakinaPrayerRow(prayer: BrandPrayerRow, onCycleMode: () -> Unit) {
         else -> Icons.Rounded.NotificationsActive
     }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             Icon(
                 imageVector = modeIcon,
                 contentDescription = null,
                 tint = if (prayer.mode == 3) Color(0xFF9E8C6C) else Color(0xFFC5A059),
-                modifier = Modifier.size(17.dp).clickable { onCycleMode() }
+                modifier = Modifier.size(16.dp).clickable { onCycleMode() }
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(prayer.displayTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = SakinaInkDark)
+            Text(
+                text = prayer.displayTitle,
+                fontFamily = SakinaEditorialFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = SakinaInkDark,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+            )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = prayer.timeText.toWesternDigits(),
                 fontFamily = SakinaNumeralFont,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
+                fontSize = 13.5.sp,
                 color = SakinaInkDark,
-                style = TextStyle(fontFeatureSettings = "tnum")
+                style = TextStyle(
+                    fontFeatureSettings = "tnum",
+                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                )
             )
-            Spacer(modifier = Modifier.width(10.dp))
-            SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 30.dp)
+            Spacer(modifier = Modifier.width(8.dp))
+            SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 28.dp)
         }
     }
 }

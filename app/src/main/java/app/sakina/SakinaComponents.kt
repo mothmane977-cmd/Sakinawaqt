@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Calendar
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -79,7 +80,7 @@ fun String.toWesternDigits(): String {
 @Composable
 fun SakinaTitle3D(
     text: String,
-    fontSize: TextUnit = 23.sp,
+    fontSize: TextUnit = 21.sp,
     modifier: Modifier = Modifier
 ) {
     Text(
@@ -94,10 +95,71 @@ fun SakinaTitle3D(
             brush = Brush.verticalGradient(
                 listOf(Color(0xFFFFF7D6), Color(0xFFE6CF94), Color(0xFFC5A059), Color(0xFF8C6B28))
             ),
-            shadow = Shadow(color = Color(0xDD000000), offset = Offset(0f, 4f), blurRadius = 8f)
+            shadow = Shadow(color = Color(0xDD000000), offset = Offset(0f, 3f), blurRadius = 6f),
+            platformStyle = PlatformTextStyle(includeFontPadding = false)
         ),
         modifier = modifier.fillMaxWidth()
     )
+}
+
+@Composable
+fun SakinaAnalogClockDial(
+    timeMs: Long,
+    size: Dp = 44.dp,
+    modifier: Modifier = Modifier
+) {
+    val theme = LocalSakinaTheme.current
+    Canvas(modifier = modifier.size(size)) {
+        val cx = this.size.width / 2f
+        val cy = this.size.height / 2f
+        val r = this.size.minDimension / 2f - 2.dp.toPx()
+
+        drawCircle(color = theme.bgDeep, radius = r, center = Offset(cx, cy))
+        drawCircle(brush = Sakina3DGoldBevelBrush, radius = r, center = Offset(cx, cy), style = Stroke(width = 1.6.dp.toPx()))
+
+        for (i in 0 until 12) {
+            val ang = (i * 30.0 - 90.0) * PI / 180.0
+            val innerR = if (i % 3 == 0) r * 0.74f else r * 0.84f
+            drawLine(
+                color = theme.accentBright,
+                start = Offset(cx + (innerR * cos(ang)).toFloat(), cy + (innerR * sin(ang)).toFloat()),
+                end = Offset(cx + (r * 0.92f * cos(ang)).toFloat(), cy + (r * 0.92f * sin(ang)).toFloat()),
+                strokeWidth = if (i % 3 == 0) 1.4.dp.toPx() else 0.8.dp.toPx()
+            )
+        }
+
+        val cal = Calendar.getInstance().apply { timeInMillis = timeMs }
+        val sec = cal.get(Calendar.SECOND)
+        val min = cal.get(Calendar.MINUTE) + sec / 60f
+        val hr = (cal.get(Calendar.HOUR) % 12) + min / 60f
+
+        val hrAng = (hr * 30.0 - 90.0) * PI / 180.0
+        val minAng = (min * 6.0 - 90.0) * PI / 180.0
+        val secAng = (sec * 6.0 - 90.0) * PI / 180.0
+
+        drawLine(
+            color = theme.accentBright,
+            start = Offset(cx, cy),
+            end = Offset(cx + (r * 0.48f * cos(hrAng)).toFloat(), cy + (r * 0.48f * sin(hrAng)).toFloat()),
+            strokeWidth = 2.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = SakinaBrandColors.LuminousIvory,
+            start = Offset(cx, cy),
+            end = Offset(cx + (r * 0.68f * cos(minAng)).toFloat(), cy + (r * 0.68f * sin(minAng)).toFloat()),
+            strokeWidth = 1.4.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = theme.accentGold,
+            start = Offset(cx, cy),
+            end = Offset(cx + (r * 0.76f * cos(secAng)).toFloat(), cy + (r * 0.76f * sin(secAng)).toFloat()),
+            strokeWidth = 0.9.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+        drawCircle(color = theme.accentBright, radius = 2.2.dp.toPx(), center = Offset(cx, cy))
+    }
 }
 
 @Composable
@@ -108,11 +170,11 @@ fun SakinaBackIconButton(
     val theme = LocalSakinaTheme.current
     Box(
         modifier = modifier
-            .size(34.dp)
-            .shadow(6.dp, CircleShape)
+            .size(32.dp)
+            .shadow(4.dp, CircleShape)
             .clip(CircleShape)
             .background(Brush.verticalGradient(listOf(theme.bgCard, theme.bgDeep)))
-            .border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
+            .border(0.9.dp, Sakina3DGoldBevelBrush, CircleShape)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -120,7 +182,7 @@ fun SakinaBackIconButton(
             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
             contentDescription = null,
             tint = theme.accentBright,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(16.dp)
         )
     }
 }
@@ -128,7 +190,7 @@ fun SakinaBackIconButton(
 @Composable
 fun SakinaStarPolygonBadge(
     @DrawableRes iconRes: Int,
-    size: Dp = 34.dp,
+    size: Dp = 32.dp,
     modifier: Modifier = Modifier
 ) {
     val theme = LocalSakinaTheme.current
@@ -149,7 +211,7 @@ fun SakinaStarPolygonBadge(
                 close()
             }
             drawPath(starPath, color = theme.bgDeep)
-            drawPath(starPath, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 1.3.dp.toPx()))
+            drawPath(starPath, brush = Sakina3DGoldBevelBrush, style = Stroke(width = 1.2.dp.toPx()))
         }
         Image(
             painter = painterResource(id = iconRes),
@@ -173,12 +235,12 @@ fun SakinaBackgroundLayer(
             painter = painterResource(id = headerImageRes),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.45f).align(Alignment.TopCenter)
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.44f).align(Alignment.TopCenter)
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.47f)
+                .fillMaxHeight(0.46f)
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
@@ -192,12 +254,13 @@ fun SakinaBackgroundLayer(
 
         content()
 
-        // Slender, wide, delicate 3D Gold Mihrab Arch touching the top edge (bg_mihrab.png)
+        // Semi-flat 2.5D gold Mihrab arch with soft feathered edges blended into background (#13)
         if (showMihrabFrame) {
             Image(
                 painter = painterResource(id = R.drawable.bg_mihrab),
                 contentDescription = null,
                 contentScale = ContentScale.FillWidth,
+                alpha = 0.86f,
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
@@ -210,11 +273,14 @@ fun SakinaBackgroundLayer(
 @Composable
 fun SakinaOrnamentCartouche(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 32.dp, vertical = 10.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 36.dp, vertical = 10.dp),
     content: @Composable BoxScope.() -> Unit
 ) {
+    // Generous horizontal padding (36.dp) so text in ANY language never touches or overflows the ornate tips!
     Box(
-        modifier = modifier.defaultMinSize(minWidth = 210.dp, minHeight = 52.dp),
+        modifier = modifier
+            .widthIn(min = 136.dp, max = 268.dp)
+            .defaultMinSize(minHeight = 46.dp),
         contentAlignment = Alignment.Center
     ) {
         Image(
@@ -231,14 +297,14 @@ fun SakinaOrnamentCartouche(
 fun SakinaParchmentPanel(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 18.dp,
-    contentPadding: PaddingValues = PaddingValues(14.dp),
+    contentPadding: PaddingValues = PaddingValues(12.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
     val theme = LocalSakinaTheme.current
     val shape = RoundedCornerShape(cornerRadius)
     Box(
         modifier = modifier
-            .shadow(12.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
+            .shadow(10.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
             .clip(shape)
             .background(Brush.verticalGradient(listOf(theme.parchmentTop, theme.parchmentBottom)))
             .drawBehind {
@@ -250,11 +316,9 @@ fun SakinaParchmentPanel(
                     x += step
                 }
             }
-            .border(1.5.dp, Sakina3DGoldBevelBrush, shape)
+            .border(1.4.dp, Sakina3DGoldBevelBrush, shape)
     ) {
-        // Fixed 4-corner arabesque placement using physical AbsoluteAlignment so RTL/LTR never flips them!
-        // ic_corner_arabesque.png has its right-angle spine at the TOP-LEFT.
-        val cSize = 24.dp
+        val cSize = 22.dp
         Image(
             painter = painterResource(id = R.drawable.ic_corner_arabesque),
             contentDescription = null,
@@ -289,7 +353,7 @@ fun SakinaGlassCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 18.dp,
     glowGold: Boolean = false,
-    contentPadding: PaddingValues = PaddingValues(14.dp),
+    contentPadding: PaddingValues = PaddingValues(12.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
     val theme = LocalSakinaTheme.current
@@ -328,7 +392,7 @@ fun SakinaDrawerPillItem(
     ) {
         Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(10.dp))
-        Text(title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = SakinaBrandColors.LuminousIvory)
+        Text(title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -344,9 +408,9 @@ fun SakinaBottomPillBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
             .navigationBarsPadding()
-            .height(60.dp)
+            .height(58.dp)
             .clip(barShape)
             .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.96f), theme.bgDeep)))
             .border(1.dp, Sakina3DGoldBevelBrush, barShape)
@@ -372,14 +436,14 @@ fun SakinaBottomPillBar(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Image(painter = painterResource(id = tab.iconRes), contentDescription = tab.label(s), modifier = Modifier.size(19.dp))
+                Image(painter = painterResource(id = tab.iconRes), contentDescription = tab.label(s), modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = tab.label(s),
                     fontFamily = SakinaHeadingFont,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 10.sp,
-                    lineHeight = 12.sp,
+                    fontSize = 9.5.sp,
+                    lineHeight = 11.sp,
                     color = textColor,
                     maxLines = 1,
                     softWrap = false,
@@ -401,7 +465,7 @@ fun SakinaGoldSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modif
         Box(
             modifier = modifier
                 .width(66.dp)
-                .height(32.dp)
+                .height(30.dp)
                 .clip(CircleShape)
                 .background(if (checked) theme.accentGold.copy(alpha = 0.24f) else Color(0x331B2531))
                 .border(0.8.dp, borderBrush, CircleShape)
@@ -409,12 +473,12 @@ fun SakinaGoldSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modif
             contentAlignment = Alignment.CenterStart
         ) {
             if (checked) {
-                Text("ON", fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 10.sp, color = theme.accentBright, modifier = Modifier.padding(start = 10.dp))
+                Text("ON", fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = theme.accentBright, modifier = Modifier.padding(start = 10.dp))
             }
             Box(
                 modifier = Modifier
                     .offset(x = thumbOffset)
-                    .size(24.dp)
+                    .size(22.dp)
                     .shadow(8.dp, CircleShape, ambientColor = theme.accentGold, spotColor = theme.accentGold)
                     .clip(CircleShape)
                     .background(

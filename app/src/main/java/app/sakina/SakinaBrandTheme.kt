@@ -45,7 +45,10 @@ object SakinaBrandColors {
     val DividerGold = Color(0x33D4AF37)
 }
 
+// Combined Luxury Serif (C059 for Latin) + Classic Naskh (for Arabic/Urdu) so both Latin and Arabic look editorial and regal!
 val SakinaEditorialFont = FontFamily(
+    Font(R.font.c059_roman, FontWeight.Normal),
+    Font(R.font.c059_bold, FontWeight.Bold),
     Font(R.font.noto_naskh_arabic_regular, FontWeight.Normal),
     Font(R.font.noto_naskh_arabic_bold, FontWeight.Bold)
 )
@@ -54,14 +57,15 @@ val SakinaHeadingFont = SakinaEditorialFont
 val SakinaBodyFont = SakinaEditorialFont
 
 val SakinaNumeralFont = FontFamily(
+    Font(R.font.c059_roman, FontWeight.Normal),
+    Font(R.font.c059_bold, FontWeight.Bold),
     Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_medium, FontWeight.Medium),
     Font(R.font.inter_semibold, FontWeight.SemiBold),
     Font(R.font.inter_bold, FontWeight.Bold)
 )
 
 private val SakinaTypography = Typography(
-    displayLarge = TextStyle(fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 34.sp, fontFeatureSettings = "tnum", color = SakinaBrandColors.GoldBright),
+    displayLarge = TextStyle(fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 32.sp, fontFeatureSettings = "tnum", color = SakinaBrandColors.GoldBright),
     titleLarge = TextStyle(fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SakinaBrandColors.LuminousIvory),
     bodyMedium = TextStyle(fontFamily = SakinaBodyFont, fontWeight = FontWeight.Normal, fontSize = 14.sp, color = SakinaBrandColors.LuminousIvory)
 )

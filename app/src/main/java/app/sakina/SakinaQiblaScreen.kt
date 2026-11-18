@@ -35,8 +35,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.batoulapps.adhan.Qibla
@@ -58,14 +61,10 @@ private fun sakinaSunPosition(lat: Double, lon: Double, timeMs: Long): Pair<Doub
     return Pair((Math.toDegrees(az) + 360.0) % 360.0, Math.toDegrees(alt))
 }
 
-private fun sakinaCardinal(deg: Double): String {
-    val names = listOf("شمال", "شمال شرق", "شرق", "جنوب شرق", "جنوب", "جنوب غرب", "غرب", "شمال غرب")
-    return names[(((deg + 22.5) % 360.0) / 45.0).toInt() % 8]
-}
-
 @Composable
 fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
     val theme = LocalSakinaTheme.current
+    val s = LocalSakinaStrings.current
     val co = Place.coords(ctx)
     val qibla = remember(co.latitude, co.longitude) { Qibla(co).direction }
     val distanceKm = remember(co.latitude, co.longitude) {
@@ -127,12 +126,12 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
     val sun = sakinaSunPosition(co.latitude, co.longitude, System.currentTimeMillis())
     val sunUp = sun.second > 0.0
     val fieldStable = magUt in 22f..68f
+    val cardinalStr = s.cardinals[(((qibla + 22.5) % 360.0) / 45.0).toInt() % 8]
 
     val accLabel = when (acc) {
-        SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> "الدقة: عالية"
-        SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> "الدقة: جيدة"
-        SensorManager.SENSOR_STATUS_ACCURACY_LOW -> "الدقة: ضعيفة · حرّك الهاتف على شكل 8"
-        else -> "الدقة: غير مستقرة · أبعد الهاتف عن المعادن"
+        SensorManager.SENSOR_STATUS_ACCURACY_HIGH -> s.accHigh
+        SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM -> s.accMed
+        else -> s.accLow
     }
 
     Column(
@@ -140,51 +139,80 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 20.dp, end = 20.dp, top = 74.dp, bottom = 78.dp),
+            .padding(start = 18.dp, end = 18.dp, top = 54.dp, bottom = 76.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("${LocalSakinaStrings.current.qiblaTitle} · ${Place.name(ctx)}", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = theme.accentBright, textAlign = TextAlign.Center)
+        // #2: Qibla title inside ornate Cartouche
+        SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 34.dp, vertical = 7.dp)) {
+            Text(
+                text = "${s.qiblaTitle} · ${Place.name(ctx)}",
+                fontFamily = SakinaHeadingFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = theme.accentBright,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+        }
 
-        Box(modifier = Modifier.size(240.dp), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.size(230.dp), contentAlignment = Alignment.Center) {
             SakinaAstrolabeDial(qibla.toFloat(), cont, sun.first.toFloat(), sunUp, aligned, Modifier.fillMaxSize())
             Box(
-                modifier = Modifier.size(54.dp).clip(CircleShape).background(theme.bgDeep).border(0.9.dp, Sakina3DGoldBevelBrush, CircleShape),
+                modifier = Modifier.size(52.dp).clip(CircleShape).background(theme.bgDeep).border(0.9.dp, Sakina3DGoldBevelBrush, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Image(painter = painterResource(id = R.drawable.ic_kaaba), contentDescription = null, modifier = Modifier.size(26.dp))
+                Image(painter = painterResource(id = R.drawable.ic_kaaba), contentDescription = null, modifier = Modifier.size(24.dp))
             }
         }
 
-        SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 24.dp, vertical = 6.dp)) {
+        // #1: Degree & guidance centered inside Cartouche without ever overflowing
+        SakinaOrnamentCartouche(
+            modifier = Modifier.fillMaxWidth(0.92f),
+            contentPadding = PaddingValues(horizontal = 38.dp, vertical = 10.dp)
+        ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("${qibla.toInt()}° · ${if (aligned) "على القبلة" else sakinaCardinal(qibla)}".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 19.sp, color = if (aligned) SakinaBrandColors.StableEmerald else theme.accentBright)
+                Text(
+                    text = "${qibla.toInt()}° · ${if (aligned) s.onQibla else cardinalStr}".toWesternDigits(),
+                    fontFamily = SakinaNumeralFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = if (aligned) SakinaBrandColors.StableEmerald else theme.accentBright,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                )
+                Spacer(Modifier.height(2.dp))
                 Text(
                     text = when {
-                        !hasSensor -> "لا يوجد مستشعر اتجاه"
-                        abs(diff) < 4.0 -> "أنت متجه نحو القبلة"
-                        else -> "أدر الهاتف ${abs(diff).toInt()}° نحو ${if (diff > 0) "اليمين" else "اليسار"}".toWesternDigits()
+                        !hasSensor -> s.noSensor
+                        abs(diff) < 4.0 -> s.onQibla
+                        else -> "${s.turnPhone} ${abs(diff).toInt()}° ${if (diff > 0) s.rightDir else s.leftDir}".toWesternDigits()
                     },
                     fontFamily = SakinaBodyFont,
-                    fontSize = 12.sp,
-                    color = SakinaBrandColors.LuminousIvory
+                    fontSize = 11.sp,
+                    color = SakinaBrandColors.LuminousIvory,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             QiblaTelemetryPill(glow = false) {
-                Image(painter = painterResource(id = R.drawable.ic_kaaba), contentDescription = null, modifier = Modifier.size(18.dp))
+                Image(painter = painterResource(id = R.drawable.ic_kaaba), contentDescription = null, modifier = Modifier.size(17.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("$distanceKm كم عن مكة".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 13.sp, color = theme.accentBright)
+                Text("$distanceKm ${s.kmFromMakkah}".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = theme.accentBright, maxLines = 1)
             }
             QiblaTelemetryPill(glow = fieldStable) {
-                Text("${magUt.roundToInt()} μT · ${if (fieldStable) "مجال مستقر" else "تشويش مغناطيسي"}".toWesternDigits(), fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if (fieldStable) SakinaBrandColors.StableEmerald else theme.accentBright)
+                Text("${magUt.roundToInt()} μT · ${if (fieldStable) s.stableField else s.magInterference}".toWesternDigits(), fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = if (fieldStable) SakinaBrandColors.StableEmerald else theme.accentBright, maxLines = 1)
             }
             QiblaTelemetryPill(glow = false) {
-                Icon(imageVector = Icons.Rounded.Check, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(16.dp))
+                Icon(imageVector = Icons.Rounded.Check, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(15.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(accLabel.toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = theme.accentBright, maxLines = 1)
+                Text(accLabel.toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = theme.accentBright, maxLines = 1)
             }
         }
     }
@@ -193,11 +221,11 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
 @Composable
 private fun QiblaTelemetryPill(glow: Boolean, content: @Composable RowScope.() -> Unit) {
     val theme = LocalSakinaTheme.current
-    val pillShape = RoundedCornerShape(19.dp)
+    val pillShape = RoundedCornerShape(18.dp)
     val borderBrush = if (glow) Brush.horizontalGradient(listOf(Color(0x664ADE80), theme.accentBright, Color(0x664ADE80))) else Sakina3DGoldBevelBrush
 
     Row(
-        modifier = Modifier.fillMaxWidth().height(36.dp).clip(pillShape).background(Brush.verticalGradient(listOf(theme.bgCard, theme.bgDeep))).border(0.65.dp, borderBrush, pillShape).padding(horizontal = 14.dp),
+        modifier = Modifier.fillMaxWidth().height(34.dp).clip(pillShape).background(Brush.verticalGradient(listOf(theme.bgCard, theme.bgDeep))).border(0.65.dp, borderBrush, pillShape).padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
         content = content

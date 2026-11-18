@@ -8,9 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,6 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,71 +57,95 @@ fun SakinaSettingsScreen(
     val placeName = remember(refreshTick) { Place.name(ctx) }
     val methodShort = remember(refreshTick) { Prefs.METHODS[Prefs.method(ctx)] }
 
+    // Non-scrolling static layout (#8): Language selector removed from Settings (available on Home screen),
+    // so the Themes list and Settings cards never scroll up into the Mihrab arch!
     Column(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 18.dp, end = 18.dp, top = 74.dp, bottom = 86.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 54.dp, bottom = 74.dp),
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             SakinaBackIconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart))
-            SakinaTitle3D(text = s.settingsTitle, fontSize = 22.sp, modifier = Modifier.align(Alignment.Center))
-        }
-
-        // 5 Luxury Themes Selector
-        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), glowGold = true) {
-            Text(s.themeTitle.toWesternDigits(), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = theme.accentBright)
-            Spacer(Modifier.height(8.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SakinaLuxuryTheme.entries.forEach { t ->
-                    val sel = t == selectedTheme
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(36.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (sel) t.accentGold.copy(alpha = 0.25f) else Color(0x18FFFFFF))
-                            .border(0.8.dp, if (sel) Sakina3DGoldBevelBrush else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent)), RoundedCornerShape(12.dp))
-                            .clickable { onThemeChange(t) }
-                            .padding(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(14.dp).clip(RoundedCornerShape(4.dp)).background(t.bgDeep).border(1.dp, t.accentGold, RoundedCornerShape(4.dp)))
-                            Spacer(Modifier.width(8.dp))
-                            Text(t.titleAr, fontFamily = SakinaBodyFont, fontSize = 13.sp, color = if (sel) t.accentBright else SakinaBrandColors.LuminousIvory)
-                        }
-                        if (sel) Text("✓", fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = t.accentBright)
-                    }
-                }
+            SakinaOrnamentCartouche(
+                modifier = Modifier.align(Alignment.Center),
+                contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)
+            ) {
+                Text(
+                    text = s.settingsTitle,
+                    fontFamily = SakinaEditorialFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = theme.accentBright,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
             }
         }
 
-        // 6 Languages Selector
-        SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-            Text(s.languageLabel, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
-            Spacer(Modifier.height(8.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (r in 0 until 2) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        for (c in 0 until 3) {
-                            val lang = SakinaLang.entries[r * 3 + c]
-                            val sel = lang == selectedLang
+        // 5 Luxury Themes Selector (compact cards, localized names)
+        SakinaGlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            glowGold = true,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp)
+        ) {
+            Text(
+                text = s.themeTitle.toWesternDigits(),
+                fontFamily = SakinaHeadingFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                color = theme.accentBright
+            )
+            Spacer(Modifier.height(6.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                SakinaLuxuryTheme.entries.forEachIndexed { idx, t ->
+                    val sel = t == selectedTheme
+                    val localizedThemeName = s.themeNames.getOrElse(idx) { t.titleAr }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(31.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (sel) t.accentGold.copy(alpha = 0.25f) else Color(0x18FFFFFF))
+                            .border(
+                                0.8.dp,
+                                if (sel) Sakina3DGoldBevelBrush else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent)),
+                                RoundedCornerShape(10.dp)
+                            )
+                            .clickable { onThemeChange(t) }
+                            .padding(horizontal = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(34.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (sel) theme.accentGold else Color(0x22FFFFFF))
-                                    .clickable { onLangChange(lang) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("${lang.flag} ${lang.nativeName}", fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory, maxLines = 1)
-                            }
+                                Modifier
+                                    .size(13.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(t.bgDeep)
+                                    .border(1.dp, t.accentGold, RoundedCornerShape(4.dp))
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = localizedThemeName,
+                                fontFamily = SakinaBodyFont,
+                                fontSize = 12.sp,
+                                color = if (sel) t.accentBright else SakinaBrandColors.LuminousIvory,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        if (sel) {
+                            Text(
+                                text = "✓ ${s.activeWord}",
+                                fontFamily = SakinaBodyFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.5.sp,
+                                color = t.accentBright
+                            )
                         }
                     }
                 }
@@ -130,21 +153,32 @@ fun SakinaSettingsScreen(
         }
 
         // Location: Auto GPS or Manual City
-        SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
+        SakinaGlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painter = painterResource(id = R.drawable.ic_location), contentDescription = null, modifier = Modifier.size(22.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("${s.locationLabel}: $placeName", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = theme.accentBright)
+                Image(painter = painterResource(id = R.drawable.ic_location), contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(7.dp))
+                Text(
+                    text = "${s.locationLabel}: $placeName",
+                    fontFamily = SakinaHeadingFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = theme.accentBright,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(theme.accentGold.copy(alpha = 0.22f))
-                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(10.dp))
                         .clickable {
                             val loc = Place.fromDevice(ctx)
                             if (loc != null) Place.set(ctx, loc.latitude, loc.longitude, "GPS")
@@ -153,40 +187,68 @@ fun SakinaSettingsScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(s.autoGps, fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = theme.accentBright)
+                    Text(s.autoGps, fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = theme.accentBright, maxLines = 1)
                 }
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(Color(0x22FFFFFF))
-                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(10.dp))
                         .clickable { showCityPicker = true },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(s.manualPick, fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = SakinaBrandColors.LuminousIvory)
+                    Text(s.manualPick, fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1)
                 }
             }
         }
 
-        // Asr & Hijri
-        SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
+        // Asr Hanafi & Hijri Adjustment (fully localized)
+        SakinaGlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp)
+        ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("المذهب الحنفي للعصر", fontFamily = SakinaBodyFont, fontSize = 13.5.sp, color = SakinaBrandColors.LuminousIvory)
+                Text(
+                    text = s.hanafiLabel,
+                    fontFamily = SakinaBodyFont,
+                    fontSize = 12.5.sp,
+                    color = SakinaBrandColors.LuminousIvory,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 SakinaGoldSwitch(checked = isHanafi, onCheckedChange = {
                     isHanafi = it; Prefs.setHanafi(ctx, it); AlarmScheduler.scheduleNext(ctx)
                 })
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(7.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("تعديل الهجري: ${if (hijriOff > 0) "+$hijriOff" else "$hijriOff"}".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 13.sp, color = theme.accentBright)
+                Text(
+                    text = "${s.hijriAdjLabel}: ${if (hijriOff > 0) "+$hijriOff" else "$hijriOff"}".toWesternDigits(),
+                    fontFamily = SakinaBodyFont,
+                    fontSize = 12.sp,
+                    color = theme.accentBright,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(-1, 0, 1).forEach { step ->
                         Box(
-                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (hijriOff == step) theme.accentGold else Color(0x22FFFFFF)).clickable { hijriOff = step; Prefs.setHijriOffset(ctx, step) }.padding(horizontal = 10.dp, vertical = 4.dp)
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (hijriOff == step) theme.accentGold else Color(0x22FFFFFF))
+                                .clickable { hijriOff = step; Prefs.setHijriOffset(ctx, step) }
+                                .padding(horizontal = 9.dp, vertical = 3.dp)
                         ) {
-                            Text("${if (step > 0) "+$step" else "$step"}".toWesternDigits(), fontFamily = SakinaNumeralFont, fontSize = 12.sp, color = if (hijriOff == step) theme.bgDeep else SakinaBrandColors.LuminousIvory)
+                            Text(
+                                text = "${if (step > 0) "+$step" else "$step"}".toWesternDigits(),
+                                fontFamily = SakinaNumeralFont,
+                                fontSize = 11.5.sp,
+                                color = if (hijriOff == step) theme.bgDeep else SakinaBrandColors.LuminousIvory
+                            )
                         }
                     }
                 }
@@ -236,11 +298,11 @@ fun SakinaSettingsScreen(
 @Composable
 private fun SakinaSettingsPill(@DrawableRes iconRes: Int, title: String, valueText: String, onClick: () -> Unit) {
     val theme = LocalSakinaTheme.current
-    val pillShape = RoundedCornerShape(22.dp)
+    val pillShape = RoundedCornerShape(20.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp)
+            .height(40.dp)
             .clip(pillShape)
             .background(Brush.verticalGradient(listOf(theme.bgCard, theme.bgDeep)))
             .border(0.8.dp, Sakina3DGoldBevelBrush, pillShape)
@@ -250,10 +312,10 @@ private fun SakinaSettingsPill(@DrawableRes iconRes: Int, title: String, valueTe
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-            Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaBrandColors.LuminousIvory)
+            Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Text(valueText.toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = theme.accentBright, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(valueText.toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = theme.accentBright, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
