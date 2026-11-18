@@ -35,8 +35,8 @@ object SakinaLiveNotifier {
                     if (context != null) update(context)
                 }
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                appCtx.registerReceiver(receiver, filter, Context.RECEIVER_NOTEXPORTED)
+            if (Build.VERSION.SDK_INT >= 33) {
+                appCtx.registerReceiver(receiver, filter, 4)
             } else {
                 appCtx.registerReceiver(receiver, filter)
             }

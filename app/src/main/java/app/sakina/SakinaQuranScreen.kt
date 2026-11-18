@@ -92,7 +92,7 @@ private fun loadMushafAsset(context: Context, riwaya: QuranRiwaya): List<SurahEn
     quranCache[riwaya]?.let { return it }
     return try {
         val raw = context.assets.open(riwaya.assetFile).bufferedReader(Charsets.UTF_8).use { it.readText() }.trim()
-        val parsed = if (raw.startsWith("{") && raw.contains(""quran"")) {
+        val parsed = if (raw.startsWith("{") && raw.contains("\"quran\"")) {
             val verses = JSONObject(raw).getJSONArray("quran")
             val byChapter = Array(115) { mutableListOf<String>() }
             for (i in 0 until verses.length()) {

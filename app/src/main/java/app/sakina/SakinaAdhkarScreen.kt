@@ -562,8 +562,7 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
             containerColor = theme.bgCard,
             title = {
                 Text(
-                    text = "${s.asmaTitle}
-${currentAsma.nameAr}",
+                    text = "${s.asmaTitle}\n${currentAsma.nameAr}",
                     fontFamily = SakinaNaskhFontFamily,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
