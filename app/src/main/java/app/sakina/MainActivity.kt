@@ -22,14 +22,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import com.batoulapps.adhan.*
 import com.batoulapps.adhan.data.DateComponents
@@ -283,7 +275,12 @@ class AlarmReceiver : BroadcastReceiver() {
 
     private fun ring(c: Context, name: String, mode: Int) {
         if (mode == 3) return
-        if (mode == 0 || mode == 1) {
+        if (mode == 0) {
+            SakinaAdhanAudio.playAlarmAdhan(c, name)
+            Notifier.show(c, name, mode, playSoundInChannel = false)
+            return
+        }
+        if (mode == 1) {
             try {
                 AdhanService.start(c, name, mode)
                 return
@@ -291,24 +288,28 @@ class AlarmReceiver : BroadcastReceiver() {
                 DiagLog.add(c, "تعذّر بدء الخدمة (${e.javaClass.simpleName}): إشعار عادي")
             }
         }
-        Notifier.show(c, name, mode)
+        Notifier.show(c, name, mode, playSoundInChannel = true)
     }
 }
 
 object Notifier {
-    fun show(c: Context, name: String, mode: Int) {
+    fun show(c: Context, name: String, mode: Int, playSoundInChannel: Boolean = true) {
         val nm = c.getSystemService(NotificationManager::class.java)
-        val rid = c.resources.getIdentifier(if (mode == 1) "takbir" else "adhan", "raw", c.packageName)
+        val rid = if (mode == 0) {
+            SakinaAdhanAudio.rawResForPrayer(c, name)
+        } else {
+            c.resources.getIdentifier("takbir", "raw", c.packageName)
+        }
         val attrs = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
-        val chId = "m${mode}_${if (rid != 0) 1 else 0}"
+        val chId = "m${mode}_${rid}_${if (playSoundInChannel) 1 else 0}"
         val ch = NotificationChannel(chId, Modes.labels[mode], NotificationManager.IMPORTANCE_HIGH).apply {
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             enableVibration(true)
             vibrationPattern = longArrayOf(0, 600, 300, 600)
-            if (mode == 2) {
+            if (mode == 2 || !playSoundInChannel) {
                 setSound(null, null)
             } else {
                 val uri = if (rid != 0) Uri.parse("android.resource://${c.packageName}/$rid")
@@ -317,14 +318,22 @@ object Notifier {
             }
         }
         nm.createNotificationChannel(ch)
-        nm.notify(name.hashCode(), NotificationCompat.Builder(c, chId)
-            .setSmallIcon(R.drawable.ic_stat_sakina)
-            .setColor(0xFFC69C53.toInt())
-            .setContentTitle("حان وقت $name")
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .build())
+        val openPi = PendingIntent.getActivity(
+            c, 10, Intent(c, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        nm.notify(
+            name.hashCode(),
+            NotificationCompat.Builder(c, chId)
+                .setSmallIcon(R.drawable.ic_stat_sakina)
+                .setColor(0xFFC69C53.toInt())
+                .setContentTitle("حان وقت $name")
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(openPi)
+                .setAutoCancel(true)
+                .build()
+        )
     }
 }
 
