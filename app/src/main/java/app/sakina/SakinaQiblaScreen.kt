@@ -71,7 +71,6 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
     val qiblaBearing = remember(lat, lon) { calculateGreatCircleQibla(lat, lon) }
     val distanceKm = remember(lat, lon) { calculateHaversineDistanceKm(lat, lon) }
 
-    // Continuous unwrapped heading so animateFloatAsState NEVER spins 360° backwards across North (0°/360°) (#1)
     var continuousHeading by remember { mutableFloatStateOf(0f) }
     var normalizedHeading by remember { mutableFloatStateOf(0f) }
     var fieldStrengthUt by remember { mutableFloatStateOf(48f) }
@@ -80,12 +79,12 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
 
     DisposableEffect(ctx, lat, lon) {
         val sm = ctx.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        val rotSensor = sm.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR)
-            ?: sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+        val rotVector = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+        val geoRotVector = sm.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR)
         val accelSensor = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         val magSensor = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
 
-        if (rotSensor == null && (accelSensor == null || magSensor == null)) {
+        if (rotVector == null && geoRotVector == null && (accelSensor == null || magSensor == null)) {
             hasSensor = false
         }
 
@@ -93,46 +92,35 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
         val geomagnetic = FloatArray(3)
         var hasGravity = false
         var hasMag = false
+        var rotVectorActive = false
         var smoothSin = 0f
         var smoothCos = 1f
         var initialized = false
 
-        val declination = GeomagneticField(
-            lat.toFloat(), lon.toFloat(), 0f, System.currentTimeMillis()
-        ).declination
+        val declination = try {
+            GeomagneticField(lat.toFloat(), lon.toFloat(), 0f, System.currentTimeMillis()).declination
+        } catch (_: Exception) { 0f }
 
-        fun updateHeadingFromMatrix(rotMatrix: FloatArray) {
-            // Remap if phone is tilted upwards > 45 deg, otherwise standard flat table orientation
-            val outMatrix = FloatArray(9)
-            val pitchSlope = abs(rotMatrix[7])
-            val finalMatrix = if (pitchSlope > 0.72f) {
-                SensorManager.remapCoordinateSystem(rotMatrix, SensorManager.AXIS_X, SensorManager.AXIS_Z, outMatrix)
-                outMatrix
-            } else {
-                rotMatrix
-            }
-
+        fun pushHeadingFromMatrix(rotMatrix: FloatArray) {
             val orientation = FloatArray(3)
-            SensorManager.getOrientation(finalMatrix, orientation)
-            val rawDeg = (Math.toDegrees(orientation[0].toDouble()).toFloat() + declination + 360f) % 360f
+            SensorManager.getOrientation(rotMatrix, orientation)
+            val rawDeg = ((Math.toDegrees(orientation[0].toDouble()).toFloat() + declination) + 360f) % 360f
             val rad = Math.toRadians(rawDeg.toDouble())
             val sVal = sin(rad).toFloat()
             val cVal = cos(rad).toFloat()
 
-            // Circular vector low-pass filter eliminates compass jitter (#1)
             if (!initialized) {
                 smoothSin = sVal
                 smoothCos = cVal
                 initialized = true
             } else {
-                smoothSin = smoothSin * 0.84f + sVal * 0.16f
-                smoothCos = smoothCos * 0.84f + cVal * 0.16f
+                smoothSin = smoothSin * 0.80f + sVal * 0.20f
+                smoothCos = smoothCos * 0.80f + cVal * 0.20f
             }
 
             val filteredDeg = ((Math.toDegrees(atan2(smoothSin.toDouble(), smoothCos.toDouble())).toFloat() + 360f) % 360f)
             normalizedHeading = filteredDeg
 
-            // Unwrap delta relative to current continuousHeading
             val currentMod = ((continuousHeading % 360f) + 360f) % 360f
             var delta = filteredDeg - currentMod
             if (delta > 180f) delta -= 360f
@@ -144,29 +132,35 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             override fun onSensorChanged(event: SensorEvent) {
                 when (event.sensor.type) {
                     Sensor.TYPE_ROTATION_VECTOR, Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR -> {
+                        rotVectorActive = true
                         val rotMatrix = FloatArray(9)
                         SensorManager.getRotationMatrixFromVector(rotMatrix, event.values)
-                        updateHeadingFromMatrix(rotMatrix)
+                        pushHeadingFromMatrix(rotMatrix)
                     }
                     Sensor.TYPE_ACCELEROMETER -> {
-                        for (i in 0..2) gravity[i] = if (!hasGravity) event.values[i] else gravity[i] * 0.85f + event.values[i] * 0.15f
+                        for (i in 0..2) {
+                            gravity[i] = if (!hasGravity) event.values[i] else gravity[i] * 0.85f + event.values[i] * 0.15f
+                        }
                         hasGravity = true
                     }
                     Sensor.TYPE_MAGNETIC_FIELD -> {
-                        for (i in 0..2) geomagnetic[i] = if (!hasMag) event.values[i] else geomagnetic[i] * 0.85f + event.values[i] * 0.15f
+                        for (i in 0..2) {
+                            geomagnetic[i] = if (!hasMag) event.values[i] else geomagnetic[i] * 0.85f + event.values[i] * 0.15f
+                        }
                         hasMag = true
                         val bx = event.values[0]; val by = event.values[1]; val bz = event.values[2]
                         fieldStrengthUt = sqrt(bx * bx + by * by + bz * bz)
-                        if (rotSensor == null && hasGravity && hasMag) {
+                        if (!rotVectorActive && hasGravity) {
                             val r = FloatArray(9)
                             val iMat = FloatArray(9)
                             if (SensorManager.getRotationMatrix(r, iMat, gravity, geomagnetic)) {
-                                updateHeadingFromMatrix(r)
+                                pushHeadingFromMatrix(r)
                             }
                         }
                     }
                 }
             }
+
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
                 if (sensor?.type == Sensor.TYPE_MAGNETIC_FIELD || sensor?.type == Sensor.TYPE_ROTATION_VECTOR) {
                     sensorAccuracy = accuracy
@@ -174,14 +168,15 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             }
         }
 
-        // Prefer Accelerometer + Magnetic Field fusion when available for direct magnetic North + true declination,
-        // or Rotation Vector sensor
-        if (accelSensor != null && magSensor != null) {
-            sm.registerListener(listener, accelSensor, SensorManager.SENSOR_DELAY_UI)
-            sm.registerListener(listener, magSensor, SensorManager.SENSOR_DELAY_UI)
-        } else if (rotSensor != null) {
-            sm.registerListener(listener, rotSensor, SensorManager.SENSOR_DELAY_UI)
+        // Register fused Rotation Vector first (works reliably on Xiaomi/HyperOS/Samsung/Pixel) (#6)
+        if (rotVector != null) {
+            sm.registerListener(listener, rotVector, SensorManager.SENSOR_DELAY_GAME)
+        } else if (geoRotVector != null) {
+            sm.registerListener(listener, geoRotVector, SensorManager.SENSOR_DELAY_GAME)
         }
+        // Always listen to Magnetometer (for µT) + Accelerometer (for fallback)
+        if (magSensor != null) sm.registerListener(listener, magSensor, SensorManager.SENSOR_DELAY_UI)
+        if (accelSensor != null) sm.registerListener(listener, accelSensor, SensorManager.SENSOR_DELAY_UI)
 
         onDispose { sm.unregisterListener(listener) }
     }
@@ -201,11 +196,11 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, top = 50.dp, bottom = 74.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 66.dp, bottom = 74.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // 1. Title in Ornate Cartouche (#2)
+        // 1. Title Cartouche centered cleanly in the open space between Mihrab arch & Compass dial (#7)
         SakinaOrnamentCartouche(
             contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)
         ) {
@@ -221,8 +216,8 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             )
         }
 
-        // 2. Astrolabe Dial with Dedicated 3D Gold Qibla Needle (#1, #19)
-        Box(modifier = Modifier.size(226.dp), contentAlignment = Alignment.Center) {
+        // 2. Astrolabe Dial with Dedicated 3D Gold Qibla Needle (210.dp so top cartouche has breathing room #7)
+        Box(modifier = Modifier.size(210.dp), contentAlignment = Alignment.Center) {
             Image(
                 painter = painterResource(id = R.drawable.ic_astrolabe_dial),
                 contentDescription = "Astrolabe Compass Dial",
@@ -234,7 +229,6 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 val cy = size.height / 2f
                 val radius = size.minDimension / 2f
 
-                // Alignment emerald halo when facing Qibla
                 if (isAligned) {
                     drawCircle(
                         color = SakinaBrandColors.StableEmerald.copy(alpha = 0.25f),
@@ -244,7 +238,6 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                     )
                 }
 
-                // Top Fixed Lubber Line (Phone Front Pointer)
                 val pointerPath = Path().apply {
                     moveTo(cx, 2.dp.toPx())
                     lineTo(cx - 8.dp.toPx(), 16.dp.toPx())
@@ -256,7 +249,6 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                     color = if (isAligned) SakinaBrandColors.StableEmerald else theme.accentBright
                 )
 
-                // Dedicated Qibla Pointer Needle pointing from center toward Qibla bearing (#1)
                 val qiblaAngleRad = Math.toRadians((qiblaBearing - animatedHeading - 90f).toDouble())
                 val needleTipR = radius - 14.dp.toPx()
                 val needleBaseR = 26.dp.toPx()
@@ -285,10 +277,9 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 drawCircle(color = needleColor, radius = 4.dp.toPx(), center = Offset(tipX, tipY))
             }
 
-            // Enlarged Central 3D Kaaba Medallion (58.dp box, 38.dp Kaaba icon) (#19)
             Box(
                 modifier = Modifier
-                    .size(58.dp)
+                    .size(56.dp)
                     .clip(CircleShape)
                     .background(Brush.radialGradient(listOf(theme.bgCard, theme.bgDeep)))
                     .border(
@@ -302,13 +293,12 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_kaaba),
                     contentDescription = "Kaaba",
-                    modifier = Modifier.size(38.dp)
+                    modifier = Modifier.size(36.dp)
                 )
             }
         }
 
-        // 3. Degree & Live Guidance Cartouche (#1):
-        // Shows BOTH Qibla Target Degree AND Live Phone Heading Degree so user sees live response!
+        // 3. Degree & Live Guidance Cartouche
         val qiblaDeg = qiblaBearing.roundToInt()
         val headingDeg = normalizedHeading.roundToInt() % 360
         val cardinal = s.cardinals[((headingDeg + 22) / 45) % 8]
@@ -320,7 +310,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
         }
 
         SakinaOrnamentCartouche(
-            contentPadding = PaddingValues(horizontal = 36.dp, vertical = 10.dp)
+            contentPadding = PaddingValues(horizontal = 36.dp, vertical = 9.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -354,7 +344,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             }
         }
 
-        // 4. Bottom Status Pills with larger 24.dp Kaaba icon (#19)
+        // 4. Bottom Status Pills
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(
                 modifier = Modifier

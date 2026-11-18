@@ -36,7 +36,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -128,7 +130,7 @@ private val ADHKAR_CATEGORIES = listOf(
         DhikrItem("أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ.", 3, "رواه مسلم"),
         DhikrItem("حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ.", 7, "رواه أبو داود")
     )),
-    DhikrCategory("أذكار بعد الصلاة", R.drawable.ic_adhkar, listOf(
+    DhikrCategory("أذكار بعد الصلاة", R.drawable.ic_after_prayer, listOf(
         DhikrItem("أَسْتَغْفِرُ اللَّهَ (ثَلَاثًا).. اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ.", 1, "رواه مسلم"),
         DhikrItem("لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ، اللَّهُمَّ لَا مَانِعَ لِمَا أَعْطَيْتَ، وَلَا مُعْطِيَ لِمَا مَنَعْتَ، وَلَا يَنْفَعُ ذَا الْجَدِّ مِنْكَ الْجَدُّ.", 1, "متفق عليه"),
         DhikrItem("سُبْحَانَ اللَّهِ (33) · الْحَمْدُ لِلَّهِ (33) · اللَّهُ أَكْبَرُ (33)، ويتم المائة بـ: لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ.", 33, "رواه مسلم")
@@ -210,16 +212,17 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
 
         if (selectedCategoryIndex == null) {
             // 2. Surah Al-Ahzab: 35 directly under the cartouche in Classical Naskh (#24, #25)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.92f), theme.bgDeep.copy(alpha = 0.96f))))
-                    .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.92f), theme.bgDeep.copy(alpha = 0.96f))))
+                        .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
                         fontFamily = SakinaNaskhFontFamily,
@@ -245,6 +248,7 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         )
                     )
+                    }
                 }
             }
 
@@ -450,26 +454,62 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                         modifier = Modifier.weight(1f),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        SakinaTitle3D(text = TASBIH_PHRASES[phraseIdx], fontSize = 16.sp)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            TASBIH_PHRASES.forEachIndexed { idx, p ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0x22FFFFFF))
+                                    .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
+                                    .clickable {
+                                        phraseIdx = (phraseIdx - 1 + TASBIH_PHRASES.size) % TASBIH_PHRASES.size
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(18.dp))
+                            }
+                            Text(
+                                text = TASBIH_PHRASES[phraseIdx],
+                                fontFamily = SakinaNaskhFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = theme.accentBright,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f).padding(horizontal = 6.dp)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0x22FFFFFF))
+                                    .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
+                                    .clickable {
+                                        phraseIdx = (phraseIdx + 1) % TASBIH_PHRASES.size
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TASBIH_PHRASES.forEachIndexed { idx, _ ->
                                 val sel = idx == phraseIdx
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(if (sel) theme.accentGold else Color(0x22FFFFFF))
+                                        .size(if (sel) 18.dp else 7.dp, 7.dp)
+                                        .clip(CircleShape)
+                                        .background(if (sel) theme.accentBright else Color(0x44FFFFFF))
                                         .clickable { phraseIdx = idx }
-                                        .padding(horizontal = 5.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = p.substringBefore(" "),
-                                        fontFamily = SakinaNaskhFontFamily,
-                                        fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
-                                        fontSize = 8.5.sp,
-                                        color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory
-                                    )
-                                }
+                                )
                             }
                         }
                     }

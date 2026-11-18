@@ -44,18 +44,18 @@ object SakinaLiveNotifier {
         } catch (_: Exception) {}
     }
 
-    private fun renderHighResBanner(
+    private fun renderBorderlessBanner(
         ctx: Context,
-        dateHeader: String,
+        placeAndDate: String,
         nextLine: String,
         prevLine: String
     ): Bitmap {
         val w = 1080
-        val h = 380
+        val h = 360
         val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
 
-        // 1. Draw high-res mosque background photo (#12)
+        // 1. Full-bleed edge-to-edge high-res photo with NO borders and NO frames (#1)
         try {
             val src = BitmapFactory.decodeResource(ctx.resources, R.drawable.bg_header_mosque)
             if (src != null) {
@@ -74,58 +74,70 @@ object SakinaLiveNotifier {
             }
         } catch (_: Exception) {}
 
-        // 2. Luxury translucent royal navy & gold vignette overlay so text is ultra-crisp
+        // 2. Smooth translucent navy vignette (no border lines)
         val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = LinearGradient(
                 0f, 0f, w.toFloat(), h.toFloat(),
-                intArrayOf(
-                    0xE6071422.toInt(),
-                    0xB80A232E.toInt(),
-                    0xE6071422.toInt()
-                ),
+                intArrayOf(0xD9071422.toInt(), 0xA80A232E.toInt(), 0xD9071422.toInt()),
                 floatArrayOf(0f, 0.5f, 1f),
                 Shader.TileMode.CLAMP
             )
         }
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), overlayPaint)
 
-        // 3. Double Ornate Gold Frame
-        val goldBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 4f
-            color = 0xFFD4AF37.toInt()
-        }
-        canvas.drawRoundRect(RectF(16f, 16f, w - 16f, h - 16f), 28f, 28f, goldBorder)
-        goldBorder.strokeWidth = 1.5f
-        goldBorder.color = 0x88F3DC8B.toInt()
-        canvas.drawRoundRect(RectF(26f, 26f, w - 26f, h - 26f), 22f, 22f, goldBorder)
+        // 3. Mosque Dome & Minaret icon + small ultra-crisp "سَكِينة" right underneath it (#1)
+        try {
+            val iconBmp = BitmapFactory.decodeResource(ctx.resources, R.drawable.ic_stat_sakina)
+            if (iconBmp != null) {
+                val iconSize = 54
+                val iconX = w - 96f
+                val iconY = 22f
+                val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+                    colorFilter = PorterDuffColorFilter(0xFFF3DC8B.toInt(), PorterDuff.Mode.SRC_IN)
+                }
+                canvas.drawBitmap(
+                    iconBmp,
+                    null,
+                    RectF(iconX, iconY, iconX + iconSize, iconY + iconSize),
+                    iconPaint
+                )
+                val brandPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = 0xFFFFFFFF.toInt()
+                    textSize = 24f
+                    textAlign = Paint.Align.CENTER
+                    typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+                    setShadowLayer(5f, 0f, 2f, 0xFF000000.toInt())
+                }
+                canvas.drawText("سَكِينة", iconX + iconSize / 2f, iconY + iconSize + 24f, brandPaint)
+            }
+        } catch (_: Exception) {}
 
-        // 4. Crisp Gold & Luminous Ivory Typography
-        val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        // 4. Crisp High-Contrast Typography
+        val datePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFF3DC8B.toInt()
-            textSize = 33f
+            textSize = 31f
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
             setShadowLayer(6f, 0f, 3f, 0xDD000000.toInt())
         }
         val mainPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFFFFFFF.toInt()
-            textSize = 44f
+            textSize = 42f
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
             setShadowLayer(8f, 0f, 3f, 0xEE000000.toInt())
         }
         val subPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE6CF94.toInt()
-            textSize = 31f
+            textSize = 30f
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
             setShadowLayer(6f, 0f, 2f, 0xDD000000.toInt())
         }
 
-        canvas.drawText("❖ $dateHeader ❖", w / 2f, 95f, titlePaint)
-        canvas.drawText(nextLine, w / 2f, 200f, mainPaint)
-        canvas.drawText(prevLine, w / 2f, 295f, subPaint)
+        canvas.drawText(placeAndDate, w / 2f - 28f, 84f, datePaint)
+        canvas.drawText(nextLine, w / 2f, 192f, mainPaint)
+        canvas.drawText(prevLine, w / 2f, 286f, subPaint)
 
         return out
     }
@@ -140,7 +152,7 @@ object SakinaLiveNotifier {
                     "شريط مواقيت الصلاة الحي",
                     NotificationManager.IMPORTANCE_LOW
                 ).apply {
-                    description = "إشعار دائم يعرض التاريخ الهجري والميلادي والصلاة الفائتة والقادمة"
+                    description = "إشعار دائم يعرض صورة مواقيت الصلاة"
                     setShowBadge(false)
                     lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 }
@@ -179,12 +191,11 @@ object SakinaLiveNotifier {
             val place = Place.name(ctx)
             val hm = SimpleDateFormat("HH:mm", Locale.US)
 
-            val titleLine = "📍 $place · $hijriStr | $gregStr".toWesternDigits()
+            val placeAndDate = "📍 $place · $hijriStr · $gregStr".toWesternDigits()
             val nextLine = "الصلاة القادمة: $nextName (${hm.format(nextDate)}) · بقي $remStr".toWesternDigits()
             val prevLine = "الصلاة الفائتة: $prevName · مضى عليها $elapStr".toWesternDigits()
-            val bodyLine = "القادمة: $nextName (${hm.format(nextDate)}) بقي $remStr  •  الفائتة: $prevName مضى $elapStr".toWesternDigits()
 
-            val bannerBitmap = renderHighResBanner(ctx, "$place · $hijriStr · $gregStr".toWesternDigits(), nextLine, prevLine)
+            val bannerBitmap = renderBorderlessBanner(ctx, placeAndDate, nextLine, prevLine)
 
             val openIntent = Intent(ctx, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -194,24 +205,24 @@ object SakinaLiveNotifier {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // DeleteIntent immediately fires ACTION_RESTORE if user swipes the notification (#13)
             val restoreIntent = Intent(ACTION_RESTORE).setPackage(ctx.packageName)
             val deletePi = PendingIntent.getBroadcast(
                 ctx, 777, restoreIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
+            // Image-only BigPictureStyle with minimal empty header/summary so the borderless image takes center stage (#1)
             val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_stat_sakina) // Mosque Dome & Minaret icon (#22)
-                .setContentTitle(titleLine)
-                .setContentText(bodyLine)
+                .setSmallIcon(R.drawable.ic_stat_sakina)
+                .setContentTitle(" ")
+                .setContentText(" ")
                 .setLargeIcon(bannerBitmap)
                 .setStyle(
                     NotificationCompat.BigPictureStyle()
                         .bigPicture(bannerBitmap)
                         .bigLargeIcon(null as Bitmap?)
-                        .setBigContentTitle(titleLine)
-                        .setSummaryText(bodyLine)
+                        .setBigContentTitle(" ")
+                        .setSummaryText(" ")
                 )
                 .setOngoing(true)
                 .setAutoCancel(false)

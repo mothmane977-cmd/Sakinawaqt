@@ -767,7 +767,7 @@ private fun SakinaHomeContent(ctx: Context) {
             }
         }
 
-        // Next Prayer Countdown Cartouche + Analog Clock beside it with larger 22.dp prayer icon (#19)
+        // #8: User chooses either Luxury Digital Countdown Cartouche OR Luxury Analog Clock with a single tap!
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "❖ ${s.nextPrayer}: $nextDisplayName ❖",
@@ -779,104 +779,89 @@ private fun SakinaHomeContent(ctx: Context) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(Modifier.height(3.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
+            Spacer(Modifier.height(4.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                SakinaOrnamentCartouche(
-                    contentPadding = PaddingValues(horizontal = 36.dp, vertical = 8.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(painter = painterResource(id = R.drawable.ic_fajr), contentDescription = null, modifier = Modifier.size(22.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = if (analogPrimary) hmFmt.format(Date(nowMs)).toWesternDigits() else countdownText,
-                            fontFamily = SakinaNumeralFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 19.5.sp,
-                            color = theme.accentBright,
-                            maxLines = 1,
-                            style = TextStyle(
-                                fontFeatureSettings = "tnum",
-                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                if (!analogPrimary) {
+                    SakinaOrnamentCartouche(
+                        contentPadding = PaddingValues(horizontal = 38.dp, vertical = 9.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(painter = painterResource(id = R.drawable.ic_fajr), contentDescription = null, modifier = Modifier.size(22.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = countdownText,
+                                fontFamily = SakinaNumeralFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp,
+                                color = theme.accentBright,
+                                maxLines = 1,
+                                style = TextStyle(
+                                    fontFeatureSettings = "tnum",
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                )
                             )
-                        )
+                        }
                     }
+                } else {
+                    SakinaAnalogClockDial(
+                        timeMs = nowMs,
+                        size = 76.dp
+                    )
                 }
-                Spacer(Modifier.width(8.dp))
+
+                // Sleek 1-tap toggle button on the side to switch between Digital & Analog Clock (#8)
                 Box(
                     modifier = Modifier
+                        .align(AbsoluteAlignment.CenterRight)
+                        .padding(end = 6.dp)
+                        .size(32.dp)
                         .clip(CircleShape)
+                        .background(theme.bgCard.copy(alpha = 0.90f))
+                        .border(0.9.dp, Sakina3DGoldBevelBrush, CircleShape)
                         .clickable { analogPrimary = !analogPrimary },
                     contentAlignment = Alignment.Center
                 ) {
-                    SakinaAnalogClockDial(
-                        timeMs = nowMs,
-                        size = if (analogPrimary) 48.dp else 44.dp
-                    )
+                    if (analogPrimary) {
+                        Text(
+                            text = "00",
+                            fontFamily = SakinaNumeralFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.5.sp,
+                            color = theme.accentBright,
+                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        )
+                    } else {
+                        SakinaAnalogClockDial(timeMs = nowMs, size = 24.dp)
+                    }
                 }
             }
         }
 
-        // Chronological 5 Prayers List with larger star badges (#19)
+        // #9: Every prayer row is its own fixed, standalone, gold-beveled button in natural chronological order!
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            val nextIdx = rows.indexOfFirst { it.isNext }.coerceAtLeast(0)
-            val beforeRows = rows.subList(0, nextIdx)
-            val featuredRow = rows[nextIdx]
-            val afterRows = rows.subList(nextIdx + 1, rows.size)
-
-            if (beforeRows.isNotEmpty()) {
-                SakinaParchmentPanel(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    beforeRows.forEachIndexed { i, p ->
-                        SakinaPrayerRow(
-                            prayer = p,
-                            onCycleMode = {
-                                val nextMode = when (p.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
-                                Modes.set(ctx, p.keyNameAr, nextMode)
-                                AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
-                            }
-                        )
-                        if (i < beforeRows.lastIndex) HorizontalDivider(color = Color(0x22C5A059))
-                    }
-                }
-            }
-
-            SakinaFeaturedNextPrayerCard(
-                prayer = featuredRow,
-                nextLabel = s.nextPrayer,
-                onCycleMode = {
-                    val nextMode = when (featuredRow.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
-                    Modes.set(ctx, featuredRow.keyNameAr, nextMode)
+            rows.forEach { prayer ->
+                val cycleAction = {
+                    val nextMode = when (prayer.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
+                    Modes.set(ctx, prayer.keyNameAr, nextMode)
                     AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
                 }
-            )
-
-            if (afterRows.isNotEmpty()) {
-                SakinaParchmentPanel(
-                    modifier = Modifier.fillMaxWidth(),
-                    cornerRadius = 16.dp,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    afterRows.forEachIndexed { i, p ->
-                        SakinaPrayerRow(
-                            prayer = p,
-                            onCycleMode = {
-                                val nextMode = when (p.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
-                                Modes.set(ctx, p.keyNameAr, nextMode)
-                                AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
-                            }
-                        )
-                        if (i < afterRows.lastIndex) HorizontalDivider(color = Color(0x22C5A059))
-                    }
+                if (prayer.isNext) {
+                    SakinaFeaturedNextPrayerCard(
+                        prayer = prayer,
+                        nextLabel = s.nextPrayer,
+                        onCycleMode = cycleAction
+                    )
+                } else {
+                    SakinaStandalonePrayerButton(
+                        prayer = prayer,
+                        onCycleMode = cycleAction
+                    )
                 }
             }
         }
@@ -981,14 +966,24 @@ private fun SakinaFeaturedNextPrayerCard(
 }
 
 @Composable
-private fun SakinaPrayerRow(prayer: BrandPrayerRow, onCycleMode: () -> Unit) {
+private fun SakinaStandalonePrayerButton(prayer: BrandPrayerRow, onCycleMode: () -> Unit) {
+    val theme = LocalSakinaTheme.current
+    val btnShape = RoundedCornerShape(15.dp)
     val modeIcon = when (prayer.mode) {
         2 -> Icons.Rounded.Vibration
         3 -> Icons.Rounded.NotificationsOff
         else -> Icons.Rounded.NotificationsActive
     }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(42.dp)
+            .shadow(4.dp, btnShape)
+            .clip(btnShape)
+            .background(Brush.verticalGradient(listOf(theme.parchmentTop, theme.parchmentBottom)))
+            .border(1.1.dp, Sakina3DGoldBevelBrush, btnShape)
+            .clickable { onCycleMode() }
+            .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
