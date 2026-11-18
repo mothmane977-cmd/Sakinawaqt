@@ -3,36 +3,55 @@ package app.sakina
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val RUQYAH_BY_CAT = listOf(
-    listOf(
-        "سورة الفاتحة (7 مرات)." to "سورة الفاتحة",
-        "آية الكرسي: اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ..." to "البقرة: 255",
-        "المعوذات: الإخلاص والفلق والناس (3 مرات)." to "سنن أبي داود"
+data class RuqyahItem(val heading: String, val content: String, val note: String)
+data class RuqyahCategory(val title: String, val subtitle: String, val items: List<RuqyahItem>)
+
+private val RUQYAH_CATEGORIES = listOf(
+    RuqyahCategory(
+        "الرقية الشرعية الشاملة",
+        "الفاتحة وآية الكرسي وخواتيم البقرة والمعوذات",
+        listOf(
+            RuqyahItem("سورة الفاتحة (سبع مرات)", "﴿ بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ * الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ * الرَّحْمَٰنِ الرَّحِيمِ * مَالِكِ يَوْمِ الدِّينِ * إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ * اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ * صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ ﴾.", "أعظم سورة في القرآن - البخاري (5007)"),
+            RuqyahItem("آية الكرسي", "﴿ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ وَلَا يَئُودُهُ حِفْظُهُمَا وَهُوَ الْعَلِيُّ الْعَظِيمُ ﴾.", "البقرة: 255"),
+            RuqyahItem("خواتيم سورة البقرة", "﴿ آمَنَ الرَّسُولُ بِمَا أُنْزِلَ إِلَيْهِ مِنْ رَبِّهِ وَالْمُؤْمِنُونَ كُلٌّ آمَنَ بِاللَّهِ وَمَلَائِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ لَا نُفَرِّقُ بَيْنَ أَحَدٍ مِنْ رُسُلِهِ وَقَالُوا سَمِعْنَا وَأَطَعْنَا غُفْرَانَكَ رَبَّنَا وَإِلَيْكَ الْمَصِيرُ * لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا لَهَا مَا كَسَبَتْ وَعَلَيْهَا مَا اكْتَسَبَتْ... ﴾.", "من قرأ بالآيتين من آخر سورة البقرة في ليلة كفتاه - متفق عليه")
+        )
     ),
-    listOf(
-        "الَّذِينَ آمَنُوا وَتَطْمَئِنُّ قُلُوبُهُم بِذِكْرِ اللَّهِ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ." to "الرعد: 28",
-        "هُوَ الَّذِي أَنزَلَ السَّكِينَةَ فِي قُلُوبِ الْمُؤْمِنِينَ لِيَزْدَادُوا إِيمَاناً مَّعَ إِيمَانِهِمْ." to "الفتح: 4",
-        "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ غَضَبِهِ وَعِقَابِهِ وَشَرِّ عِبَادِهِ." to "سنن الترمذي"
+    RuqyahCategory(
+        "رقية السكينة والطمأنينة",
+        "لراحة القلب والسكينة والرقاد",
+        listOf(
+            RuqyahItem("آية السكينة", "﴿ هُوَ الَّذِي أَنْزَلَ السَّكِينَةَ فِي قُلُوبِ الْمُؤْمِنِينَ لِيَزْدَادُوا إِيمَانًا مَعَ إِيمَانِهِمْ ﴾.", "الفتح: 4"),
+            RuqyahItem("اطمئنان القلوب بذكر الله", "﴿ الَّذِينَ آمَنُوا وَتَطْمَئِنُّ قُلُوبُهُمْ بِذِكْرِ اللَّهِ أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ ﴾.", "الرعد: 28")
+        )
     ),
-    listOf(
-        "وَإِن يَكَادُ الَّذِينَ كَفَرُوا لَيُزْلِقُونَكَ بِأَبْصَارِهِمْ لَمَّا سَمِعُوا الذِّكْرَ." to "القلم: 51",
-        "أُعِيذُكَ بِكَلِمَاتِ اللَّهِ التَّامَّةِ مِنْ كُلِّ شَيْطَانٍ وَهَامَّةٍ وَمِنْ كُلِّ عَيْنٍ لَامَّةٍ." to "صحيح البخاري (3371)"
+    RuqyahCategory(
+        "رقية التحصين من العين والحسد",
+        "التحصين النبوي المأثور في الصحيحين",
+        listOf(
+            RuqyahItem("تعويذ إبراهيم وإسماعيل وإسحاق", "«أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّةِ، مِنْ كُلِّ شَيْطَانٍ وَهَامَّةٍ، وَمِنْ كُلِّ عَيْنٍ لَامَّةٍ».", "رواه البخاري (3371)"),
+            RuqyahItem("رقية جبريل للنبي ﷺ", "«بِاسْمِ اللَّهِ أَرْقِيكَ، مِنْ كُلِّ شَيْءٍ يُؤْذِيكَ، مِنْ شَرِّ كُلِّ نَفْسٍ أَوْ عَيْنِ حَاسِدٍ، اللَّهُ يَشْفِيكَ، بِاسْمِ اللَّهِ أَرْقِيكَ».", "رواه مسلم (2186)")
+        )
     ),
-    listOf(
-        "بسم الله (3 مرات)، أعوذ بالله وقدرته من شر ما أجد وأحاذر (7 مرات)." to "صحيح مسلم (2202)",
-        "اللَّهُمَّ رَبَّ النَّاسِ أَذْهِبِ الْبَاسَ، اشْفِهِ وَأَنْتَ الشَّافِي، لَا شِفَاءَ إِلَّا شِفَاؤُكَ." to "صحيح البخاري (5743)"
+    RuqyahCategory(
+        "رقية الشفاء",
+        "توضع اليد على موضع الألم مع الدعاء المأثور",
+        listOf(
+            RuqyahItem("الدعاء على موضع الوجع", "ضع يدك على الذي تألم من جسدك وقل: «بِاسْمِ اللَّهِ» ثلاثاً، وقل سبع مرات: «أَعُوذُ بِاللَّهِ وَقُدْرَتِهِ مِنْ شَرِّ مَا أَجِدُ وَأُحَاذِرُ».", "رواه مسلم (2202)"),
+            RuqyahItem("دعاء رب الناس مذهب البأس", "«اللَّهُمَّ رَبَّ النَّاسِ أَذْهِبِ الْبَأْسَ، اشْفِهِ وَأَنْتَ الشَّافِي، لَا شِفَاءَ إِلَّا شِفَاؤُكَ، شِفَاءً لَا يُغَادِرُ سَقَمًا».", "متفق عليه - البخاري (5743) ومسلم (2191)")
+        )
     )
 )
 
@@ -51,41 +70,101 @@ fun SakinaRuqyahScreen(onBackToHome: () -> Unit, modifier: Modifier = Modifier) 
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, top = 54.dp, bottom = 78.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 50.dp, bottom = 74.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            SakinaBackIconButton(onClick = { if (selectedIdx != null) selectedIdx = null else onBackToHome() })
-            SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 32.dp, vertical = 6.dp)) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            SakinaBackIconButton(
+                onClick = { if (selectedIdx != null) selectedIdx = null else onBackToHome() },
+                modifier = Modifier.align(Alignment.CenterStart)
+            )
+            SakinaOrnamentCartouche(
+                modifier = Modifier.align(Alignment.Center),
+                contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)
+            ) {
                 Text(
-                    text = if (selectedIdx != null) s.ruqyahCatTitles[selectedIdx!!] else s.ruqyahTitle,
+                    text = selectedIdx?.let { s.ruqyahCatTitles[it] } ?: s.ruqyahTitle,
                     fontFamily = SakinaEditorialFont,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     color = theme.accentBright,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
             }
-            Spacer(Modifier.size(32.dp))
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            if (selectedIdx == null) {
-                s.ruqyahCatTitles.forEachIndexed { idx, title ->
-                    SakinaGlassCard(modifier = Modifier.fillMaxWidth().clickable { selectedIdx = idx }, glowGold = true) {
-                        Text(title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 15.5.sp, color = theme.accentBright)
-                        Text(s.ruqyahCatSubs[idx], fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver)
+        if (selectedIdx == null) {
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp), modifier = Modifier.fillMaxWidth()) {
+                RUQYAH_CATEGORIES.forEachIndexed { idx, cat ->
+                    SakinaGlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedIdx = idx },
+                        cornerRadius = 16.dp,
+                        glowGold = idx == 0,
+                        contentPadding = PaddingValues(13.dp)
+                    ) {
+                        Text(
+                            text = s.ruqyahCatTitles[idx],
+                            fontFamily = SakinaHeadingFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = theme.accentBright
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = s.ruqyahCatSubs[idx],
+                            fontFamily = SakinaBodyFont,
+                            fontSize = 12.sp,
+                            color = SakinaBrandColors.SoftSilver
+                        )
                     }
                 }
-            } else {
-                RUQYAH_BY_CAT[selectedIdx!!].forEach { (text, source) ->
-                    SakinaParchmentPanel(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(14.dp)) {
-                        Text(text.toWesternDigits(), fontFamily = SakinaEditorialFont, fontSize = 16.sp, lineHeight = 28.sp, color = SakinaInkDark)
-                        Spacer(Modifier.height(4.dp))
-                        Text(source.toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 10.5.sp, color = Color(0xFF6B5224))
+            }
+        } else {
+            val cat = RUQYAH_CATEGORIES[selectedIdx!!]
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(cat.items) { r ->
+                    SakinaParchmentPanel(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = 18.dp,
+                        contentPadding = PaddingValues(14.dp)
+                    ) {
+                        Text(
+                            text = "❖ ${r.heading} ❖".toWesternDigits(),
+                            fontFamily = SakinaNaskhFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = Color(0xFF0F3D3E),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = r.content.toWesternDigits(),
+                            fontFamily = SakinaNaskhFontFamily,
+                            fontSize = 18.sp,
+                            lineHeight = 32.sp,
+                            color = SakinaInkDark,
+                            textAlign = TextAlign.Right,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = r.note.toWesternDigits(),
+                            fontFamily = SakinaNaskhFontFamily,
+                            fontSize = 11.5.sp,
+                            color = Color(0xFF6B5224),
+                            textAlign = TextAlign.Left,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }

@@ -45,30 +45,39 @@ object SakinaBrandColors {
     val DividerGold = Color(0x33D4AF37)
 }
 
-// Combined Luxury Serif (C059 for Latin) + Classic Naskh (for Arabic/Urdu) so both Latin and Arabic look editorial and regal!
-val SakinaEditorialFont = FontFamily(
-    Font(R.font.c059_roman, FontWeight.Normal),
-    Font(R.font.c059_bold, FontWeight.Bold),
+// 100% Classical Naskh Font Family for Arabic & Urdu (#25)
+val SakinaNaskhFontFamily = FontFamily(
+    Font(R.font.noto_naskh_arabic_regular, FontWeight.Light),
     Font(R.font.noto_naskh_arabic_regular, FontWeight.Normal),
+    Font(R.font.noto_naskh_arabic_regular, FontWeight.Medium),
+    Font(R.font.noto_naskh_arabic_bold, FontWeight.SemiBold),
     Font(R.font.noto_naskh_arabic_bold, FontWeight.Bold)
 )
 
-val SakinaHeadingFont = SakinaEditorialFont
-val SakinaBodyFont = SakinaEditorialFont
-
-val SakinaNumeralFont = FontFamily(
+// High-Contrast Luxury Editorial Display Serif for Latin languages (EN, FR, TR, ID) (#18)
+val SakinaLatinLuxuryFontFamily = FontFamily(
+    Font(R.font.c059_roman, FontWeight.Light),
     Font(R.font.c059_roman, FontWeight.Normal),
-    Font(R.font.c059_bold, FontWeight.Bold),
-    Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_semibold, FontWeight.SemiBold),
-    Font(R.font.inter_bold, FontWeight.Bold)
+    Font(R.font.c059_roman, FontWeight.Medium),
+    Font(R.font.c059_bold, FontWeight.SemiBold),
+    Font(R.font.c059_bold, FontWeight.Bold)
 )
 
-private val SakinaTypography = Typography(
-    displayLarge = TextStyle(fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 32.sp, fontFeatureSettings = "tnum", color = SakinaBrandColors.GoldBright),
-    titleLarge = TextStyle(fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SakinaBrandColors.LuminousIvory),
-    bodyMedium = TextStyle(fontFamily = SakinaBodyFont, fontWeight = FontWeight.Normal, fontSize = 14.sp, color = SakinaBrandColors.LuminousIvory)
-)
+val SakinaEditorialFont: FontFamily
+    @Composable
+    get() = if (LocalSakinaLang.current.isRtl) SakinaNaskhFontFamily else SakinaLatinLuxuryFontFamily
+
+val SakinaHeadingFont: FontFamily
+    @Composable
+    get() = if (LocalSakinaLang.current.isRtl) SakinaNaskhFontFamily else SakinaLatinLuxuryFontFamily
+
+val SakinaBodyFont: FontFamily
+    @Composable
+    get() = if (LocalSakinaLang.current.isRtl) SakinaNaskhFontFamily else SakinaLatinLuxuryFontFamily
+
+val SakinaNumeralFont: FontFamily
+    @Composable
+    get() = if (LocalSakinaLang.current.isRtl) SakinaNaskhFontFamily else SakinaLatinLuxuryFontFamily
 
 @Composable
 fun SakinaBrandTheme(
@@ -77,6 +86,12 @@ fun SakinaBrandTheme(
     content: @Composable () -> Unit
 ) {
     val direction = if (lang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
+    val activeFont = if (lang.isRtl) SakinaNaskhFontFamily else SakinaLatinLuxuryFontFamily
+    val typography = Typography(
+        displayLarge = TextStyle(fontFamily = activeFont, fontWeight = FontWeight.Bold, fontSize = 32.sp, fontFeatureSettings = "tnum", color = SakinaBrandColors.GoldBright),
+        titleLarge = TextStyle(fontFamily = activeFont, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SakinaBrandColors.LuminousIvory),
+        bodyMedium = TextStyle(fontFamily = activeFont, fontWeight = FontWeight.Normal, fontSize = 14.sp, color = SakinaBrandColors.LuminousIvory)
+    )
     val scheme = darkColorScheme(
         primary = theme.accentGold,
         onPrimary = theme.bgDeep,
@@ -93,6 +108,6 @@ fun SakinaBrandTheme(
         LocalSakinaLang provides lang,
         LocalSakinaStrings provides stringsFor(lang)
     ) {
-        MaterialTheme(colorScheme = scheme, typography = SakinaTypography, content = content)
+        MaterialTheme(colorScheme = scheme, typography = typography, content = content)
     }
 }

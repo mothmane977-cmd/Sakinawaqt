@@ -1,13 +1,13 @@
 package app.sakina
 
 import android.content.Context
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,98 +31,219 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
     val s = LocalSakinaStrings.current
     val sp = remember { ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE) }
 
-    var suhoorEnabled by remember { mutableStateOf(sp.getBoolean("suhoor_enabled", true)) }
-    var suhoorOffset by remember { mutableIntStateOf(sp.getInt("suhoor_offset", 40)) }
-    var volumePct by remember { mutableFloatStateOf(sp.getFloat("alarm_volume", 0.85f)) }
-    var fajrFade by remember { mutableStateOf(Prefs.fajrFade(ctx)) }
-    var selectedSound by remember { mutableIntStateOf(Modes.get(ctx, "الفجر")) }
-    var statusMsg by remember { mutableStateOf("") }
+    var suhoorEnabled by remember { mutableStateOf(sp.getBoolean("suhoor_alarm_on", true)) }
+    var suhoorMinutesBeforeFajr by remember { mutableIntStateOf(sp.getInt("suhoor_mins", 40)) }
+    var adhanVolume by remember { mutableFloatStateOf(sp.getFloat("adhan_vol", 0.85f)) }
+    var fajrGentleFade by remember { mutableStateOf(Prefs.fajrFade(ctx)) }
+    var defaultAdhanMode by remember { mutableIntStateOf(sp.getInt("default_adhan_mode", 0)) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 54.dp, bottom = 80.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 50.dp, bottom = 74.dp),
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            SakinaBackIconButton(onClick = onBackClick)
-            SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 32.dp, vertical = 6.dp)) {
-                Text(s.alarmTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = theme.accentBright, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            SakinaBackIconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart))
+            SakinaOrnamentCartouche(
+                modifier = Modifier.align(Alignment.Center),
+                contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)
+            ) {
+                Text(
+                    text = s.alarmTitle,
+                    fontFamily = SakinaEditorialFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = theme.accentBright,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
             }
-            Spacer(Modifier.size(32.dp))
         }
 
+        // 1. Suhoor & Qiyam Alarm
         SakinaGlassCard(modifier = Modifier.fillMaxWidth(), glowGold = suhoorEnabled) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(s.suhoorTitle, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = theme.accentBright, maxLines = 1)
-                    Text("$suhoorOffset ${s.minsBeforeFajr}".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver, maxLines = 1)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text(
+                        text = s.suhoorTitle,
+                        fontFamily = SakinaHeadingFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.5.sp,
+                        color = theme.accentBright,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "$suhoorMinutesBeforeFajr ${s.minsBeforeFajr}".toWesternDigits(),
+                        fontFamily = SakinaBodyFont,
+                        fontSize = 11.5.sp,
+                        color = SakinaBrandColors.SoftSilver,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
-                SakinaGoldSwitch(checked = suhoorEnabled, onCheckedChange = {
-                    suhoorEnabled = it; sp.edit().putBoolean("suhoor_enabled", it).apply()
-                })
+                SakinaGoldSwitch(
+                    checked = suhoorEnabled,
+                    onCheckedChange = {
+                        suhoorEnabled = it
+                        sp.edit().putBoolean("suhoor_alarm_on", it).apply()
+                    }
+                )
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(20, 30, 40, 60).forEach { mins ->
-                    val sel = mins == suhoorOffset
+                    val sel = suhoorMinutesBeforeFajr == mins
                     Box(
-                        modifier = Modifier.weight(1f).height(30.dp).clip(RoundedCornerShape(10.dp)).background(if (sel) theme.accentGold else Color(0x22FFFFFF)).clickable { suhoorOffset = mins; sp.edit().putInt("suhoor_offset", mins).apply() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (sel) theme.accentGold else Color(0x22FFFFFF))
+                            .clickable {
+                                suhoorMinutesBeforeFajr = mins
+                                sp.edit().putInt("suhoor_mins", mins).apply()
+                            },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("$mins ${s.minuteShort}".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory)
+                        Text(
+                            text = "$mins ${s.minuteShort}".toWesternDigits(),
+                            fontFamily = SakinaNumeralFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory,
+                            maxLines = 1
+                        )
                     }
                 }
             }
         }
 
+        // 2. Volume & Fajr Fade
         SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-            Text("${s.volumeLabel}: ${(volumePct * 100).roundToInt()}%".toWesternDigits(), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright)
-            Slider(
-                value = volumePct,
-                onValueChange = { volumePct = it; sp.edit().putFloat("alarm_volume", it).apply() },
-                valueRange = 0.2f..1f,
-                colors = SliderDefaults.colors(thumbColor = theme.accentBright, activeTrackColor = theme.accentGold)
+            Text(
+                text = "${s.volumeLabel}: ${(adhanVolume * 100).roundToInt()}%".toWesternDigits(),
+                fontFamily = SakinaHeadingFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.5.sp,
+                color = theme.accentBright,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(s.fajrFadeLabel, fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
-                SakinaGoldSwitch(checked = fajrFade, onCheckedChange = {
-                    fajrFade = it; Prefs.setFajrFade(ctx, it)
-                })
+            Slider(
+                value = adhanVolume,
+                onValueChange = {
+                    adhanVolume = it
+                    sp.edit().putFloat("adhan_vol", it).apply()
+                },
+                colors = SliderDefaults.colors(
+                    thumbColor = theme.accentBright,
+                    activeTrackColor = theme.accentGold,
+                    inactiveTrackColor = Color(0x33FFFFFF)
+                )
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = s.fajrFadeLabel,
+                    fontFamily = SakinaBodyFont,
+                    fontSize = 12.5.sp,
+                    color = SakinaBrandColors.LuminousIvory,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                SakinaGoldSwitch(
+                    checked = fajrGentleFade,
+                    onCheckedChange = {
+                        fajrGentleFade = it
+                        Prefs.setFajrFade(ctx, it)
+                    }
+                )
             }
         }
 
+        // 3. Default Sound Mode
         SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-            Text(s.defaultSoundLabel, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright)
-            Spacer(Modifier.height(8.dp))
+            Text(
+                text = s.defaultSoundLabel,
+                fontFamily = SakinaHeadingFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.5.sp,
+                color = theme.accentBright,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(6.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 s.soundModes.forEachIndexed { idx, label ->
-                    val sel = idx == selectedSound
+                    val sel = defaultAdhanMode == idx
                     Box(
-                        modifier = Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(10.dp)).background(if (sel) theme.accentGold else Color(0x22FFFFFF)).clickable {
-                            selectedSound = idx
-                            PRAYER_NAMES.filter { it != "الشروق" }.forEach { Modes.set(ctx, it, idx) }
-                            AlarmScheduler.scheduleNext(ctx)
-                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(30.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (sel) theme.accentGold else Color(0x22FFFFFF))
+                            .clickable {
+                                defaultAdhanMode = idx
+                                sp.edit().putInt("default_adhan_mode", idx).apply()
+                                listOf("الفجر", "الظهر", "العصر", "المغرب", "العشاء").forEach { p ->
+                                    Modes.set(ctx, p, idx)
+                                }
+                                AlarmScheduler.scheduleNext(ctx)
+                            }
+                            .padding(horizontal = 3.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(label, fontFamily = SakinaBodyFont, fontSize = 10.sp, color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            text = label,
+                            fontFamily = SakinaBodyFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
         }
 
+        // 4. Test Alarm Button
         Box(
-            modifier = Modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(21.dp)).background(Brush.horizontalGradient(listOf(theme.accentGold, theme.accentBright))).clickable {
-                AlarmScheduler.scheduleTest(ctx)
-                statusMsg = s.testAlarmScheduled.toWesternDigits()
-            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(42.dp)
+                .clip(RoundedCornerShape(21.dp))
+                .background(Brush.verticalGradient(listOf(theme.accentBright, theme.accentGold)))
+                .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(21.dp))
+                .clickable {
+                    AlarmScheduler.scheduleTest(ctx)
+                    Toast.makeText(ctx, s.testAlarmScheduled.toWesternDigits(), Toast.LENGTH_SHORT).show()
+                },
             contentAlignment = Alignment.Center
         ) {
-            Text(if (statusMsg.isEmpty()) s.testAlarmBtn.toWesternDigits() else statusMsg, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.bgDeep, maxLines = 1)
+            Text(
+                text = s.testAlarmBtn.toWesternDigits(),
+                fontFamily = SakinaHeadingFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                color = theme.bgDeep,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

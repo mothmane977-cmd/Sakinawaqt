@@ -2,21 +2,28 @@ package app.sakina
 
 import android.content.Context
 import android.icu.util.IslamicCalendar
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -112,7 +119,8 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
     val s = LocalSakinaStrings.current
     val lang = LocalSakinaLang.current
     var monthOffset by remember { mutableIntStateOf(0) }
-    var selectedDay by remember { mutableIntStateOf(Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) }
+    val todayDayNum = remember { Calendar.getInstance().get(Calendar.DAY_OF_MONTH) }
+    var selectedDay by remember { mutableIntStateOf(todayDayNum) }
 
     val baseCal = remember(monthOffset) {
         Calendar.getInstance().apply { add(Calendar.MONTH, monthOffset); set(Calendar.DAY_OF_MONTH, 1) }
@@ -143,21 +151,22 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
     val dailyHadith = remember(selectedCal, hijriCal) { selectHadithForDate(selectedCal, hijriCal) }
     val isArabicOrUrdu = lang == SakinaLang.AR || lang == SakinaLang.UR
 
+    // #5: Shifted down (top = 56.dp) so the top cartouche sits well below the Mihrab arch,
+    // and added breathing room between the cartouche and the Calendar card while keeping the bottom anchored cleanly above the nav bar!
     Column(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 14.dp, end = 14.dp, top = 48.dp, bottom = 72.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+            .padding(start = 14.dp, end = 14.dp, top = 56.dp, bottom = 72.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 36.dp, vertical = 6.dp)) {
             Text(
                 text = s.calendarTitle,
                 fontFamily = SakinaEditorialFont,
                 fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
+                fontSize = 14.5.sp,
                 color = theme.accentBright,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -165,59 +174,181 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             )
         }
 
-        // 1. Compact Monthly Grid (#5, #20)
-        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 15.dp, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(20.dp).clickable { monthOffset-- })
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(gregTitle, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
-                    Text(hijriSubtitle, fontFamily = SakinaBodyFont, fontSize = 10.sp, color = SakinaBrandColors.LuminousIvory)
-                }
-                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(20.dp).clickable { monthOffset++ })
-            }
-            Spacer(Modifier.height(3.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                s.weekdays.forEach { d ->
-                    Text(
-                        text = d,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center,
-                        fontFamily = SakinaBodyFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 8.5.sp,
-                        color = theme.accentBright,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Clip
+        // #5: Space moved to the top between the Hijri Calendar cartouche and the Calendar grid!
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // 1. Luxury Ornate Monthly Calendar Card (#7)
+        val calShape = RoundedCornerShape(18.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(10.dp, calShape)
+                .clip(calShape)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            theme.bgCard.copy(alpha = 0.96f),
+                            Color(0xFF071F24),
+                            theme.bgDeep.copy(alpha = 0.98f)
+                        )
                     )
+                )
+                .border(1.4.dp, Sakina3DGoldBevelBrush, calShape)
+        ) {
+            // 4-Corner Gold Arabesque Filigree Ornaments inside the Calendar (#7)
+            val cSize = 18.dp
+            Image(
+                painter = painterResource(id = R.drawable.ic_corner_arabesque),
+                contentDescription = null,
+                alpha = 0.72f,
+                modifier = Modifier.size(cSize).align(AbsoluteAlignment.TopLeft).padding(2.dp)
+            )
+            Image(
+                painter = painterResource(id = R.drawable.ic_corner_arabesque),
+                contentDescription = null,
+                alpha = 0.72f,
+                modifier = Modifier.size(cSize).align(AbsoluteAlignment.TopRight).padding(2.dp).graphicsLayer { rotationZ = 90f }
+            )
+            Image(
+                painter = painterResource(id = R.drawable.ic_corner_arabesque),
+                contentDescription = null,
+                alpha = 0.72f,
+                modifier = Modifier.size(cSize).align(AbsoluteAlignment.BottomRight).padding(2.dp).graphicsLayer { rotationZ = 180f }
+            )
+            Image(
+                painter = painterResource(id = R.drawable.ic_corner_arabesque),
+                contentDescription = null,
+                alpha = 0.72f,
+                modifier = Modifier.size(cSize).align(AbsoluteAlignment.BottomLeft).padding(2.dp).graphicsLayer { rotationZ = 270f }
+            )
+
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp)
+            ) {
+                // Luxury Month Header Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0x33D4AF37))
+                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(theme.bgDeep)
+                            .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
+                            .clickable { monthOffset-- },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(16.dp))
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = hijriSubtitle,
+                            fontFamily = SakinaEditorialFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.5.sp,
+                            color = theme.accentBright,
+                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        )
+                        Text(
+                            text = gregTitle,
+                            fontFamily = SakinaBodyFont,
+                            fontSize = 10.sp,
+                            color = SakinaBrandColors.LuminousIvory,
+                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(theme.bgDeep)
+                            .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
+                            .clickable { monthOffset++ },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(16.dp))
+                    }
                 }
-            }
-            Spacer(Modifier.height(2.dp))
-            val totalCells = firstDayOfWeek + daysInMonth
-            val rows = (totalCells + 6) / 7
-            for (r in 0 until rows) {
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 0.5.dp)) {
-                    for (c in 0 until 7) {
-                        val idx = r * 7 + c
-                        val dayNum = idx - firstDayOfWeek + 1
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(19.dp)
-                                .clip(CircleShape)
-                                .then(if (dayNum == clampedSelected) Modifier.background(Color(0xFF0F3D3E)).border(1.dp, Sakina3DGoldBevelBrush, CircleShape) else Modifier)
-                                .clickable(enabled = dayNum in 1..daysInMonth) { selectedDay = dayNum },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (dayNum in 1..daysInMonth) {
-                                Text(
-                                    text = "$dayNum".toWesternDigits(),
-                                    fontFamily = SakinaNumeralFont,
-                                    fontWeight = if (dayNum == clampedSelected) FontWeight.Bold else FontWeight.Normal,
-                                    fontSize = 10.5.sp,
-                                    color = if (dayNum == clampedSelected) theme.accentBright else SakinaBrandColors.LuminousIvory,
-                                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                                )
+
+                Spacer(Modifier.height(4.dp))
+
+                // Gold-Tinted Weekdays Ribbon
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0x1AD4AF37))
+                        .padding(vertical = 2.5.dp)
+                ) {
+                    s.weekdays.forEach { d ->
+                        Text(
+                            text = d,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center,
+                            fontFamily = SakinaBodyFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 8.8.sp,
+                            color = theme.accentBright,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Clip
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(3.dp))
+
+                val totalCells = firstDayOfWeek + daysInMonth
+                val rows = (totalCells + 6) / 7
+                for (r in 0 until rows) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
+                        for (c in 0 until 7) {
+                            val idx = r * 7 + c
+                            val dayNum = idx - firstDayOfWeek + 1
+                            val isSelected = dayNum == clampedSelected
+                            val isToday = monthOffset == 0 && dayNum == todayDayNum
+                            val isFriday = c == 6
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(21.dp)
+                                    .padding(horizontal = 2.dp)
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .then(
+                                        when {
+                                            isSelected -> Modifier
+                                                .background(Brush.verticalGradient(listOf(theme.accentBright, theme.accentGold)))
+                                                .border(1.dp, Color.White.copy(alpha = 0.7f), RoundedCornerShape(7.dp))
+                                            isToday -> Modifier
+                                                .background(Color(0xFF0F3D3E))
+                                                .border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(7.dp))
+                                            else -> Modifier
+                                        }
+                                    )
+                                    .clickable(enabled = dayNum in 1..daysInMonth) { selectedDay = dayNum },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (dayNum in 1..daysInMonth) {
+                                    Text(
+                                        text = "$dayNum".toWesternDigits(),
+                                        fontFamily = SakinaNumeralFont,
+                                        fontWeight = if (isSelected || isToday || isFriday) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 10.8.sp,
+                                        color = when {
+                                            isSelected -> theme.bgDeep
+                                            isToday || isFriday -> theme.accentBright
+                                            else -> SakinaBrandColors.LuminousIvory
+                                        },
+                                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                                    )
+                                }
                             }
                         }
                     }
@@ -225,82 +356,128 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             }
         }
 
-        // 2. Ultra-Compact Prayer Times Strip ("توقيت صلوات هذا اليوم") (#5)
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // 2. Spacious 5-Column Prayer Times Card ("توقيت صلوات هذا اليوم") (#6)
+        // Shows ALL 5 prayers and their times in 5 columns with zero truncation!
         SakinaParchmentPanel(
             modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 12.dp,
-            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+            cornerRadius = 15.dp,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 7.dp)
         ) {
             Text(
-                text = s.dayPrayersCardTitle,
+                text = "❖ ${s.dayPrayersCardTitle} ❖",
                 fontFamily = SakinaEditorialFont,
                 fontWeight = FontWeight.Bold,
-                fontSize = 10.5.sp,
+                fontSize = 11.5.sp,
                 color = Color(0xFF0F3D3E),
                 textAlign = TextAlign.Center,
                 style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)),
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = dayPrayers.mapIndexed { idx, (_, d) ->
-                    "${s.prayers.getOrElse(idx) { "" }} ${hm.format(d)}"
-                }.joinToString(" · ").toWesternDigits(),
-                fontFamily = SakinaBodyFont,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 9.5.sp,
-                color = SakinaInkDark,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)),
-                modifier = Modifier.fillMaxWidth()
-            )
+            Spacer(Modifier.height(5.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0x140F3D3E))
+                    .border(0.8.dp, Color(0x44C5A059), RoundedCornerShape(10.dp))
+                    .padding(vertical = 5.dp, horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                dayPrayers.forEachIndexed { idx, (_, d) ->
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = s.prayers.getOrElse(idx) { "" },
+                            fontFamily = SakinaEditorialFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.5.sp,
+                            color = Color(0xFF0F3D3E),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = hm.format(d).toWesternDigits(),
+                            fontFamily = SakinaNumeralFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.2.sp,
+                            color = SakinaInkDark,
+                            maxLines = 1,
+                            textAlign = TextAlign.Center,
+                            style = TextStyle(
+                                fontFeatureSettings = "tnum",
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            )
+                        )
+                    }
+                    if (idx < dayPrayers.lastIndex) {
+                        Box(
+                            modifier = Modifier
+                                .width(0.8.dp)
+                                .height(24.dp)
+                                .background(Color(0x33C5A059))
+                        )
+                    }
+                }
+            }
         }
 
-        // 3. Verified Hadith of the Day Card with Isnad & Grade (#7)
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // 3. Verified Hadith of the Day Card with Isnad & Grade
         val occasionText = if (isArabicOrUrdu) dailyHadith.occasionAr else dailyHadith.occasionEn
         val matnText = if (isArabicOrUrdu) dailyHadith.matnAr else dailyHadith.matnEn
         val isnadText = if (isArabicOrUrdu) dailyHadith.isnadAr else dailyHadith.isnadEn
-        val matnFontSize = if (matnText.length > 145) 10.sp else 11.sp
+        val matnFontSize = if (matnText.length > 145) 10.2.sp else 11.2.sp
 
         SakinaParchmentPanel(
-            modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-            cornerRadius = 14.dp,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            cornerRadius = 15.dp,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp)
         ) {
-            Text(
-                text = "❖ ${s.dailyHadithTitle} ($occasionText) ❖",
-                fontFamily = SakinaEditorialFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.5.sp,
-                color = Color(0xFF0F3D3E),
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = matnText.toWesternDigits(),
-                fontFamily = SakinaEditorialFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = matnFontSize,
-                lineHeight = 15.sp,
-                color = SakinaInkDark,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = isnadText.toWesternDigits(),
-                fontFamily = SakinaBodyFont,
-                fontSize = 8.8.sp,
-                lineHeight = 12.sp,
-                color = Color(0xFF6B5224),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "❖ ${s.dailyHadithTitle} ($occasionText) ❖",
+                    fontFamily = SakinaEditorialFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    color = Color(0xFF0F3D3E),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = matnText.toWesternDigits(),
+                    fontFamily = SakinaEditorialFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = matnFontSize,
+                    lineHeight = 15.5.sp,
+                    color = SakinaInkDark,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = isnadText.toWesternDigits(),
+                    fontFamily = SakinaBodyFont,
+                    fontSize = 9.sp,
+                    lineHeight = 12.5.sp,
+                    color = Color(0xFF6B5224),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }

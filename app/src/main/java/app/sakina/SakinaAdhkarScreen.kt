@@ -4,200 +4,603 @@ import android.content.Context
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Calendar
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
-private data class DhikrCategory(val title: String, @DrawableRes val iconRes: Int, val items: List<String>)
+data class DhikrItem(val text: String, val targetCount: Int, val source: String)
+data class DhikrCategory(val title: String, @DrawableRes val iconRes: Int, val items: List<DhikrItem>)
+
+data class AsmaUlHusnaEntry(
+    val nameAr: String,
+    val meaningAr: String,
+    val virtueAr: String,
+    val meaningEn: String,
+    val virtueEn: String
+)
+
+private val ASMA_UL_HUSNA_DAILY = listOf(
+    AsmaUlHusnaEntry(
+        "اللَّهُ الرَّحْمَٰنُ الرَّحِيمُ",
+        "ذو الرحمة الواسعة التي وسعت كل شيء، والرحمة الواصلة للمؤمنين في الدنيا والآخرة.",
+        "الفضل: افتتاح كل أمر ببسم الله الرحمن الرحيم يبارك فيه، ومن دعا بهما أدركته رحمة الله الواسعة (صحيح مسلم 2752).",
+        "The Most Gracious, The Most Merciful — Whose vast mercy encompasses all creation.",
+        "Virtue: Beginning actions with Bismillah Ar-Rahman Ar-Rahim brings divine blessing and mercy (Sahih Muslim 2752)."
+    ),
+    AsmaUlHusnaEntry(
+        "المَلِكُ القُدُّوسُ السَّلَامُ",
+        "المالك المتصرف في ملكه، المنزّه عن كل نقص وعيب، الذي سلّم عباده من الظلم ومنه السلام.",
+        "الفضل: كان النبي ﷺ يقول عقب الوتر: «سبحان الملك القدوس» ثلاثاً، وقال عقب كل صلاة: «اللهم أنت السلام ومنك السلام» (صحيح مسلم 592).",
+        "The Sovereign, The Most Pure, The Source of Peace — free from all imperfection.",
+        "Virtue: The Prophet ﷺ said after every prayer: 'Allahumma Antas-Salam wa minkas-salam' (Sahih Muslim 592)."
+    ),
+    AsmaUlHusnaEntry(
+        "الحَيُّ القَيُّومُ",
+        "الكامل في حياته الذاتية الأزلية، القائم بنفسه المقيم لكل ما سواه من المخلوقات.",
+        "الفضل: هما في اسم الله الأعظم الذي إذا دُعي به أجاب وإذا سُئل به أعطى، وكان النبي ﷺ إذا كربه أمر قال: «يا حي يا قيوم برحمتك أستغيث» (الترمذي 3524).",
+        "The Ever-Living, The All-Sustaining — part of Allah's Greatest Name (Al-Ism Al-A'zam).",
+        "Virtue: When distressed, the Prophet ﷺ supplicated: 'Ya Hayyu Ya Qayyum, bi-rahmatika astaghith' (Tirmidhi 3524)."
+    ),
+    AsmaUlHusnaEntry(
+        "الوَهَّابُ الرَّزَّاقُ الفَتَّاحُ",
+        "الكثير العطاء بلا عوض، المتكفل بأرزاق الخلائق، الذي يفتح أبواب الرحمة والرزق والنصر.",
+        "الفضل: من لازم الدعاء بـ «ربنا لا تزغ قلوبنا بعد إذ هديتنا وهب لنا من لدنك رحمة إنك أنت الوهاب» ثبّت الله قلبه ووسّع رزقه (آل عمران: 8).",
+        "The All-Bestower, The Total Provider, The Supreme Opener of doors of mercy and provision.",
+        "Virtue: Supplicating with 'Innaka Antal-Wahhab' brings steadfastness of heart and abundant provision (Qur'an 3:8)."
+    ),
+    AsmaUlHusnaEntry(
+        "الغَفَّارُ التَّوَّابُ العَفُوُّ",
+        "الذي يستر الذنوب ويتجاوز عن الخطايا ويقبل توبة التائبين ويمحو السيئات.",
+        "الفضل: علم النبي ﷺ عائشة رضي الله عنها أفضل الدعاء: «اللهم إنك عفو تحب العفو فاعف عني» (رواه الترمذي 3513 وصححه).",
+        "The All-Forgiving, The Acceptor of Repentance, The Pardoner Who erases sins completely.",
+        "Virtue: The Prophet ﷺ taught: 'Allahumma innaka Afuwwun tuhibbul-afwa fa'fu anni' (Tirmidhi 3513)."
+    ),
+    AsmaUlHusnaEntry(
+        "اللَّطِيفُ الخَبِيرُ الحَلِيمُ",
+        "البرّ بعباده الذي يوصل إليهم مصالحهم برفق وخفاء، العالم بدقائق الأمور، الذي لا يعاجل بالعقوبة.",
+        "الفضل: استحضار اسم الله اللطيف في الشدائد يورث السكينة واليقين بأن تدبير الله الخفيّ كله خير ورحمة (يوسف: 100).",
+        "The Subtle and Gentle, The All-Aware, The Forbearing Who brings relief in unseen ways.",
+        "Virtue: Remembering Al-Latif in hardship fills the heart with serenity and trust in Allah's decree (Qur'an 12:100)."
+    ),
+    AsmaUlHusnaEntry(
+        "الأَحَدُ الصَّمَدُ ذُو الجَلَالِ وَالإِكْرَامِ",
+        "المتفرد بالكمال، المقصود في جميع الحوائج، المستحق للتعظيم والإجلال والإنعام على أوليائه.",
+        "الفضل: قال النبي ﷺ: «ألظّوا بيا ذا الجلال والإكرام» أي الزموها وأكثروا منها في دعائكم (رواه الترمذي 3525 وصححه الألباني).",
+        "The One and Only, The Eternal Refuge, Possessor of Majesty and Honor.",
+        "Virtue: The Prophet ﷺ commanded: 'Be constant in supplicating with Ya Dhal-Jalali wal-Ikram' (Tirmidhi 3525)."
+    )
+)
 
 private val ADHKAR_CATEGORIES = listOf(
-    DhikrCategory("أذكار الصباح", R.drawable.ic_dhuhr, listOf(
-        "أصبحنا وأصبح الملك لله، والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.",
-        "اللهم بك أصبحنا، وبك أمسينا، وبك نحيا، وبك نموت، وإليك النشور.",
-        "اللهم أنت ربي لا إله إلا أنت، خلقتني وأنا عبدك، وأنا على عهدك ووعدك ما استطعت (سيد الاستغفار).",
-        "رضيت بالله رباً، وبالإسلام ديناً، وبمحمد ﷺ نبياً (3 مرات).",
-        "بسم الله الذي لا يضر مع اسمه شيء في الأرض ولا في السماء وهو السميع العليم (3 مرات).",
-        "حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم (7 مرات).",
-        "يا حي يا قيوم برحمتك أستغيث أصلح لي شأني كله ولا تكلني إلى نفسي طرفة عين.",
-        "سبحان الله وبحمده (100 مرة)."
+    DhikrCategory("أذكار الصباح", R.drawable.ic_fajr, listOf(
+        DhikrItem("أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ: ﴿ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ وَلَا يَئُودُهُ حِفْظُهُمَا وَهُوَ الْعَلِيُّ الْعَظِيمُ ﴾.", 1, "آية الكرسي - البقرة: 255"),
+        DhikrItem("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ: ﴿ قُلْ هُوَ اللَّهُ أَحَدٌ * اللَّهُ الصَّمَدُ * لَمْ يَلِدْ وَلَمْ يُولَدْ * وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ ﴾ (والمعوذتين ثلاث مرات).", 3, "أبو داود والترمذي"),
+        DhikrItem("أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ.", 1, "رواه مسلم"),
+        DhikrItem("اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَىٰ عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ لَكَ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ.", 1, "سيد الاستغفار - رواه البخاري"),
+        DhikrItem("بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ.", 3, "أبو داود والترمذي"),
+        DhikrItem("سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، عَدَدَ خَلْقِهِ، وَرِضَا نَفْسِهِ، وَزِنَةَ عَرْشِهِ، وَمِدَادَ كَلِمَاتِهِ.", 3, "رواه مسلم")
     )),
-    DhikrCategory("أذكار المساء", R.drawable.ic_isha, listOf(
-        "أمسينا وأمسى الملك لله، والحمد لله، لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.",
-        "اللهم بك أمسينا، وبك أصبحنا، وبك نحيا، وبك نموت، وإليك المصير.",
-        "أعوذ بكلمات الله التامات من شر ما خلق (3 مرات).",
-        "اللهم إني أسألك العفو والعافية في الدنيا والآخرة.",
-        "بسم الله الذي لا يضر مع اسمه شيء في الأرض ولا في السماء وهو السميع العليم (3 مرات).",
-        "حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم (7 مرات).",
-        "اللهم عافني في بدني، اللهم عافني في سمعي، اللهم عافني في بصري (3 مرات).",
-        "أستغفر الله العظيم وأتوب إليه (100 مرة)."
+    DhikrCategory("أذكار المساء", R.drawable.ic_maghrib, listOf(
+        DhikrItem("أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ.", 1, "رواه مسلم"),
+        DhikrItem("اللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ.", 1, "رواه الترمذي"),
+        DhikrItem("أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ.", 3, "رواه مسلم"),
+        DhikrItem("حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ.", 7, "رواه أبو داود")
+    )),
+    DhikrCategory("أذكار بعد الصلاة", R.drawable.ic_adhkar, listOf(
+        DhikrItem("أَسْتَغْفِرُ اللَّهَ (ثَلَاثًا).. اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ.", 1, "رواه مسلم"),
+        DhikrItem("لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ، اللَّهُمَّ لَا مَانِعَ لِمَا أَعْطَيْتَ، وَلَا مُعْطِيَ لِمَا مَنَعْتَ، وَلَا يَنْفَعُ ذَا الْجَدِّ مِنْكَ الْجَدُّ.", 1, "متفق عليه"),
+        DhikrItem("سُبْحَانَ اللَّهِ (33) · الْحَمْدُ لِلَّهِ (33) · اللَّهُ أَكْبَرُ (33)، ويتم المائة بـ: لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ.", 33, "رواه مسلم")
+    )),
+    DhikrCategory("أذكار النوم", R.drawable.ic_isha, listOf(
+        DhikrItem("بِاسْمِكَ رَبِّي وَضَعْتُ جَنْبِي، وَبِكَ أَرْفَعُهُ، فَإِنْ أَمْسَكْتَ نَفْسِي فَارْحَمْهَا، وَإِنْ أَرْسَلْتَهَا فَاحْفَظْهَا بِمَا تَحْفَظُ بِهِ عِبَادَكَ الصَّالِحِينَ.", 1, "متفق عليه"),
+        DhikrItem("بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا.", 1, "رواه البخاري")
     )),
     DhikrCategory("أذكار الدخول والخروج من المسجد", R.drawable.ic_mosque, listOf(
-        "عند الذهاب: اللهم اجعل في قلبي نوراً، وفي لساني نوراً، واجعل في سمعي نوراً، واجعل في بصري نوراً.",
-        "عند الدخول (بالرجل اليمنى): أعوذ بالله العظيم وبوجهه الكريم وسلطانه القديم من الشيطان الرجيم.",
-        "عند الدخول: بسم الله، والصلاة والسلام على رسول الله، اللهم افتح لي أبواب رحمتك.",
-        "عند الخروج (بالرجل اليسرى): بسم الله، والصلاة والسلام على رسول الله، اللهم إني أسألك من فضلك، اللهم اعصمني من الشيطان الرجيم."
+        DhikrItem("عِنْدَ الدُّخُولِ (يُقدّم رجله اليمنى): «بِسْمِ اللَّهِ، وَالصَّلَاةُ وَالسَّلَامُ عَلَىٰ رَسُولِ اللَّهِ، اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ».", 1, "رواه مسلم (713)"),
+        DhikrItem("عِنْدَ الْخُرُوجِ (يُقدّم رجله اليسرى): «بِسْمِ اللَّهِ، وَالصَّلَاةُ وَالسَّلَاُ عَلَىٰ رَسُولِ اللَّهِ، اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ، اللَّهُمَّ اعْصِمْنِي مِنَ الشَّيْطَانِ الرَّجِيمِ».", 1, "رواه مسلم (713) وابن ماجه")
     )),
     DhikrCategory("أذكار الدخول والخروج من البيت", R.drawable.ic_home_adhkar, listOf(
-        "عند الدخول: بسم الله ولجنا، وبسم الله خرجنا، وعلى الله ربنا توكلنا، ثم ليسلّم على أهله.",
-        "فضل التسمية عند الدخول: إذا ذكر الله عند دخوله وعند طعامه قال الشيطان: لا مبيت لكم ولا عشاء (رواه مسلم).",
-        "عند الخروج: بسم الله، توكلت على الله، ولا حول ولا قوة إلا بالله.",
-        "عند الخروج: اللهم إني أعوذ بك أن أضل أو أُضل، أو أزل أو أُزل، أو أظلم أو أُظلم، أو أجهل أو يُجهل عليّ."
-    )),
-    DhikrCategory("أذكار بعد الصلاة", R.drawable.ic_asr, listOf(
-        "أستغفر الله (3 مرات)، اللهم أنت السلام ومنك السلام تباركت يا ذا الجلال والإكرام.",
-        "لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير، اللهم لا مانع لما أعطيت.",
-        "سبحان الله (33)، الحمد لله (33)، الله أكبر (33)، وتمام المائة: لا إله إلا الله وحده لا شريك له.",
-        "قراءة آية الكرسي دبر كل صلاة مكتوبة.",
-        "قراءة سورة الإخلاص والفلق والناس بعد كل صلاة.",
-        "اللهم أعني على ذكرك وشكرك وحسن عبادتك."
-    )),
-    DhikrCategory("أذكار النوم", R.drawable.ic_fajr, listOf(
-        "الجمع بين الكفين وقراءة الإخلاص والفلق والناس والنفث فيهما ومسح الجسد (3 مرات).",
-        "قراءة آية الكرسي عند أخذ المضجع.",
-        "باسمك ربي وضعت جنبي وبك أرفعه، فإن أمسكت نفسي فارحمها، وإن أرسلتها فاحفظها.",
-        "اللهم قني عذابك يوم تبعث عبادك (3 مرات).",
-        "سبحان الله (33)، والحمد لله (33)، والله أكبر (34).",
-        "اللهم أسلمت نفسي إليك، وفوضت أمري إليك، ووجهت وجهي إليك، وألجأت ظهري إليك."
+        DhikrItem("عِنْدَ الْخُرُوجِ مِنَ الْبَيْتِ: «بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ».", 1, "رواه أبو داود (5095) والترمذي (3426)"),
+        DhikrItem("عِنْدَ الدُّخُولِ إِلَى الْبَيْتِ: «بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَىٰ رَبِّنَا تَوَكَّلْنَا» ثم يُسلّم على أهله.", 1, "رواه أبو داود (5096) ومسلم (2018)")
     ))
 )
+
+private val TASBIH_PHRASES = listOf("سُبْحَانَ اللَّهِ", "الْحَمْدُ لِلَّهِ", "اللَّهُ أَكْبَرُ", "لَا إِلَٰهَ إِلَّا اللَّهُ", "أَسْتَغْفِرُ اللَّهَ")
 
 @Composable
 fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
     val theme = LocalSakinaTheme.current
-    val sp = remember { ctx.getSharedPreferences("tasbih_prefs", Context.MODE_PRIVATE) }
-    var count by remember { mutableIntStateOf(sp.getInt("count", 0)) }
-    var selectedCategory by remember { mutableStateOf<DhikrCategory?>(null) }
+    val s = LocalSakinaStrings.current
+    val lang = LocalSakinaLang.current
+    val isArOrUr = lang == SakinaLang.AR || lang == SakinaLang.UR
     val view = LocalView.current
+    val sp = remember { ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE) }
 
-    BackHandler(enabled = selectedCategory != null) { selectedCategory = null }
+    var selectedCategoryIndex by remember { mutableStateOf<Int?>(null) }
+    var phraseIdx by remember { mutableIntStateOf(0) }
+    var count by remember { mutableIntStateOf(sp.getInt("tasbih_count", 0)) }
+    val target = 33
+    val itemCounts = remember { mutableStateMapOf<String, Int>() }
 
-    if (selectedCategory != null) {
-        val cat = selectedCategory!!
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(start = 18.dp, end = 18.dp, top = 74.dp, bottom = 82.dp)
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(theme.bgCard)
-                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
-                        .clickable { selectedCategory = null }
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "الأذكار", tint = theme.accentBright, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("الأذكار", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = theme.accentBright)
-                }
-                Text(cat.title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = theme.accentBright)
-                Spacer(Modifier.width(56.dp))
-            }
-            Spacer(Modifier.height(10.dp))
-            Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                cat.items.forEach { text ->
-                    SakinaParchmentPanel(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(14.dp)) {
-                        Text(text.toWesternDigits(), fontFamily = SakinaEditorialFont, fontSize = 15.5.sp, lineHeight = 27.sp, color = SakinaInkDark)
-                    }
-                }
-            }
-        }
-        return
+    // Daily Name of Allah index (#20)
+    val initialAsmaIdx = remember {
+        Calendar.getInstance().get(Calendar.DAY_OF_YEAR) % ASMA_UL_HUSNA_DAILY.size
     }
+    var asmaIdx by remember { mutableIntStateOf(initialAsmaIdx) }
+    var showAsmaDialog by remember { mutableStateOf(false) }
+    val currentAsma = ASMA_UL_HUSNA_DAILY[asmaIdx]
+
+    BackHandler(enabled = selectedCategoryIndex != null) { selectedCategoryIndex = null }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, top = 52.dp, bottom = 76.dp),
+            .padding(start = 14.dp, end = 14.dp, top = 48.dp, bottom = 72.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)) {
-            Text(LocalSakinaStrings.current.adhkarTitle, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = theme.accentBright)
-        }
-
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (r in 0 until 3) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AdhkarTile(ADHKAR_CATEGORIES[r * 2], Modifier.weight(1f)) { selectedCategory = ADHKAR_CATEGORIES[r * 2] }
-                    AdhkarTile(ADHKAR_CATEGORIES[r * 2 + 1], Modifier.weight(1f)) { selectedCategory = ADHKAR_CATEGORIES[r * 2 + 1] }
-                }
+        // 1. Header Cartouche
+        Box(modifier = Modifier.fillMaxWidth()) {
+            if (selectedCategoryIndex != null) {
+                SakinaBackIconButton(
+                    onClick = { selectedCategoryIndex = null },
+                    modifier = Modifier.align(Alignment.CenterStart)
+                )
+            }
+            SakinaOrnamentCartouche(
+                modifier = Modifier.align(Alignment.Center),
+                contentPadding = PaddingValues(horizontal = 36.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = selectedCategoryIndex?.let { s.adhkarCatTitles[it] } ?: s.adhkarTitle,
+                    fontFamily = SakinaEditorialFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.5.sp,
+                    color = theme.accentBright,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
             }
         }
 
-        SakinaGlassCard(
-            modifier = Modifier.fillMaxWidth().clickable {
-                count++; sp.edit().putInt("count", count).apply()
-                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-            },
-            cornerRadius = 20.dp,
-            glowGold = true,
-            contentPadding = PaddingValues(12.dp)
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Image(painter = painterResource(id = R.drawable.ic_tasbih), contentDescription = null, modifier = Modifier.size(46.dp))
+        if (selectedCategoryIndex == null) {
+            // 2. Surah Al-Ahzab: 35 directly under the cartouche in Classical Naskh (#24, #25)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.92f), theme.bgDeep.copy(alpha = 0.96f))))
+                    .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(LocalSakinaStrings.current.tasbihPrompt, fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.LuminousIvory)
-                    Spacer(Modifier.height(4.dp))
-                    SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 36.dp, vertical = 6.dp)) {
-                        Text("$count".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = theme.accentBright)
+                    Text(
+                        text = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+                        fontFamily = SakinaNaskhFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
+                        color = theme.accentGold,
+                        textAlign = TextAlign.Center,
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                    )
+                    Text(
+                        text = "﴿ وَالذَّاكِرِينَ اللَّهَ كَثِيرًا وَالذَّاكِرَاتِ أَعَدَّ اللَّهُ لَهُمْ مَغْفِرَةً وَأَجْرًا عَظِيمًا ﴾ {الأحزاب: 35}".toWesternDigits(),
+                        fontFamily = SakinaNaskhFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.2.sp,
+                        lineHeight = 17.sp,
+                        textAlign = TextAlign.Center,
+                        style = TextStyle(
+                            brush = Brush.verticalGradient(
+                                listOf(Color(0xFFFFF7D6), Color(0xFFE6CF94), Color(0xFFD4AF37))
+                            ),
+                            shadow = Shadow(color = Color(0xAA000000), offset = Offset(0f, 2f), blurRadius = 4f),
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                        )
+                    )
+                }
+            }
+
+            // 3. 3x2 Adhkar Category Cards with larger 28.dp icons (#19)
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
+                for (row in 0 until 3) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        for (col in 0 until 2) {
+                            val idx = row * 2 + col
+                            val cat = ADHKAR_CATEGORIES[idx]
+                            val locTitle = s.adhkarCatTitles[idx]
+                            val fontSize = if (locTitle.length > 22) 10.sp else 11.5.sp
+                            SakinaGlassCard(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(66.dp)
+                                    .clickable { selectedCategoryIndex = idx },
+                                cornerRadius = 15.dp,
+                                glowGold = idx < 2,
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = cat.iconRes),
+                                        contentDescription = locTitle,
+                                        modifier = Modifier.size(27.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(
+                                        text = locTitle,
+                                        fontFamily = SakinaHeadingFont,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = fontSize,
+                                        lineHeight = 12.5.sp,
+                                        color = theme.accentBright,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
-                Icon(imageVector = Icons.Rounded.Refresh, contentDescription = "تصفير", tint = theme.accentGold, modifier = Modifier.size(22.dp).clickable { count = 0; sp.edit().putInt("count", 0).apply() })
+            }
+
+            // 4. Asma ul-Husna (Name of the Day, Meaning & Virtue) Card (#20)
+            SakinaParchmentPanel(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showAsmaDialog = true },
+                cornerRadius = 15.dp,
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = Color(0xFF0F3D3E),
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable {
+                                asmaIdx = (asmaIdx - 1 + ASMA_UL_HUSNA_DAILY.size) % ASMA_UL_HUSNA_DAILY.size
+                            }
+                    )
+                    Text(
+                        text = "❖ ${s.asmaTitle}: ${currentAsma.nameAr} ❖",
+                        fontFamily = SakinaNaskhFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = Color(0xFF0F3D3E),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                        contentDescription = null,
+                        tint = Color(0xFF0F3D3E),
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable {
+                                asmaIdx = (asmaIdx + 1) % ASMA_UL_HUSNA_DAILY.size
+                            }
+                    )
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = if (isArOrUr) currentAsma.meaningAr else currentAsma.meaningEn,
+                    fontFamily = SakinaBodyFont,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 10.sp,
+                    lineHeight = 13.5.sp,
+                    color = SakinaInkDark,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = (if (isArOrUr) currentAsma.virtueAr else currentAsma.virtueEn).toWesternDigits(),
+                    fontFamily = SakinaBodyFont,
+                    fontSize = 9.2.sp,
+                    lineHeight = 12.5.sp,
+                    color = Color(0xFF6B5224),
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // 5. Compact Interactive Misbaha / Tasbih Counter Bar
+            val pulseScale by animateFloatAsState(
+                targetValue = if (count % 2 == 1) 1.02f else 1.0f,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "tasbihPulse"
+            )
+            val progress = (count % target).toFloat() / target.toFloat()
+
+            SakinaGlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = 15.dp,
+                glowGold = true,
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(58.dp)
+                            .scale(pulseScale)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                count++
+                                sp.edit().putInt("tasbih_count", count).apply()
+                                if (count % target == 0) view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                else view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val cx = size.width / 2f
+                            val cy = size.height / 2f
+                            val r = size.minDimension / 2f - 4.dp.toPx()
+                            drawCircle(color = Color(0x33D4AF37), radius = r, style = Stroke(width = 2.dp.toPx()))
+                            drawArc(
+                                brush = Sakina3DGoldBevelBrush,
+                                startAngle = -90f,
+                                sweepAngle = progress * 360f,
+                                useCenter = false,
+                                style = Stroke(width = 3.2.dp.toPx(), cap = StrokeCap.Round)
+                            )
+                            for (i in 0 until 12) {
+                                val angle = (i * (360.0 / 12) - 90.0) * PI / 180.0
+                                val bx = cx + (r * cos(angle)).toFloat()
+                                val by = cy + (r * sin(angle)).toFloat()
+                                val active = i <= ((count % target) * 12 / target)
+                                drawCircle(
+                                    color = if (active) theme.accentBright else Color(0x44D4AF37),
+                                    radius = if (active) 2.2.dp.toPx() else 1.4.dp.toPx(),
+                                    center = Offset(bx, by)
+                                )
+                            }
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "$count".toWesternDigits(),
+                                fontFamily = SakinaNumeralFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = theme.accentBright,
+                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                            )
+                            Text(
+                                text = s.tasbihPrompt,
+                                fontFamily = SakinaBodyFont,
+                                fontSize = 6.8.sp,
+                                color = SakinaBrandColors.SoftSilver,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        SakinaTitle3D(text = TASBIH_PHRASES[phraseIdx], fontSize = 16.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TASBIH_PHRASES.forEachIndexed { idx, p ->
+                                val sel = idx == phraseIdx
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (sel) theme.accentGold else Color(0x22FFFFFF))
+                                        .clickable { phraseIdx = idx }
+                                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = p.substringBefore(" "),
+                                        fontFamily = SakinaNaskhFontFamily,
+                                        fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 8.5.sp,
+                                        color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color(0x22FFFFFF))
+                            .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
+                            .clickable {
+                                count = 0
+                                sp.edit().putInt("tasbih_count", 0).apply()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = "Reset", tint = theme.accentBright, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+        } else {
+            val category = ADHKAR_CATEGORIES[selectedCategoryIndex!!]
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(top = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                itemsIndexed(category.items) { idx, item ->
+                    val key = "${category.title}_$idx"
+                    val doneCount = itemCounts[key] ?: 0
+                    val completed = doneCount >= item.targetCount
+
+                    SakinaParchmentPanel(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (doneCount < item.targetCount) {
+                                    itemCounts[key] = doneCount + 1
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                }
+                            },
+                        cornerRadius = 18.dp,
+                        contentPadding = PaddingValues(14.dp)
+                    ) {
+                        Text(
+                            text = item.text.toWesternDigits(),
+                            fontFamily = SakinaNaskhFontFamily,
+                            fontSize = 17.sp,
+                            lineHeight = 30.sp,
+                            color = SakinaInkDark,
+                            textAlign = TextAlign.Right,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = item.source.toWesternDigits(),
+                                fontFamily = SakinaNaskhFontFamily,
+                                fontSize = 11.5.sp,
+                                color = Color(0xFF6B5224)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (completed) Color(0xFF1E5631) else Color(0xFF0F3D3E))
+                                    .border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "${doneCount.coerceAtMost(item.targetCount)} / ${item.targetCount}".toWesternDigits(),
+                                    fontFamily = SakinaNumeralFont,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.5.sp,
+                                    color = theme.accentBright
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-}
 
-@Composable
-private fun AdhkarTile(cat: DhikrCategory, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val s = LocalSakinaStrings.current
-    val idx = ADHKAR_CATEGORIES.indexOf(cat).coerceAtLeast(0)
-    val localizedTitle = s.adhkarCatTitles.getOrElse(idx) { cat.title }
-    SakinaParchmentPanel(modifier = modifier.height(86.dp).clickable { onClick() }, cornerRadius = 16.dp, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Image(painter = painterResource(id = cat.iconRes), contentDescription = null, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = localizedTitle,
-                fontFamily = SakinaEditorialFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.5.sp,
-                lineHeight = 14.5.sp,
-                color = SakinaInkDark,
-                textAlign = TextAlign.Center,
-                maxLines = 2
-            )
-        }
+    if (showAsmaDialog) {
+        AlertDialog(
+            onDismissRequest = { showAsmaDialog = false },
+            containerColor = theme.bgCard,
+            title = {
+                Text(
+                    text = "${s.asmaTitle}
+${currentAsma.nameAr}",
+                    fontFamily = SakinaNaskhFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = theme.accentBright,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = if (isArOrUr) "المعنى: ${currentAsma.meaningAr}" else "Meaning: ${currentAsma.meaningEn}",
+                        fontFamily = SakinaBodyFont,
+                        fontSize = 14.sp,
+                        lineHeight = 22.sp,
+                        color = SakinaBrandColors.LuminousIvory
+                    )
+                    Text(
+                        text = (if (isArOrUr) currentAsma.virtueAr else currentAsma.virtueEn).toWesternDigits(),
+                        fontFamily = SakinaBodyFont,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp,
+                        color = theme.accentBright
+                    )
+                    Text(
+                        text = if (isArOrUr) "الحديث الجامع: قال رسول الله ﷺ: «إن لله تسعة وتسعين اسماً، مائة إلا واحداً، من أحصاها دخل الجنة» (متفق عليه: البخاري 2736 ومسلم 2677).".toWesternDigits()
+                        else "Hadith: The Prophet ﷺ said: 'Allah has ninety-nine Names, one hundred less one; whoever learns, understands, and acts upon them will enter Paradise.' (Sahih al-Bukhari 2736 & Sahih Muslim 2677).",
+                        fontFamily = SakinaBodyFont,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                        color = SakinaBrandColors.SoftSilver
+                    )
+                }
+            },
+            confirmButton = {
+                SakinaBackIconButton(onClick = { showAsmaDialog = false })
+            }
+        )
     }
 }
