@@ -1,62 +1,67 @@
-plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-}
+name: Build Release APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
 
-android {
-    namespace = "app.sakina"
-    compileSdk = 34
+      # تجهيز خط النسخ الأصيل (Amiri) + المصحف الكامل (حفص وورش) أوفلاين
+      - name: Bundle Amiri Naskh Font & Offline Quran (Hafs & Warsh)
+        run: |
+          mkdir -p app/src/main/res/font app/src/main/assets
+          curl -L -s "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf" -o app/src/main/res/font/noto_naskh_arabic_regular.ttf
+          curl -L -s "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Bold.ttf" -o app/src/main/res/font/noto_naskh_arabic_bold.ttf
+          python3 - << 'EOF'
+          import json, urllib.request
+          sources = {
+              "quran_hafs.json": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ara-quranuthmanihaf.min.json",
+              "quran_warsh.json": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ara-quranwarsh.min.json",
+          }
+          for out_name, url in sources.items():
+              req = urllib.request.Request(url, headers={"User-Agent": "SakinaBuild/1.0"})
+              data = json.loads(urllib.request.urlopen(req, timeout=30).read().decode("utf-8"))
+              grouped = {}
+              for item in data.get("quran", []):
+                  ch = str(item["chapter"])
+                  grouped.setdefault(ch, []).append(f"{item['text']} ({item['verse']})")
+              with open(f"app/src/main/assets/{out_name}", "w", encoding="utf-8") as f:
+                  json.dump(grouped, f, ensure_ascii=False)
+          print("Bundled Amiri font and Hafs & Warsh offline JSONs successfully")
+          EOF
 
-    defaultConfig {
-        applicationId = "app.sakina"
-        minSdk = 26
-        targetSdk = 34
-        versionCode = 2
-        versionName = "0.2-brand"
-    }
+      # ضغط ملفات الأذان إلى صيغة OGG لتقليص حجم التطبيق
+      - name: Compress Adhan audio to OGG
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          for f in app/src/main/res/raw/*.mp3; do
+            [ -f "$f" ] && ffmpeg -y -i "$f" -c:a libvorbis -q:a 1 "${f%.mp3}.ogg" && rm "$f"
+          done
 
-    // --- إعدادات التوقيع الأساسية ---
-    signingConfigs {
-        create("release") {
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "release-key.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
-        }
-    }
+      # دمج جميع صفحات المصحف الشريف الـ 604 أوفلاين 100%
+      - name: Bundle 604 Offline Mushaf Pages
+        run: |
+          mkdir -p app/src/main/assets/mushaf
+          git clone --depth 1 https://github.com/GovarJabbar/Quran-PNG.git /tmp/quran-png
+          cp /tmp/quran-png/[0-9][0-9][0-9].png app/src/main/assets/mushaf/
+          rm -rf /tmp/quran-png
+          ls app/src/main/assets/mushaf | wc -l
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            // سطر التوقيع الذي أضفناه لكي يعمل التثبيت:
-            signingConfig = signingConfigs.getByName("debug") 
-            
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
-    }
-    
-    buildFeatures {
-        compose = true
-    }
-    
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
-    
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-}
+      # بناء نسخة الـ Release
+      - run: gradle :app:assembleRelease --no-daemon
 
-dependencies {
-    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.activity:activity-compose:1.9.0")
-    implementation("com.batoulapps.adhan:adhan:1.2.1")
-}
+      # رفع الملف الناتج
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sakina-release-apk
+          path: app/build/outputs/apk/release/*.apk
