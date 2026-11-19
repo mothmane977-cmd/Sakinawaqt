@@ -40,6 +40,23 @@ jobs:
           print("Bundled Amiri font and Hafs & Warsh offline JSONs successfully")
           EOF
 
+      # ضغط ملفات الأذان إلى صيغة OGG لتقليص حجم التطبيق
+      - name: Compress Adhan audio to OGG
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          for f in app/src/main/res/raw/*.mp3; do
+            [ -f "$f" ] && ffmpeg -y -i "$f" -c:a libvorbis -q:a 1 "${f%.mp3}.ogg" && rm "$f"
+          done
+
+      # دمج جميع صفحات المصحف الشريف الـ 604 أوفلاين 100%
+      - name: Bundle 604 Offline Mushaf Pages
+        run: |
+          mkdir -p app/src/main/assets/mushaf
+          curl -L -s "https://github.com/quran/quran_android/releases/download/v3.6.3/quran_images_1260.zip" -o /tmp/mushaf.zip
+          unzip -j -q -o /tmp/mushaf.zip "*.png" -d app/src/main/assets/mushaf/
+          rm -f /tmp/mushaf.zip
+          ls app/src/main/assets/mushaf | wc -l
+
       # بناء نسخة الـ Release
       - run: gradle :app:assembleRelease --no-daemon
 
