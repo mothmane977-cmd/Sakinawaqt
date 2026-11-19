@@ -42,16 +42,7 @@ import androidx.compose.ui.unit.sp
 import java.util.TimeZone
 import kotlin.math.roundToInt
 
-private data class CityPreset(val nameAr: String, val lat: Double, val lon: Double)
-
-private val PRESET_CITIES = listOf(
-    CityPreset("فرندة", 35.06, 1.04),
-    CityPreset("الجزائر العاصمة", 36.75, 3.05),
-    CityPreset("وهران", 35.70, -0.63),
-    CityPreset("قسنطينة", 36.36, 6.61),
-    CityPreset("تيارت", 35.37, 1.32),
-    CityPreset("مكة المكرمة", 21.42, 39.82)
-)
+// Uses SakinaCitiesDb.ALL_CITIES (45+ offline cities)
 
 @Composable
 fun SakinaSettingsScreen(
@@ -760,17 +751,19 @@ fun SakinaSettingsScreen(
             title = { Text(s.manualPick, fontFamily = SakinaHeadingFont, color = theme.accentBright) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PRESET_CITIES.forEach { city ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0x22FFFFFF)).clickable {
-                                Place.set(ctx, city.lat, city.lon, city.nameAr)
-                                AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx)
-                                refreshTick++; showCityPicker = false
-                            }.padding(horizontal = 12.dp, vertical = 9.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(localizeCityName(city.nameAr, lang), fontFamily = SakinaBodyFont, color = SakinaBrandColors.LuminousIvory)
-                            Text("${city.lat}, ${city.lon}".toWesternDigits(), fontFamily = SakinaNumeralFont, fontSize = 11.sp, color = theme.accentBright)
+                    Column(modifier = Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SakinaCitiesDb.ALL_CITIES.forEach { city ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0x22FFFFFF)).clickable {
+                                    Place.set(ctx, city.lat, city.lon, city.nameAr)
+                                    AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); SakinaWidgetUpdater.updateAll(ctx)
+                                    refreshTick++; showCityPicker = false
+                                }.padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(if (isArOrUr) "${city.nameAr} (${city.countryAr})" else city.nameLatin, fontFamily = SakinaBodyFont, color = SakinaBrandColors.LuminousIvory)
+                                Text("${city.lat}, ${city.lon}".toWesternDigits(), fontFamily = SakinaNumeralFont, fontSize = 11.sp, color = theme.accentBright)
+                            }
                         }
                     }
                 }

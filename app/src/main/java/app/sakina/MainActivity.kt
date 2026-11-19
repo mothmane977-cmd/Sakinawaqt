@@ -268,6 +268,27 @@ object AlarmScheduler {
         val pm = c.getSystemService(Context.POWER_SERVICE) as PowerManager
         val saver = if (pm.isPowerSaveMode) "نعم" else "لا"
         val exempt = if (pm.isIgnoringBatteryOptimizations(c.packageName)) "نعم" else "لا"
+        // Schedule enabled Custom Reminders (Pre-Adhan / Iqama / Tahajjud) for today/tomorrow
+        try {
+            val amCustom = c.getSystemService(AlarmManager::class.java)
+            val dayPrayers = PrayerEngine.day(c, 0) + PrayerEngine.day(c, 1)
+            SakinaAdvancedPrefs.customReminders(c).filter { it.enabled }.forEachIndexed { rIdx, rem ->
+                val targetName = PRAYER_NAMES.filter { it != "الشروق" }.getOrElse(rem.prayerIndex) { "الفجر" }
+                val nextMatch = dayPrayers.firstOrNull { (pName, dt) ->
+                    pName == targetName && (dt.time + rem.offsetMinutes * 60_000L) > after
+                }
+                if (nextMatch != null) {
+                    val fireAt = nextMatch.second.time + rem.offsetMinutes * 60_000L
+                    val pi = PendingIntent.getBroadcast(
+                        c, 900 + rIdx,
+                        Intent(c, PostPrayerAdhkarReceiver::class.java).putExtra("p", rem.title).putExtra("custom", true),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    amCustom.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pi)
+                }
+            }
+        } catch (_: Exception) {}
+        SakinaWidgetUpdater.updateAll(c)
         DiagLog.add(c, "جُدول $count تنبيهاً (14 يوماً)، التالي $firstName ${hm(firstAt)} | توفير: $saver | استثناء: $exempt")
     }
 
