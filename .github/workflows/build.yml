@@ -1,4 +1,4 @@
-name: Build Release APK
+name: Build Release AAB & APK
 on:
   push:
     branches: [main]
@@ -40,27 +40,48 @@ jobs:
           print("Bundled Amiri font and Hafs & Warsh offline JSONs successfully")
           EOF
 
-      # ضغط ملفات الأذان إلى صيغة OGG لتقليص حجم التطبيق
+      # ضغط ملفات الأذان إلى صيغة OGG + تثبيت أداة ضغط صور المصحف
       - name: Compress Adhan audio to OGG
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg
+          sudo apt-get update && sudo apt-get install -y ffmpeg pngquant
           for f in app/src/main/res/raw/*.mp3; do
             [ -f "$f" ] && ffmpeg -y -i "$f" -c:a libvorbis -q:a 1 "${f%.mp3}.ogg" && rm "$f"
           done
 
-      # دمج جميع صفحات المصحف الشريف الـ 604 أوفلاين 100%
-      - name: Bundle 604 Offline Mushaf Pages
+      # دمج وضغط جميع صفحات المصحف الشريف الـ 604 أوفلاين 100%
+      - name: Bundle & Compress 604 Offline Mushaf Pages
         run: |
           mkdir -p app/src/main/assets/mushaf
           git clone --depth 1 https://github.com/GovarJabbar/Quran-PNG.git /tmp/quran-png
           cp /tmp/quran-png/[0-9][0-9][0-9].png app/src/main/assets/mushaf/
           rm -rf /tmp/quran-png
+          find app/src/main/assets/mushaf -name "*.png" -print0 | xargs -0 -P 4 -I {} sh -c 'pngquant --force --ext .png 16 "{}" || true'
+          du -sh app/src/main/assets/mushaf
           ls app/src/main/assets/mushaf | wc -l
 
-      # بناء نسخة الـ Release
-      - run: gradle :app:assembleRelease --no-daemon
+      # فك تشفير مفتاح التوقيع الرسمي من GitHub Secrets
+      - name: Decode Release Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > /tmp/sakina-upload.jks
 
-      # رفع الملف الناتج
+      # بناء نسخة Google Play الموقّعة (.aab) + نسخة التجربة (.apk)
+      - name: Build Signed AAB & APK
+        env:
+          KEYSTORE_PATH: /tmp/sakina-upload.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: gradle :app:bundleRelease :app:assembleRelease --no-daemon
+
+      # رفع ملف Google Play (.aab)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sakina-playstore-aab
+          path: app/build/outputs/bundle/release/*.aab
+
+      # رفع ملف التجربة للهاتف (.apk)
       - uses: actions/upload-artifact@v4
         with:
           name: sakina-release-apk
