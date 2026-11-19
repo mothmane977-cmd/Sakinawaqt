@@ -8,7 +8,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,6 +59,9 @@ fun SakinaSettingsScreen(
     var refreshTick by remember { mutableIntStateOf(0) }
     var hijriOff by remember { mutableIntStateOf(Prefs.hijriOffset(ctx)) }
     var showCityPicker by remember { mutableStateOf(false) }
+    var showVoicePicker by remember { mutableStateOf(false) }
+    var selectedVoice by remember { mutableStateOf(SakinaAdhanAudio.selectedVoice(ctx)) }
+    var playingVoiceKey by remember { mutableStateOf<String?>(null) }
     val placeName = remember(refreshTick, lang) { localizeCityName(Place.name(ctx), lang) }
     val methodShort = remember(refreshTick, lang) { localizeMethodName(Prefs.METHODS[Prefs.method(ctx)], lang) }
 
@@ -244,9 +252,90 @@ fun SakinaSettingsScreen(
             }
         }
 
+        SakinaSettingsPill(R.drawable.ic_alarm, s.adhanVoiceLabel, selectedVoice.localizedTitle(lang)) {
+            showVoicePicker = true
+        }
+
         SakinaSettingsPill(R.drawable.ic_star_ornament, s.calcMethod, methodShort) {
             Prefs.cycleMethod(ctx); AlarmScheduler.scheduleNext(ctx); refreshTick++
         }
+    }
+
+    if (showVoicePicker) {
+        AlertDialog(
+            onDismissRequest = {
+                SakinaAdhanAudio.stop()
+                playingVoiceKey = null
+                showVoicePicker = false
+            },
+            containerColor = theme.bgCard,
+            title = { Text(s.adhanVoiceLabel, fontFamily = SakinaHeadingFont, color = theme.accentBright) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AdhanVoice.entries.forEach { voice ->
+                        val isSel = voice == selectedVoice
+                        val isPlaying = playingVoiceKey == voice.key
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSel) theme.accentGold.copy(alpha = 0.25f) else Color(0x22FFFFFF))
+                                .border(0.8.dp, if (isSel) Sakina3DGoldBevelBrush else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent)), RoundedCornerShape(12.dp))
+                                .clickable {
+                                    selectedVoice = voice
+                                    SakinaAdhanAudio.setSelectedVoice(ctx, voice)
+                                }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = (if (isSel) "✓ " else "• ") + voice.localizedTitle(lang),
+                                fontFamily = SakinaBodyFont,
+                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 12.5.sp,
+                                color = if (isSel) theme.accentBright else SakinaBrandColors.LuminousIvory,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isPlaying) theme.accentGold else Color(0x28FFFFFF))
+                                    .clickable {
+                                        if (isPlaying) {
+                                            SakinaAdhanAudio.stop()
+                                            playingVoiceKey = null
+                                        } else {
+                                            selectedVoice = voice
+                                            SakinaAdhanAudio.setSelectedVoice(ctx, voice)
+                                            playingVoiceKey = voice.key
+                                            SakinaAdhanAudio.startPreview(ctx, voice) { playingVoiceKey = null }
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isPlaying) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                                    contentDescription = null,
+                                    tint = if (isPlaying) theme.bgDeep else theme.accentBright,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    SakinaAdhanAudio.stop()
+                    playingVoiceKey = null
+                    showVoicePicker = false
+                }) { Text("×", color = theme.accentBright, fontSize = 18.sp) }
+            }
+        )
     }
 
     if (showCityPicker) {
