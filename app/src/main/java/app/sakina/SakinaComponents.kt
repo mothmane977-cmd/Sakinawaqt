@@ -78,6 +78,11 @@ fun String.toWesternDigits(): String {
 }
 
 @Composable
+fun SakinaCalligraphyBrush(): Brush = Brush.verticalGradient(
+    listOf(Color(0xFFFFFFFF), Color(0xFFFFF4C2), Color(0xFFE6C36E), Color(0xFFC5A059), Color(0xFF8C6B28))
+)
+
+@Composable
 fun SakinaTitle3D(
     text: String,
     fontSize: TextUnit = 21.sp,
@@ -92,10 +97,8 @@ fun SakinaTitle3D(
             fontFamily = SakinaEditorialFont,
             fontWeight = FontWeight.Bold,
             fontSize = fontSize,
-            brush = Brush.verticalGradient(
-                listOf(Color(0xFFFFF7D6), Color(0xFFE6CF94), Color(0xFFC5A059), Color(0xFF8C6B28))
-            ),
-            shadow = Shadow(color = Color(0xDD000000), offset = Offset(0f, 3f), blurRadius = 6f),
+            brush = SakinaCalligraphyBrush(),
+            shadow = Shadow(color = Color(0xEE000000), offset = Offset(0f, 3f), blurRadius = 7f),
             platformStyle = PlatformTextStyle(includeFontPadding = false)
         ),
         modifier = modifier.fillMaxWidth()
@@ -105,7 +108,7 @@ fun SakinaTitle3D(
 @Composable
 fun SakinaAnalogClockDial(
     timeMs: Long,
-    size: Dp = 46.dp,
+    size: Dp = 76.dp,
     modifier: Modifier = Modifier
 ) {
     val theme = LocalSakinaTheme.current
@@ -114,18 +117,55 @@ fun SakinaAnalogClockDial(
         val cy = this.size.height / 2f
         val r = this.size.minDimension / 2f - 2.dp.toPx()
 
-        drawCircle(color = theme.bgDeep, radius = r, center = Offset(cx, cy))
-        drawCircle(brush = Sakina3DGoldBevelBrush, radius = r, center = Offset(cx, cy), style = Stroke(width = 1.8.dp.toPx()))
+        // 1. Deep Guilloche Sunburst Dial Face
+        drawCircle(
+            brush = Brush.radialGradient(
+                listOf(Color(0xFF102A3A), theme.bgCard, theme.bgDeep),
+                center = Offset(cx, cy),
+                radius = r
+            ),
+            radius = r,
+            center = Offset(cx, cy)
+        )
 
-        for (i in 0 until 12) {
-            val ang = (i * 30.0 - 90.0) * PI / 180.0
-            val innerR = if (i % 3 == 0) r * 0.72f else r * 0.83f
+        // Subtle guilloche radial rays
+        for (i in 0 until 24) {
+            val ang = (i * 15.0) * PI / 180.0
             drawLine(
-                color = theme.accentBright,
-                start = Offset(cx + (innerR * cos(ang)).toFloat(), cy + (innerR * sin(ang)).toFloat()),
-                end = Offset(cx + (r * 0.92f * cos(ang)).toFloat(), cy + (r * 0.92f * sin(ang)).toFloat()),
-                strokeWidth = if (i % 3 == 0) 1.5.dp.toPx() else 0.9.dp.toPx()
+                color = Color(0x0FD4AF37),
+                start = Offset(cx, cy),
+                end = Offset(cx + (r * 0.90f * cos(ang)).toFloat(), cy + (r * 0.90f * sin(ang)).toFloat()),
+                strokeWidth = 0.7.dp.toPx()
             )
+        }
+
+        // 2. Double 3D Brushed Gold Fluted Bezel & Inner Chapter Ring
+        drawCircle(brush = Sakina3DGoldBevelBrush, radius = r, center = Offset(cx, cy), style = Stroke(width = (r * 0.085f).coerceAtLeast(1.8.dp.toPx())))
+        drawCircle(color = Color(0x77F3DC8B), radius = r * 0.88f, center = Offset(cx, cy), style = Stroke(width = 0.8.dp.toPx()))
+        drawCircle(color = Color(0x44C5A059), radius = r * 0.56f, center = Offset(cx, cy), style = Stroke(width = 0.6.dp.toPx()))
+
+        // 3. 60 Minute Ticks + 12 Sculpted Diamond/Baton Gold Hour Indices
+        for (i in 0 until 60) {
+            val ang = (i * 6.0 - 90.0) * PI / 180.0
+            if (i % 5 == 0) {
+                val isQuarter = i % 15 == 0
+                val outer = r * 0.86f
+                val inner = if (isQuarter) r * 0.68f else r * 0.74f
+                drawLine(
+                    brush = Sakina3DGoldBevelBrush,
+                    start = Offset(cx + (inner * cos(ang)).toFloat(), cy + (inner * sin(ang)).toFloat()),
+                    end = Offset(cx + (outer * cos(ang)).toFloat(), cy + (outer * sin(ang)).toFloat()),
+                    strokeWidth = if (isQuarter) (r * 0.065f).coerceAtLeast(1.6.dp.toPx()) else (r * 0.042f).coerceAtLeast(1.1.dp.toPx()),
+                    cap = StrokeCap.Round
+                )
+            } else if (r > 18.dp.toPx()) {
+                drawLine(
+                    color = Color(0x66F3DC8B),
+                    start = Offset(cx + (r * 0.82f * cos(ang)).toFloat(), cy + (r * 0.82f * sin(ang)).toFloat()),
+                    end = Offset(cx + (r * 0.86f * cos(ang)).toFloat(), cy + (r * 0.86f * sin(ang)).toFloat()),
+                    strokeWidth = 0.6.dp.toPx()
+                )
+            }
         }
 
         val cal = Calendar.getInstance().apply { timeInMillis = timeMs }
@@ -137,28 +177,44 @@ fun SakinaAnalogClockDial(
         val minAng = (min * 6.0 - 90.0) * PI / 180.0
         val secAng = (sec * 6.0 - 90.0) * PI / 180.0
 
+        // 4. Dauphine Gold Hour Hand
         drawLine(
-            color = theme.accentBright,
-            start = Offset(cx, cy),
+            brush = Sakina3DGoldBevelBrush,
+            start = Offset(cx - (r * 0.12f * cos(hrAng)).toFloat(), cy - (r * 0.12f * sin(hrAng)).toFloat()),
             end = Offset(cx + (r * 0.48f * cos(hrAng)).toFloat(), cy + (r * 0.48f * sin(hrAng)).toFloat()),
-            strokeWidth = 2.2.dp.toPx(),
+            strokeWidth = (r * 0.095f).coerceAtLeast(2.dp.toPx()),
             cap = StrokeCap.Round
         )
+
+        // 5. Luminous Ivory Minute Hand
         drawLine(
             color = SakinaBrandColors.LuminousIvory,
-            start = Offset(cx, cy),
+            start = Offset(cx - (r * 0.14f * cos(minAng)).toFloat(), cy - (r * 0.14f * sin(minAng)).toFloat()),
             end = Offset(cx + (r * 0.68f * cos(minAng)).toFloat(), cy + (r * 0.68f * sin(minAng)).toFloat()),
-            strokeWidth = 1.5.dp.toPx(),
+            strokeWidth = (r * 0.065f).coerceAtLeast(1.4.dp.toPx()),
             cap = StrokeCap.Round
         )
+
+        // 6. Sweeping Gold Second Hand with Counterweight
         drawLine(
-            color = theme.accentGold,
-            start = Offset(cx, cy),
-            end = Offset(cx + (r * 0.76f * cos(secAng)).toFloat(), cy + (r * 0.76f * sin(secAng)).toFloat()),
-            strokeWidth = 1.dp.toPx(),
+            color = theme.accentBright,
+            start = Offset(cx - (r * 0.22f * cos(secAng)).toFloat(), cy - (r * 0.22f * sin(secAng)).toFloat()),
+            end = Offset(cx + (r * 0.77f * cos(secAng)).toFloat(), cy + (r * 0.77f * sin(secAng)).toFloat()),
+            strokeWidth = (r * 0.028f).coerceAtLeast(0.8.dp.toPx()),
             cap = StrokeCap.Round
         )
-        drawCircle(color = theme.accentBright, radius = 2.4.dp.toPx(), center = Offset(cx, cy))
+
+        // 7. Jewel Center Cap & Sapphire Crystal Highlight
+        drawCircle(brush = Sakina3DGoldBevelBrush, radius = (r * 0.09f).coerceAtLeast(2.2.dp.toPx()), center = Offset(cx, cy))
+        drawCircle(color = theme.bgDeep, radius = (r * 0.038f).coerceAtLeast(1.dp.toPx()), center = Offset(cx, cy))
+
+        drawArc(
+            brush = Brush.linearGradient(listOf(Color(0x28FFFFFF), Color.Transparent)),
+            startAngle = -150f,
+            sweepAngle = 110f,
+            useCenter = false,
+            style = Stroke(width = (r * 0.08f).coerceAtLeast(1.5.dp.toPx()), cap = StrokeCap.Round)
+        )
     }
 }
 

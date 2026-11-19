@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -184,10 +185,12 @@ fun SakinaDuasScreen(onBackToHome: () -> Unit, modifier: Modifier = Modifier) {
                 } ?: s.duasTitle
                 Text(
                     text = titleText,
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = theme.accentBright,
+                    style = TextStyle(
+                        fontFamily = SakinaEditorialFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        brush = SakinaCalligraphyBrush()
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center

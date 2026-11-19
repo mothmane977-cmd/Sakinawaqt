@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -84,10 +85,12 @@ fun SakinaRuqyahScreen(onBackToHome: () -> Unit, modifier: Modifier = Modifier) 
             ) {
                 Text(
                     text = selectedIdx?.let { s.ruqyahCatTitles[it] } ?: s.ruqyahTitle,
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = theme.accentBright,
+                    style = TextStyle(
+                        fontFamily = SakinaEditorialFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        brush = SakinaCalligraphyBrush()
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center

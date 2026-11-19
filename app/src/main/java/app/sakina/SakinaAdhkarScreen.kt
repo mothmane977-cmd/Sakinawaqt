@@ -199,10 +199,12 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
             ) {
                 Text(
                     text = selectedCategoryIndex?.let { s.adhkarCatTitles[it] } ?: s.adhkarTitle,
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.5.sp,
-                    color = theme.accentBright,
+                    style = TextStyle(
+                        fontFamily = SakinaEditorialFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.5.sp,
+                        brush = SakinaCalligraphyBrush()
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
@@ -324,11 +326,11 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                             }
                     )
                     Text(
-                        text = "❖ ${s.asmaTitle}: ${currentAsma.nameAr} ❖",
+                        text = "❖ ${s.asmaTitle} ❖",
                         fontFamily = SakinaNaskhFontFamily,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = Color(0xFF0F3D3E),
+                        fontSize = 11.sp,
+                        color = Color(0xFF6B5224),
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -345,6 +347,15 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                             }
                     )
                 }
+                Text(
+                    text = currentAsma.nameAr,
+                    fontFamily = SakinaNaskhFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.5.sp,
+                    color = Color(0xFF0F3D3E),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (isArOrUr) currentAsma.meaningAr else currentAsma.meaningEn,
@@ -381,19 +392,22 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
 
             SakinaGlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 15.dp,
+                cornerRadius = 16.dp,
                 glowGold = true,
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    // Left/Start: Ergonomic 60.dp Gold-Ringed Tap Counter Medallion (crisp number only, zero clipping!)
                     Box(
                         modifier = Modifier
-                            .size(58.dp)
+                            .size(60.dp)
                             .scale(pulseScale)
+                            .clip(CircleShape)
+                            .background(theme.bgDeep.copy(alpha = 0.7f))
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
@@ -415,10 +429,10 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                                 startAngle = -90f,
                                 sweepAngle = progress * 360f,
                                 useCenter = false,
-                                style = Stroke(width = 3.2.dp.toPx(), cap = StrokeCap.Round)
+                                style = Stroke(width = 3.4.dp.toPx(), cap = StrokeCap.Round)
                             )
                             for (i in 0 until 12) {
-                                val angle = (i * (360.0 / 12) - 90.0) * PI / 180.0
+                                val angle = (i * 30.0 - 90.0) * PI / 180.0
                                 val bx = cx + (r * cos(angle)).toFloat()
                                 val by = cy + (r * sin(angle)).toFloat()
                                 val active = i <= ((count % target) * 12 / target)
@@ -429,30 +443,20 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                                 )
                             }
                         }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "$count".toWesternDigits(),
-                                fontFamily = SakinaNumeralFont,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = theme.accentBright,
-                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                            )
-                            Text(
-                                text = s.tasbihPrompt,
-                                fontFamily = SakinaBodyFont,
-                                fontSize = 6.8.sp,
-                                color = SakinaBrandColors.SoftSilver,
-                                maxLines = 1
-                            )
-                        }
+                        Text(
+                            text = "$count".toWesternDigits(),
+                            fontFamily = SakinaNumeralFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = theme.accentBright,
+                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        )
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
+                    // Right/Main: Spacious Phrase Selector + Prompt/Progress + Reset Button
                     Column(
                         modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -461,16 +465,14 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(28.dp)
+                                    .size(26.dp)
                                     .clip(CircleShape)
                                     .background(Color(0x22FFFFFF))
                                     .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                    .clickable {
-                                        phraseIdx = (phraseIdx - 1 + TASBIH_PHRASES.size) % TASBIH_PHRASES.size
-                                    },
+                                    .clickable { phraseIdx = (phraseIdx - 1 + TASBIH_PHRASES.size) % TASBIH_PHRASES.size },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(18.dp))
+                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(17.dp))
                             }
                             Text(
                                 text = TASBIH_PHRASES[phraseIdx],
@@ -480,53 +482,61 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
                                 color = theme.accentBright,
                                 textAlign = TextAlign.Center,
                                 maxLines = 1,
-                                modifier = Modifier.weight(1f).padding(horizontal = 6.dp)
+                                modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
                             )
                             Box(
                                 modifier = Modifier
-                                    .size(28.dp)
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0x22FFFFFF))
+                                    .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
+                                    .clickable { phraseIdx = (phraseIdx + 1) % TASBIH_PHRASES.size },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(17.dp))
+                            }
+                            Spacer(Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
                                     .clip(CircleShape)
                                     .background(Color(0x22FFFFFF))
                                     .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
                                     .clickable {
-                                        phraseIdx = (phraseIdx + 1) % TASBIH_PHRASES.size
+                                        count = 0
+                                        sp.edit().putInt("tasbih_count", 0).apply()
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Rounded.Refresh, contentDescription = "Reset", tint = theme.accentBright, modifier = Modifier.size(14.dp))
                             }
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
+
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            TASBIH_PHRASES.forEachIndexed { idx, _ ->
-                                val sel = idx == phraseIdx
-                                Box(
-                                    modifier = Modifier
-                                        .size(if (sel) 18.dp else 7.dp, 7.dp)
-                                        .clip(CircleShape)
-                                        .background(if (sel) theme.accentBright else Color(0x44FFFFFF))
-                                        .clickable { phraseIdx = idx }
-                                )
+                            Text(
+                                text = "${s.tasbihPrompt} (${count % target}/$target)".toWesternDigits(),
+                                fontFamily = SakinaBodyFont,
+                                fontSize = 10.sp,
+                                color = SakinaBrandColors.SoftSilver,
+                                maxLines = 1
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                                TASBIH_PHRASES.forEachIndexed { idx, _ ->
+                                    val sel = idx == phraseIdx
+                                    Box(
+                                        modifier = Modifier
+                                            .size(if (sel) 16.dp else 6.dp, 6.dp)
+                                            .clip(CircleShape)
+                                            .background(if (sel) theme.accentBright else Color(0x44FFFFFF))
+                                            .clickable { phraseIdx = idx }
+                                    )
+                                }
                             }
                         }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color(0x22FFFFFF))
-                            .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
-                            .clickable {
-                                count = 0
-                                sp.edit().putInt("tasbih_count", 0).apply()
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = "Reset", tint = theme.accentBright, modifier = Modifier.size(14.dp))
                     }
                 }
             }

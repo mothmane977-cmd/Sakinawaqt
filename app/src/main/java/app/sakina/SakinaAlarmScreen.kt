@@ -7,23 +7,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,15 +54,16 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
     var defaultAdhanMode by remember { mutableIntStateOf(sp.getInt("default_adhan_mode", 0)) }
     var selectedVoice by remember { mutableStateOf(SakinaAdhanAudio.selectedVoice(ctx)) }
     var playingVoiceKey by remember { mutableStateOf<String?>(null) }
+    var showVoiceDialog by remember { mutableStateOf(false) }
 
+    // #5: Single non-scrolling page positioned cleanly below the Mihrab arch (top = 56.dp, bottom = 74.dp)
     Column(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 50.dp, bottom = 78.dp),
-        verticalArrangement = Arrangement.spacedBy(9.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 56.dp, bottom = 74.dp),
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             SakinaBackIconButton(
@@ -77,10 +79,12 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
             ) {
                 Text(
                     text = s.alarmTitle,
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = theme.accentBright,
+                    style = TextStyle(
+                        fontFamily = SakinaEditorialFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        brush = SakinaCalligraphyBrush()
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
@@ -88,92 +92,85 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
             }
         }
 
-        // 1. Adhan Voice Selector with Live Play/Stop Preview (5 uploaded res/raw voices)
-        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), glowGold = true) {
-            Text(
-                text = s.adhanVoiceLabel,
-                fontFamily = SakinaHeadingFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                color = theme.accentBright
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                AdhanVoice.entries.forEach { voice ->
-                    val isSel = voice == selectedVoice
-                    val isPlaying = playingVoiceKey == voice.key
-                    Row(
+        // 1. Compact Adhan Voice Selector Card with Preview + Change Dialog
+        SakinaGlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            glowGold = true,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text(
+                        text = s.adhanVoiceLabel,
+                        fontFamily = SakinaHeadingFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.5.sp,
+                        color = theme.accentBright
+                    )
+                    Text(
+                        text = selectedVoice.localizedTitle(lang),
+                        fontFamily = SakinaBodyFont,
+                        fontSize = 12.sp,
+                        color = SakinaBrandColors.LuminousIvory,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    val isPlaying = playingVoiceKey == selectedVoice.key
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (isSel) theme.accentGold.copy(alpha = 0.24f) else Color(0x18FFFFFF))
-                            .border(
-                                0.8.dp,
-                                if (isSel) Sakina3DGoldBevelBrush else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent)),
-                                RoundedCornerShape(10.dp)
-                            )
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(if (isPlaying) theme.accentGold else Color(0x28FFFFFF))
+                            .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
                             .clickable {
-                                selectedVoice = voice
-                                SakinaAdhanAudio.setSelectedVoice(ctx, voice)
-                            }
-                            .padding(horizontal = 10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                                if (isPlaying) {
+                                    SakinaAdhanAudio.stop()
+                                    playingVoiceKey = null
+                                } else {
+                                    playingVoiceKey = selectedVoice.key
+                                    SakinaAdhanAudio.startPreview(ctx, selectedVoice) { playingVoiceKey = null }
+                                }
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (isSel) "✓ " else "• ",
-                                fontFamily = SakinaNumeralFont,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = if (isSel) theme.accentBright else SakinaBrandColors.SoftSilver
-                            )
-                            Text(
-                                text = voice.localizedTitle(lang),
-                                fontFamily = SakinaBodyFont,
-                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 12.sp,
-                                color = if (isSel) theme.accentBright else SakinaBrandColors.LuminousIvory,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(26.dp)
-                                .clip(CircleShape)
-                                .background(if (isPlaying) theme.accentGold else Color(0x28FFFFFF))
-                                .border(0.7.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                .clickable {
-                                    if (isPlaying) {
-                                        SakinaAdhanAudio.stop()
-                                        playingVoiceKey = null
-                                    } else {
-                                        selectedVoice = voice
-                                        SakinaAdhanAudio.setSelectedVoice(ctx, voice)
-                                        playingVoiceKey = voice.key
-                                        SakinaAdhanAudio.startPreview(ctx, voice) {
-                                            playingVoiceKey = null
-                                        }
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-                                contentDescription = null,
-                                tint = if (isPlaying) theme.bgDeep else theme.accentBright,
-                                modifier = Modifier.size(15.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                            contentDescription = null,
+                            tint = if (isPlaying) theme.bgDeep else theme.accentBright,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Brush.verticalGradient(listOf(theme.accentBright, theme.accentGold)))
+                            .clickable { showVoiceDialog = true }
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = if (lang == SakinaLang.AR || lang == SakinaLang.UR) "تغيير" else "Change",
+                            fontFamily = SakinaHeadingFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = theme.bgDeep
+                        )
                     }
                 }
             }
         }
 
         // 2. Suhoor & Qiyam Alarm
-        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), glowGold = suhoorEnabled) {
+        SakinaGlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            glowGold = suhoorEnabled,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -184,7 +181,7 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                         text = s.suhoorTitle,
                         fontFamily = SakinaHeadingFont,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
+                        fontSize = 13.5.sp,
                         color = theme.accentBright,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -206,14 +203,14 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                     }
                 )
             }
-            Spacer(modifier = Modifier.height(7.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(20, 30, 40, 60).forEach { mins ->
                     val sel = suhoorMinutesBeforeFajr == mins
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(28.dp)
+                            .height(27.dp)
                             .clip(RoundedCornerShape(9.dp))
                             .background(if (sel) theme.accentGold else Color(0x22FFFFFF))
                             .clickable {
@@ -236,12 +233,15 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
         }
 
         // 3. Volume & Fajr Fade
-        SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
+        SakinaGlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp)
+        ) {
             Text(
                 text = "${s.volumeLabel}: ${(adhanVolume * 100).roundToInt()}%".toWesternDigits(),
                 fontFamily = SakinaHeadingFont,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.5.sp,
+                fontSize = 13.sp,
                 color = theme.accentBright,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -256,7 +256,8 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                     thumbColor = theme.accentBright,
                     activeTrackColor = theme.accentGold,
                     inactiveTrackColor = Color(0x33FFFFFF)
-                )
+                ),
+                modifier = Modifier.height(32.dp)
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -283,12 +284,15 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
         }
 
         // 4. Default Sound Mode
-        SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
+        SakinaGlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp)
+        ) {
             Text(
                 text = s.defaultSoundLabel,
                 fontFamily = SakinaHeadingFont,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.5.sp,
+                fontSize = 13.sp,
                 color = theme.accentBright,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -300,7 +304,7 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(30.dp)
+                            .height(29.dp)
                             .clip(RoundedCornerShape(9.dp))
                             .background(if (sel) theme.accentGold else Color(0x22FFFFFF))
                             .clickable {
@@ -333,10 +337,10 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(42.dp)
-                .clip(RoundedCornerShape(21.dp))
+                .height(40.dp)
+                .clip(RoundedCornerShape(20.dp))
                 .background(Brush.verticalGradient(listOf(theme.accentBright, theme.accentGold)))
-                .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(21.dp))
+                .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(20.dp))
                 .clickable {
                     AlarmScheduler.scheduleTest(ctx)
                     Toast.makeText(ctx, s.testAlarmScheduled.toWesternDigits(), Toast.LENGTH_SHORT).show()
@@ -353,5 +357,82 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                 overflow = TextOverflow.Ellipsis
             )
         }
+    }
+
+    if (showVoiceDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                SakinaAdhanAudio.stop()
+                playingVoiceKey = null
+                showVoiceDialog = false
+            },
+            containerColor = theme.bgCard,
+            title = { Text(s.adhanVoiceLabel, fontFamily = SakinaHeadingFont, color = theme.accentBright) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AdhanVoice.entries.forEach { voice ->
+                        val isSel = voice == selectedVoice
+                        val isPlaying = playingVoiceKey == voice.key
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSel) theme.accentGold.copy(alpha = 0.25f) else Color(0x22FFFFFF))
+                                .border(0.8.dp, if (isSel) Sakina3DGoldBevelBrush else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent)), RoundedCornerShape(12.dp))
+                                .clickable {
+                                    selectedVoice = voice
+                                    SakinaAdhanAudio.setSelectedVoice(ctx, voice)
+                                }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = (if (isSel) "✓ " else "• ") + voice.localizedTitle(lang),
+                                fontFamily = SakinaBodyFont,
+                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 12.5.sp,
+                                color = if (isSel) theme.accentBright else SakinaBrandColors.LuminousIvory,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isPlaying) theme.accentGold else Color(0x28FFFFFF))
+                                    .clickable {
+                                        if (isPlaying) {
+                                            SakinaAdhanAudio.stop()
+                                            playingVoiceKey = null
+                                        } else {
+                                            selectedVoice = voice
+                                            SakinaAdhanAudio.setSelectedVoice(ctx, voice)
+                                            playingVoiceKey = voice.key
+                                            SakinaAdhanAudio.startPreview(ctx, voice) { playingVoiceKey = null }
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isPlaying) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                                    contentDescription = null,
+                                    tint = if (isPlaying) theme.bgDeep else theme.accentBright,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    SakinaAdhanAudio.stop()
+                    playingVoiceKey = null
+                    showVoiceDialog = false
+                }) { Text("×", color = theme.accentBright, fontSize = 18.sp) }
+            }
+        )
     }
 }

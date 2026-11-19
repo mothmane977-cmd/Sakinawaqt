@@ -44,7 +44,7 @@ object SakinaLiveNotifier {
         } catch (_: Exception) {}
     }
 
-    private fun renderBorderlessBanner(
+    private fun renderFeatheredBanner(
         ctx: Context,
         placeAndDate: String,
         nextLine: String,
@@ -52,10 +52,10 @@ object SakinaLiveNotifier {
     ): Bitmap {
         val w = 1080
         val h = 360
-        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(out)
+        val raw = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(raw)
 
-        // 1. Full-bleed edge-to-edge high-res photo with NO borders and NO frames (#1)
+        // 1. Full-bleed high-res photo
         try {
             val src = BitmapFactory.decodeResource(ctx.resources, R.drawable.bg_header_mosque)
             if (src != null) {
@@ -74,7 +74,7 @@ object SakinaLiveNotifier {
             }
         } catch (_: Exception) {}
 
-        // 2. Smooth translucent navy vignette (no border lines)
+        // 2. Deep translucent overlay
         val overlayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = LinearGradient(
                 0f, 0f, w.toFloat(), h.toFloat(),
@@ -85,30 +85,17 @@ object SakinaLiveNotifier {
         }
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), overlayPaint)
 
-        // 3. Mosque Dome & Minaret icon + small ultra-crisp "سَكِينة" right underneath it (#1)
+        // 3. Mosque Dome & Minaret icon + small crisp "سكينة" underneath
         try {
             val iconBmp = BitmapFactory.decodeResource(ctx.resources, R.drawable.ic_stat_sakina)
             if (iconBmp != null) {
                 val iconSize = 54
-                val iconX = w - 96f
-                val iconY = 22f
+                val iconX = w - 110f
+                val iconY = 28f
                 val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
                     colorFilter = PorterDuffColorFilter(0xFFF3DC8B.toInt(), PorterDuff.Mode.SRC_IN)
                 }
-                canvas.drawBitmap(
-                    iconBmp,
-                    null,
-                    RectF(iconX, iconY, iconX + iconSize, iconY + iconSize),
-                    iconPaint
-                )
-                val brandPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = 0xFFFFFFFF.toInt()
-                    textSize = 24f
-                    textAlign = Paint.Align.CENTER
-                    typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
-                    setShadowLayer(5f, 0f, 2f, 0xFF000000.toInt())
-                }
-                canvas.drawText("سَكِينة", iconX + iconSize / 2f, iconY + iconSize + 24f, brandPaint)
+                canvas.drawBitmap(iconBmp, null, RectF(iconX, iconY, iconX + iconSize, iconY + iconSize), iconPaint)
             }
         } catch (_: Exception) {}
 
@@ -135,9 +122,28 @@ object SakinaLiveNotifier {
             setShadowLayer(6f, 0f, 2f, 0xDD000000.toInt())
         }
 
-        canvas.drawText(placeAndDate, w / 2f - 28f, 84f, datePaint)
-        canvas.drawText(nextLine, w / 2f, 192f, mainPaint)
-        canvas.drawText(prevLine, w / 2f, 286f, subPaint)
+        canvas.drawText(placeAndDate, w / 2f - 28f, 88f, datePaint)
+        canvas.drawText(nextLine, w / 2f, 194f, mainPaint)
+        canvas.drawText(prevLine, w / 2f, 282f, subPaint)
+
+        // 5. Soft Radial/Edge Feathering Mask so all 4 edges dissolve seamlessly (#2)
+        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val outCanvas = Canvas(out)
+        outCanvas.drawBitmap(raw, 0f, 0f, null)
+
+        val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+            shader = RadialGradient(
+                w / 2f, h / 2f, w * 0.56f,
+                intArrayOf(0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt(), 0x66FFFFFF.toInt(), 0x00FFFFFF),
+                floatArrayOf(0f, 0.68f, 0.88f, 1f),
+                Shader.TileMode.CLAMP
+            )
+        }
+        outCanvas.save()
+        outCanvas.scale(1.0f, (h.toFloat() / w.toFloat()) * 1.45f, w / 2f, h / 2f)
+        outCanvas.drawRect(-w.toFloat(), -h.toFloat(), w * 2f, h * 2f, maskPaint)
+        outCanvas.restore()
 
         return out
     }
@@ -152,7 +158,7 @@ object SakinaLiveNotifier {
                     "شريط مواقيت الصلاة الحي",
                     NotificationManager.IMPORTANCE_LOW
                 ).apply {
-                    description = "إشعار دائم يعرض صورة مواقيت الصلاة"
+                    description = "إشعار دائم يعرض التاريخ بالتقويمين والصلاة القادمة"
                     setShowBadge(false)
                     lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 }
@@ -195,7 +201,7 @@ object SakinaLiveNotifier {
             val nextLine = "الصلاة القادمة: $nextName (${hm.format(nextDate)}) · بقي $remStr".toWesternDigits()
             val prevLine = "الصلاة الفائتة: $prevName · مضى عليها $elapStr".toWesternDigits()
 
-            val bannerBitmap = renderBorderlessBanner(ctx, placeAndDate, nextLine, prevLine)
+            val bannerBitmap = renderFeatheredBanner(ctx, placeAndDate, nextLine, prevLine)
 
             val openIntent = Intent(ctx, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -211,18 +217,18 @@ object SakinaLiveNotifier {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // Image-only BigPictureStyle with minimal empty header/summary so the borderless image takes center stage (#1)
+            // #2: Show Hijri + Gregorian date & Next Prayer as crisp notification text + feathered banner image!
             val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_stat_sakina)
-                .setContentTitle(" ")
-                .setContentText(" ")
+                .setContentTitle(placeAndDate)
+                .setContentText(nextLine)
                 .setLargeIcon(bannerBitmap)
                 .setStyle(
                     NotificationCompat.BigPictureStyle()
                         .bigPicture(bannerBitmap)
                         .bigLargeIcon(null as Bitmap?)
-                        .setBigContentTitle(" ")
-                        .setSummaryText(" ")
+                        .setBigContentTitle(placeAndDate)
+                        .setSummaryText(nextLine)
                 )
                 .setOngoing(true)
                 .setAutoCancel(false)

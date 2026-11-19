@@ -147,13 +147,19 @@ private fun surahForMushafPage(pageNum: Int): Int {
     return 1
 }
 
+private val TRAILING_AYAH_NUM_REGEX = Regex("\\s*(?:\\([0-9٠-٩]+\\)|﴿[0-9٠-٩]+﴾|\\[[0-9٠-٩]+\\])\\s*$")
+
+private fun cleanAyahText(raw: String): String =
+    raw.replace(TRAILING_AYAH_NUM_REGEX, "").trim()
+
 private fun extractAyahText(arr: JSONArray, index: Int): String {
     val item = arr.opt(index)
-    return when (item) {
+    val raw = when (item) {
         is String -> item
         is JSONObject -> item.optString("text", item.optString("ayah", ""))
         else -> arr.optString(index, "")
     }
+    return cleanAyahText(raw)
 }
 
 private fun openQuranJsonText(context: Context, riwaya: QuranRiwaya): String? {
@@ -206,7 +212,7 @@ private fun loadMushafAsset(context: Context, riwaya: QuranRiwaya): List<SurahEn
                     for (i in 0 until verses.length()) {
                         val v = verses.getJSONObject(i)
                         val ch = v.optInt("chapter", 0)
-                        if (ch in 1..114) byChapter[ch].add(v.optString("text", ""))
+                        if (ch in 1..114) byChapter[ch].add(cleanAyahText(v.optString("text", "")))
                     }
                     (1..114).map { num ->
                         val list = byChapter[num]
@@ -370,10 +376,12 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
             SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)) {
                 Text(
                     text = s.quranTitle,
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.5.sp,
-                    color = theme.accentBright,
+                    style = TextStyle(
+                        fontFamily = SakinaEditorialFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.5.sp,
+                        brush = SakinaCalligraphyBrush()
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center

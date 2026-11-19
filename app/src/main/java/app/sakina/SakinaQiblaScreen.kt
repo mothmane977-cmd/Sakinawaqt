@@ -1,6 +1,7 @@
 package app.sakina
 
 import android.content.Context
+import android.location.Geocoder
 import android.hardware.GeomagneticField
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -13,10 +14,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,10 +68,12 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
     val theme = LocalSakinaTheme.current
     val s = LocalSakinaStrings.current
     val lang = LocalSakinaLang.current
-    val co = remember { Place.coords(ctx) }
+    var locTick by remember { mutableIntStateOf(0) }
+    var showLocDialog by remember { mutableStateOf(false) }
+    val co = remember(locTick) { Place.coords(ctx) }
     val lat = co.latitude
     val lon = co.longitude
-    val placeName = remember(lang) { localizeCityName(Place.name(ctx), lang) }
+    val placeName = remember(lang, locTick) { localizeCityName(Place.name(ctx), lang) }
     val qiblaBearing = remember(lat, lon) { calculateGreatCircleQibla(lat, lon) }
     val distanceKm = remember(lat, lon) { calculateHaversineDistanceKm(lat, lon) }
 
@@ -202,14 +208,17 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
     ) {
         // 1. Title Cartouche centered cleanly in the open space between Mihrab arch & Compass dial (#7)
         SakinaOrnamentCartouche(
+            modifier = Modifier.clickable { showLocDialog = true },
             contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)
         ) {
             Text(
-                text = "${s.qiblaTitle} · $placeName",
-                fontFamily = SakinaEditorialFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.5.sp,
-                color = theme.accentBright,
+                text = "${s.qiblaTitle} · $placeName ↻",
+                style = TextStyle(
+                    fontFamily = SakinaEditorialFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    brush = SakinaCalligraphyBrush()
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
@@ -310,17 +319,17 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
         }
 
         SakinaOrnamentCartouche(
-            contentPadding = PaddingValues(horizontal = 36.dp, vertical = 9.dp)
+            contentPadding = PaddingValues(horizontal = 40.dp, vertical = 9.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "${s.qiblaTargetLabel}: $qiblaDeg° · ${s.yourHeadingLabel}: $headingDeg° ($cardinal)".toWesternDigits(),
+                    text = "${s.qiblaTargetLabel} $qiblaDeg° · ${s.yourHeadingLabel} $headingDeg° ($cardinal)".toWesternDigits(),
                     fontFamily = SakinaNumeralFont,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.5.sp,
+                    fontSize = 11.8.sp,
                     lineHeight = 16.sp,
                     color = if (isAligned) SakinaBrandColors.StableEmerald else theme.accentBright,
                     textAlign = TextAlign.Center,
@@ -344,8 +353,32 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             }
         }
 
-        // 4. Bottom Status Pills
+        // 4. Bottom Status Pills + Manual Location Update (#6)
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(30.dp)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(theme.bgCard.copy(alpha = 0.90f))
+                    .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(15.dp))
+                    .clickable { showLocDialog = true }
+                    .padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(painter = painterResource(id = R.drawable.ic_location), contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = if (lang == SakinaLang.AR || lang == SakinaLang.UR) "تحديث الموقع ($placeName)" else "Update Location ($placeName)",
+                    fontFamily = SakinaBodyFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    color = theme.accentBright,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -419,5 +452,74 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 )
             }
         }
+    }
+    if (showLocDialog) {
+        val cities = listOf(
+            Triple("فرندة", 35.06, 1.04),
+            Triple("الجزائر العاصمة", 36.75, 3.05),
+            Triple("وهران", 35.70, -0.63),
+            Triple("قسنطينة", 36.36, 6.61),
+            Triple("تيارت", 35.37, 1.32),
+            Triple("مكة المكرمة", 21.42, 39.82)
+        )
+        AlertDialog(
+            onDismissRequest = { showLocDialog = false },
+            containerColor = theme.bgCard,
+            title = { Text(s.locationLabel, fontFamily = SakinaHeadingFont, color = theme.accentBright) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(theme.accentGold.copy(alpha = 0.25f))
+                            .clickable {
+                                val loc = Place.fromDevice(ctx)
+                                if (loc != null) {
+                                    var resolved = "GPS"
+                                    try {
+                                        @Suppress("DEPRECATION")
+                                        val list = Geocoder(ctx, lang.locale).getFromLocation(loc.latitude, loc.longitude, 1)
+                                        val city = list?.firstOrNull()?.locality ?: list?.firstOrNull()?.subAdminArea
+                                        if (!city.isNullOrBlank()) resolved = city
+                                    } catch (_: Exception) {}
+                                    Place.set(ctx, loc.latitude, loc.longitude, resolved)
+                                    AlarmScheduler.scheduleNext(ctx)
+                                    SakinaLiveNotifier.update(ctx)
+                                    locTick++
+                                }
+                                showLocDialog = false
+                            }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(s.autoGps, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, color = theme.accentBright)
+                    }
+                    cities.forEach { (cName, cLat, cLon) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0x22FFFFFF))
+                                .clickable {
+                                    Place.set(ctx, cLat, cLon, cName)
+                                    AlarmScheduler.scheduleNext(ctx)
+                                    SakinaLiveNotifier.update(ctx)
+                                    locTick++
+                                    showLocDialog = false
+                                }
+                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(localizeCityName(cName, lang), fontFamily = SakinaBodyFont, color = SakinaBrandColors.LuminousIvory)
+                            Text("$cLat, $cLon".toWesternDigits(), fontFamily = SakinaNumeralFont, fontSize = 10.5.sp, color = theme.accentBright)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLocDialog = false }) { Text("×", color = theme.accentBright, fontSize = 18.sp) }
+            }
+        )
     }
 }

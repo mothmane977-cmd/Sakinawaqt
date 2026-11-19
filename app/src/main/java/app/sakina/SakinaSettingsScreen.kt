@@ -1,6 +1,7 @@
 package app.sakina
 
 import android.content.Context
+import android.location.Geocoder
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
@@ -24,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,6 +59,8 @@ fun SakinaSettingsScreen(
     val lang = LocalSakinaLang.current
 
     var refreshTick by remember { mutableIntStateOf(0) }
+    val sp = remember { ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE) }
+    var autoLocation by remember { mutableStateOf(sp.getBoolean("auto_gps_location", true)) }
     var hijriOff by remember { mutableIntStateOf(Prefs.hijriOffset(ctx)) }
     var showCityPicker by remember { mutableStateOf(false) }
     var showVoicePicker by remember { mutableStateOf(false) }
@@ -81,10 +85,12 @@ fun SakinaSettingsScreen(
             ) {
                 Text(
                     text = s.settingsTitle,
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = theme.accentBright,
+                    style = TextStyle(
+                        fontFamily = SakinaEditorialFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        brush = SakinaCalligraphyBrush()
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
@@ -158,22 +164,51 @@ fun SakinaSettingsScreen(
             }
         }
 
-        // 2. Location: Auto GPS or Manual City (#19: larger 24.dp location icon)
+        // 2. Location: Auto GPS on change + Manual City (#7)
         SakinaGlassCard(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painter = painterResource(id = R.drawable.ic_location), contentDescription = null, modifier = Modifier.size(24.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "${s.locationLabel}: $placeName",
-                    fontFamily = SakinaHeadingFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.5.sp,
-                    color = theme.accentBright,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Image(painter = painterResource(id = R.drawable.ic_location), contentDescription = null, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(7.dp))
+                    Text(
+                        text = "${s.locationLabel}: $placeName",
+                        fontFamily = SakinaHeadingFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = theme.accentBright,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                SakinaGoldSwitch(
+                    checked = autoLocation,
+                    onCheckedChange = {
+                        autoLocation = it
+                        sp.edit().putBoolean("auto_gps_location", it).apply()
+                        if (it) {
+                            val loc = Place.fromDevice(ctx)
+                            if (loc != null) {
+                                var resolved = "GPS"
+                                try {
+                                    @Suppress("DEPRECATION")
+                                    val list = Geocoder(ctx, lang.locale).getFromLocation(loc.latitude, loc.longitude, 1)
+                                    val city = list?.firstOrNull()?.locality ?: list?.firstOrNull()?.subAdminArea
+                                    if (!city.isNullOrBlank()) resolved = city
+                                } catch (_: Exception) {}
+                                Place.set(ctx, loc.latitude, loc.longitude, resolved)
+                                AlarmScheduler.scheduleNext(ctx)
+                                SakinaLiveNotifier.update(ctx)
+                                refreshTick++
+                            }
+                        }
+                    }
                 )
             }
             Spacer(Modifier.height(8.dp))

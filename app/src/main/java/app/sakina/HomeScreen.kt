@@ -1,6 +1,8 @@
 package app.sakina
 
 import android.content.Context
+import android.location.Geocoder
+import kotlin.math.abs
 import android.icu.util.IslamicCalendar
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
@@ -625,9 +627,30 @@ private fun SakinaHomeContent(ctx: Context) {
     var dayOffset by remember { mutableIntStateOf(0) }
     var modeTick by remember { mutableIntStateOf(0) }
     var analogPrimary by remember { mutableStateOf(false) }
+    var showCurrentTimeInCartouche by remember { mutableStateOf(false) }
+    var locRefreshTick by remember { mutableIntStateOf(0) }
 
-    // Watchdog loop keeps Live Notification persistent every 15 seconds as well (#13)
+    // Auto-update Location via GPS when enabled in Settings (#7) + Live Notification Watchdog
     LaunchedEffect(Unit) {
+        val spPrefs = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        if (spPrefs.getBoolean("auto_gps_location", true)) {
+            val loc = Place.fromDevice(ctx)
+            if (loc != null) {
+                val cur = Place.coords(ctx)
+                if (abs(loc.latitude - cur.latitude) > 0.03 || abs(loc.longitude - cur.longitude) > 0.03) {
+                    var resolved = Place.name(ctx)
+                    try {
+                        @Suppress("DEPRECATION")
+                        val list = Geocoder(ctx, lang.locale).getFromLocation(loc.latitude, loc.longitude, 1)
+                        val city = list?.firstOrNull()?.locality ?: list?.firstOrNull()?.subAdminArea
+                        if (!city.isNullOrBlank()) resolved = city
+                    } catch (_: Exception) {}
+                    Place.set(ctx, loc.latitude, loc.longitude, resolved)
+                    AlarmScheduler.scheduleNext(ctx)
+                    locRefreshTick++
+                }
+            }
+        }
         SakinaLiveNotifier.update(ctx)
         var secTick = 0
         while (true) {
@@ -682,7 +705,7 @@ private fun SakinaHomeContent(ctx: Context) {
         val h = "${ic.get(IslamicCalendar.DAY_OF_MONTH)} $hMonth ${ic.get(IslamicCalendar.YEAR)}".toWesternDigits()
         "$g · $h"
     }
-    val localizedCity = remember(lang) { localizeCityName(Place.name(ctx), lang) }
+    val localizedCity = remember(lang, locRefreshTick) { localizeCityName(Place.name(ctx), lang) }
 
     Column(
         modifier = Modifier
@@ -784,15 +807,17 @@ private fun SakinaHomeContent(ctx: Context) {
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
+                val hmsFmt = remember { SimpleDateFormat("HH:mm:ss", Locale.US) }
                 if (!analogPrimary) {
                     SakinaOrnamentCartouche(
+                        modifier = Modifier.clickable { showCurrentTimeInCartouche = !showCurrentTimeInCartouche },
                         contentPadding = PaddingValues(horizontal = 38.dp, vertical = 9.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Image(painter = painterResource(id = R.drawable.ic_fajr), contentDescription = null, modifier = Modifier.size(22.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = countdownText,
+                                text = if (showCurrentTimeInCartouche) hmsFmt.format(Date(nowMs)).toWesternDigits() else countdownText,
                                 fontFamily = SakinaNumeralFont,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 20.sp,
@@ -808,7 +833,7 @@ private fun SakinaHomeContent(ctx: Context) {
                 } else {
                     SakinaAnalogClockDial(
                         timeMs = nowMs,
-                        size = 76.dp
+                        size = 84.dp
                     )
                 }
 
