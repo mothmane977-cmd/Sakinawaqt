@@ -1,6 +1,13 @@
 package app.sakina
 
+import android.app.AlarmManager
+import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import android.location.Geocoder
 import kotlin.math.abs
 import android.icu.util.IslamicCalendar
@@ -32,7 +39,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -45,7 +54,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-private enum class ExtraSection { NONE, DUAS, RUQYAH, ALARM, SETTINGS }
+private enum class ExtraSection { NONE, ADHKAR, CALENDAR, DUAS, RUQYAH, ALARM, SETTINGS }
 
 private data class BrandPrayerRow(
     val keyNameAr: String,
@@ -221,31 +230,44 @@ fun HomeScreen(ctx: Context) {
     }
     var currentTab by remember { mutableStateOf(SakinaNavTab.HOME) }
     var extraSection by remember { mutableStateOf(ExtraSection.NONE) }
-    var openedFromDrawer by remember { mutableStateOf(false) }
+    var openedFromRightDrawer by remember { mutableStateOf(false) }
+    var openedFromLeftDrawer by remember { mutableStateOf(false) }
     var hadithTitle by remember { mutableStateOf<String?>(null) }
     var hadithBody by remember { mutableStateOf<String?>(null) }
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var showDiagnostics by remember { mutableStateOf(false) }
+    val rightDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val leftDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
+    BackHandler(enabled = rightDrawerState.isOpen || leftDrawerState.isOpen) {
+        scope.launch {
+            rightDrawerState.close()
+            leftDrawerState.close()
+        }
+    }
 
     fun returnFromExtra() {
         extraSection = ExtraSection.NONE
-        if (openedFromDrawer) {
-            openedFromDrawer = false
-            scope.launch { drawerState.open() }
+        when {
+            openedFromRightDrawer -> {
+                openedFromRightDrawer = false
+                scope.launch { rightDrawerState.open() }
+            }
+            openedFromLeftDrawer -> {
+                openedFromLeftDrawer = false
+                scope.launch { leftDrawerState.open() }
+            }
         }
     }
 
     val headerImg = when (extraSection) {
-        ExtraSection.DUAS, ExtraSection.RUQYAH -> R.drawable.bg_header_adhkar
+        ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH -> R.drawable.bg_header_adhkar
+        ExtraSection.CALENDAR -> R.drawable.bg_header_madinah
         ExtraSection.ALARM, ExtraSection.SETTINGS -> R.drawable.bg_header_mosque
         ExtraSection.NONE -> when (currentTab) {
             SakinaNavTab.HOME -> R.drawable.bg_header_mosque
             SakinaNavTab.QIBLA -> R.drawable.bg_header_kaaba
             SakinaNavTab.QURAN -> R.drawable.bg_header_quran
-            SakinaNavTab.ADHKAR -> R.drawable.bg_header_adhkar
-            SakinaNavTab.CALENDAR -> R.drawable.bg_header_madinah
         }
     }
 
@@ -258,334 +280,364 @@ fun HomeScreen(ctx: Context) {
         val s = LocalSakinaStrings.current
         val isArOrUr = currentLang == SakinaLang.AR || currentLang == SakinaLang.UR
 
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ModalDrawerSheet(drawerContainerColor = currentTheme.bgDeep, modifier = Modifier.width(296.dp)) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp, vertical = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(7.dp)
-                    ) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            SakinaTitle3D(text = s.appName, fontSize = 21.sp, modifier = Modifier.weight(1f))
-                            SakinaBackIconButton(onClick = { scope.launch { drawerState.close() } })
-                        }
-                        Spacer(Modifier.height(2.dp))
+        val appDir = if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
 
-                        SakinaDrawerPillItem(R.drawable.ic_duas, s.duasTitle) {
-                            scope.launch { drawerState.close() }; openedFromDrawer = true; extraSection = ExtraSection.DUAS
-                        }
-                        SakinaDrawerPillItem(R.drawable.ic_ruqyah, s.ruqyahTitle) {
-                            scope.launch { drawerState.close() }; openedFromDrawer = true; extraSection = ExtraSection.RUQYAH
-                        }
-                        SakinaDrawerPillItem(R.drawable.ic_alarm, s.alarmTitle) {
-                            scope.launch { drawerState.close() }; openedFromDrawer = true; extraSection = ExtraSection.ALARM
-                        }
-
-                        // #10: Sunan & Rawatib specifying Qabliyyah (Before) & Ba'diyyah (After) for every prayer
-                        SakinaDrawerPillItem(R.drawable.ic_sunan, s.sunanTitle) {
-                            scope.launch { drawerState.close() }
-                            hadithTitle = s.sunanTitle
-                            hadithBody = if (isArOrUr) {
-                                """
-                                ❖ تفصيل النوافل القبلية والبعدية لكل صلاة ❖
-
-                                1. صلاة الفجر:
-                                • القبلية: ركعتان مؤكدتان قبل الفريضة (وهما أوكد السنن الرواتب؛ قال ﷺ: «ركعتا الفجر خير من الدنيا وما فيها» رواه مسلم 725).
-                                • البعدية: لا نافلة بعدها حتى تشرق الشمس وترتفع.
-
-                                2. صلاة الظهر:
-                                • القبلية: 4 ركعات مؤكدة قبلها (بتسليمتين).
-                                • البعدية: ركعتان مؤكدتان بعدها (ويُستحب زيادة ركعتين لتكون 4 قبلها و4 بعدها؛ لحديث: «من حافظ على أربع ركعات قبل الظهر وأربع بعدها حرّمه الله على النار» رواه أبو داود والترمذي 428).
-
-                                3. صلاة العصر:
-                                • القبلية: 4 ركعات مستحبة (غير راتبة مؤكدة) قبلها؛ لقوله ﷺ: «رحم الله امرأً صلى قبل العصر أربعاً» (رواه أبو داود 1271 والترمذي 430).
-                                • البعدية: لا نافلة بعد صلاة العصر حتى تغرب الشمس.
-
-                                4. صلاة المغرب:
-                                • القبلية: ركعتان مستحبتان (غير مؤكدة)؛ لقوله ﷺ: «صلوا قبل صلاة المغرب» ثلاثاً (رواه البخاري 1183).
-                                • البعدية: ركعتان مؤكدتان بعدها.
-
-                                5. صلاة العشاء:
-                                • القبلية: ركعتان مستحبتان (غير مؤكدة)؛ لحديث: «بين كل أذانين صلاة» (متفق عليه).
-                                • البعدية: ركعتان مؤكدتان بعدها، ثم صلاة الوتر.
-
-                                ❖ الحديث الجامع للرواتب المؤكدة (12 ركعة) ❖
-                                عن أم حبيبة رضي الله عنها قالت: سمعت رسول الله ﷺ يقول: «ما من عبد مسلم يصلي لله كل يوم ثنتي عشرة ركعة تطوعاً غير الفريضة إلا بنى الله له بيتاً في الجنة» (رواه مسلم في صحيحه 728).
-                                """.trimIndent().toWesternDigits()
-                            } else {
-                                """
-                                ❖ Complete Qabliyyah (Before) & Ba'diyyah (After) Breakdown ❖
-
-                                1. Fajr Prayer:
-                                • Before (Qabliyyah): 2 confirmed (Mu'akkadah) rak'ahs — the most emphasized of all Sunnah prayers ('Two rak'ahs of Fajr are better than the world and all it contains' — Sahih Muslim 725).
-                                • After (Ba'diyyah): None until after sunrise.
-
-                                2. Dhuhr Prayer:
-                                • Before (Qabliyyah): 4 confirmed rak'ahs (2+2).
-                                • After (Ba'diyyah): 2 confirmed rak'ahs (and 4 after is recommended: 'Whoever maintains 4 before Dhuhr and 4 after, Allah forbids him to the Fire' — Tirmidhi 428).
-
-                                3. Asr Prayer:
-                                • Before (Qabliyyah): 4 recommended (Ghayr Mu'akkadah) rak'ahs ('May Allah have mercy on a person who prays 4 rak'ahs before Asr' — Abu Dawud 1271).
-                                • After (Ba'diyyah): None until after sunset.
-
-                                4. Maghrib Prayer:
-                                • Before (Qabliyyah): 2 recommended rak'ahs ('Pray before Maghrib' — Sahih al-Bukhari 1183).
-                                • After (Ba'diyyah): 2 confirmed rak'ahs.
-
-                                5. Isha Prayer:
-                                • Before (Qabliyyah): 2 recommended rak'ahs ('Between every two calls is a prayer' — Bukhari & Muslim).
-                                • After (Ba'diyyah): 2 confirmed rak'ahs, followed by Witr.
-
-                                ❖ Hadith of the 12 Confirmed Rawatib ❖
-                                Umm Habibah narrated that the Messenger of Allah ﷺ said: 'Whoever prays twelve voluntary rak'ahs every day, Allah will build a house for him in Paradise.' (Sahih Muslim 728).
-                                """.trimIndent().toWesternDigits()
-                            }
-                        }
-
-                        // #11: Duha Prayer detailing recommended & prophetic Rak'ah counts
-                        SakinaDrawerPillItem(R.drawable.ic_dhuhr, s.duhaTitle) {
-                            scope.launch { drawerState.close() }
-                            val events = PrayerEngine.events(ctx, 0)
-                            val hm = SimpleDateFormat("HH:mm", Locale.US)
-                            val duhaStart = hm.format(Date(events.first { it.first == 1 }.second.time + 15 * 60_000L))
-                            val duhaEnd = hm.format(Date(events.first { it.first == 2 }.second.time - 10 * 60_000L))
-                            hadithTitle = "${s.duhaTitle} ($duhaStart – $duhaEnd)"
-                            hadithBody = if (isArOrUr) {
-                                """
-                                ❖ وقت صلاة الضحى اليوم: من $duhaStart إلى $duhaEnd ❖
-                                (وأفضل وقتها حين يشتد الضحى؛ لقوله ﷺ: «صلاة الأوابين حين ترمض الفصال» رواه مسلم 748).
-
-                                ❖ عدد ركعات صلاة الضحى المستحبة والمأثورة عن النبي ﷺ ❖
-
-                                1. أقلها (ركعتان):
-                                عن أبي ذر رضي الله عنه عن النبي ﷺ أنه قال: «يصبح على كل سلامى من أحدكم صدقة... ويجزئ من ذلك ركعتان يركعهما من الضحى» (رواه مسلم 720)، وأوصى بها النبي ﷺ أبا هريرة وأبا الدرداء رضي الله عنهما.
-
-                                2. أوسطها والمستحب المواظبة عليه (4 ركعات فصاعداً):
-                                • عن عائشة رضي الله عنها قالت: «كان رسول الله ﷺ يصلي الضحى أربعاً، ويزيد ما شاء الله» (رواه مسلم 719).
-                                • وعن نعيم بن همار رضي الله عنه أن رسول الله ﷺ قال عن الله عز وجل: «ابن آدم، اركع لي من أول النهار أربع ركعات أكفك آخره» (رواه الترمذي 475 وأبو داود 1289 وصححه الألباني).
-
-                                3. أفضلها وأكثر ما ثبت من فعله ﷺ (8 ركعات):
-                                عن أم هانئ بنت أبي طالب رضي الله عنها: «أن النبي ﷺ دخل بيتها يوم فتح مكة فاغتسل وصلى ثماني ركعات سبحة الضحى، يسلم من كل ركعتين» (متفق عليه: البخاري 1176، ومسلم 336).
-                                • وقال جمع من المحققين: لا حدّ لأكثرها لمن شاء الزيادة مثنى مثنى.
-                                """.trimIndent().toWesternDigits()
-                            } else {
-                                """
-                                ❖ Today's Duha Window: $duhaStart – $duhaEnd ❖
-                                (Best performed mid-morning when the sun grows warm — Sahih Muslim 748).
-
-                                ❖ Authentic Rak'ah Counts of Duha from the Prophet ﷺ ❖
-
-                                1. Minimum (2 Rak'ahs):
-                                Abu Dharr narrated that the Prophet ﷺ said: 'Charity is due upon every joint of a person every morning... and two rak'ahs of Duha suffice for that.' (Sahih Muslim 720).
-
-                                2. Recommended Regular Count (4 Rak'ahs or more):
-                                • Aishah narrated: 'The Messenger of Allah ﷺ used to pray four rak'ahs of Duha, and would add whatever Allah willed.' (Sahih Muslim 719).
-                                • Hadith Qudsi: 'O son of Adam, bow for Me four rak'ahs at the start of the day and I will suffice you for the rest of it.' (Tirmidhi 475, Abu Dawud 1289).
-
-                                3. Most Complete Prophetic Practice (8 Rak'ahs, two by two):
-                                Umm Hani' narrated that on the Day of the Conquest of Makkah, the Prophet ﷺ prayed eight rak'ahs of Duha, offering Salam after every two rak'ahs. (Sahih al-Bukhari 1176 & Sahih Muslim 336).
-                                """.trimIndent().toWesternDigits()
-                            }
-                        }
-
-                        // #14: Qiyam al-Layl detailing recommended & prophetic Rak'ah counts
-                        SakinaDrawerPillItem(R.drawable.ic_isha, s.qiyamTitle) {
-                            scope.launch { drawerState.close() }
-                            hadithTitle = s.qiyamTitle
-                            hadithBody = if (isArOrUr) {
-                                """
-                                ❖ عدد ركعات قيام الليل المستحبة والمأثورة عن النبي ﷺ ❖
-
-                                1. هدي النبي ﷺ الغالب والمختار (11 ركعة أو 13 ركعة):
-                                • عن عائشة رضي الله عنها قالت: «ما كان رسول الله ﷺ يزيد في رمضان ولا في غيره على إحدى عشرة ركعة: يصلي أربعاً فلا تسأل عن حسنهن وطولهن، ثم يصلي أربعاً فلا تسأل عن حسنهن وطولهن، ثم يصلي ثلاثاً» (متفق عليه: البخاري 1147 ومسلم 736).
-                                • وثبت عنها وعن ابن عباس رضي الله عنهم في الصحيحين: «كانت صلاة النبي ﷺ من الليل ثلاث عشرة ركعة» (البخاري 1138 ومسلم 737) بإضافة ركعتين خفيفتين في افتتاح القيام.
-
-                                2. صفة صلاة الليل وعدد ركعات الوتر:
-                                • قال رسول الله ﷺ: «صلاة الليل مثنى مثنى، فإذا خشي أحدكم الصبح صلى ركعة واحدة توتر له ما قد صلى» (متفق عليه: البخاري 990 ومسلم 749).
-                                • ويجوز الوتر بركعة واحدة، أو بثلاث ركعات، أو بخمس، أو بسبع، أو بتسع؛ لقوله ﷺ: «الوتر حق على كل مسلم، فمن أحب أن يوتر بخمس فليفعل، ومن أحب أن يوتر بثلاث فليفعل، ومن أحب أن يوتر بواحدة فليفعل» (رواه أبو داود 1422 والنسائي).
-
-                                3. فضل الثلث الأخير من الليل:
-                                عن أبي هريرة رضي الله عنه أن رسول الله ﷺ قال: «ينزل ربنا تبارك وتعالى كل ليلة إلى السماء الدنيا حين يبقى ثلث الليل الآخر يقول: من يدعوني فأستجيب له، من يسألني فأعطيه، من يستغفرني فأغفر له» (متفق عليه: البخاري 1145 ومسلم 758).
-                                """.trimIndent().toWesternDigits()
-                            } else {
-                                """
-                                ❖ Authentic Rak'ah Counts of Qiyam al-Layl from the Prophet ﷺ ❖
-
-                                1. The Prophet's ﷺ Regular Practice (11 or 13 Rak'ahs):
-                                • Aishah narrated: 'The Messenger of Allah ﷺ never exceeded eleven rak'ahs in Ramadan or outside it: he would pray four—do not ask about their beauty and length—then pray four—do not ask about their beauty and length—then pray three.' (Sahih al-Bukhari 1147 & Sahih Muslim 736).
-                                • Ibn Abbas and Aishah also reported 13 rak'ahs when including the 2 light opening rak'ahs (Sahih al-Bukhari 1138 & Sahih Muslim 737).
-
-                                2. Method of Night Prayer & Witr (Two by Two + Odd Witr):
-                                • The Prophet ﷺ said: 'The night prayer is two by two (Mathna Mathna), and if one of you fears the break of dawn, let him pray a single rak'ah to make what he has prayed Witr (odd-numbered).' (Sahih al-Bukhari 990 & Sahih Muslim 749).
-                                • Witr may be prayed as 1, 3, 5, 7, or 9 rak'ahs (Abu Dawud 1422).
-
-                                3. Virtue of the Last Third of the Night:
-                                'Our Lord descends every night to the lowest heaven in the last third of the night, saying: Who calls upon Me that I may answer him? Who asks of Me that I may give him? Who seeks My forgiveness that I may forgive him?' (Sahih al-Bukhari 1145 & Sahih Muslim 758).
-                                """.trimIndent().toWesternDigits()
-                            }
-                        }
-
-                        // #15: Separate Voluntary Fasting Tab (تبويب صيام التطوع)
-                        SakinaDrawerPillItem(R.drawable.ic_calendar, s.fastingTitle) {
-                            scope.launch { drawerState.close() }
-                            hadithTitle = s.fastingTitle
-                            hadithBody = if (isArOrUr) {
-                                """
-                                ❖ ما سُنّ وما يُستحب صيامه من الأيام عن النبي ﷺ ❖
-
-                                1. صيام ستة أيام من شوال:
-                                قال رسول الله ﷺ: «من صام رمضان ثم أتبعه ستاً من شوال كان كصيام الدهر» (رواه مسلم 1164).
-
-                                2. صيام يوم عرفة (9 ذو الحجة لغير الحاج):
-                                قال ﷺ: «صيام يوم عرفة أحتسب على الله أن يكفر السنة التي قبله والسنة التي بعده» (رواه مسلم 1162).
-
-                                3. صيام يوم عاشوراء (10 محرم) مع يوم تاسوعاء (9 محرم):
-                                قال ﷺ عن صيام يوم عاشوراء: «أحتسب على الله أن يكفر السنة التي قبله» (رواه مسلم 1162)، وقال: «لئن بقيت إلى قابل لأصومن التاسع» (رواه مسلم 1134).
-
-                                4. صيام الأيام البيض من كل شهر هجري (13 و 14 و 15):
-                                قال أبو هريرة رضي الله عنه: «أوصاني خليلي ﷺ بثلاث: صوم ثلاثة أيام من كل شهر...» (متفق عليه: البخاري 1981 ومسلم 721)، وقال ﷺ لأبي ذر: «إذا صمت من الشهر ثلاثاً فصم ثلاث عشرة وأربع عشرة وخمس عشرة» (رواه الترمذي 761).
-
-                                5. صيام يومي الإثنين والخميس من كل أسبوع:
-                                سُئل ﷺ عن صوم يوم الإثنين فقال: «ذاك يوم وُلدت فيه، ويوم بُعثت أو أُنزل عليّ فيه» (رواه مسلم 1162)، وقال: «تُعرض الأعمال يوم الإثنين والخميس، فأحب أن يُعرض عملي وأنا صائم» (رواه الترمذي 747).
-
-                                6. الإكثار من الصيام في شهر الله المحرم وشهر شعبان والتسع الأوائل من ذي الحجة:
-                                • قال ﷺ: «أفضل الصيام بعد رمضان شهر الله المحرم» (رواه مسلم 1163).
-                                • وقالت عائشة رضي الله عنها: «ما رأيت رسول الله ﷺ أكثر صياماً منه في شعبان» (متفق عليه: البخاري 1969 ومسلم 1156).
-
-                                7. أفضل الصيام لمن أطاقه (صيام داود عليه السلام):
-                                قال ﷺ: «أحب الصيام إلى الله صيام داود؛ كان يصوم يوماً ويفطر يوماً» (متفق عليه: البخاري 1131 ومسلم 1159).
-                                """.trimIndent().toWesternDigits()
-                            } else {
-                                """
-                                ❖ Prophetic & Recommended Voluntary Fasts from the Sunnah ❖
-
-                                1. Six Days of Shawwal:
-                                'Whoever fasts Ramadan and follows it with six days of Shawwal, it is as if he fasted for a lifetime.' (Sahih Muslim 1164).
-
-                                2. Day of Arafah (9th Dhu al-Hijjah for non-pilgrims):
-                                'Fasting the Day of Arafah expiates the sins of the preceding year and the coming year.' (Sahih Muslim 1162).
-
-                                3. Day of Ashura (10th Muharram) with Tasu'a (9th Muharram):
-                                'Fasting the Day of Ashura expiates the sins of the preceding year.' (Sahih Muslim 1162 & 1134).
-
-                                4. The Three White Days (13th, 14th, and 15th of every Hijri month):
-                                Recommended by the Prophet ﷺ to Abu Hurayrah and Abu Dharr as equal to fasting the whole month (Sahih al-Bukhari 1981 & Tirmidhi 761).
-
-                                5. Mondays and Thursdays Every Week:
-                                'Deeds are presented on Mondays and Thursdays, and I love for my deeds to be presented while I am fasting.' (Sahih Muslim 1162 & Tirmidhi 747).
-
-                                6. Fasting in Muharram, Sha'ban, and the First Nine Days of Dhu al-Hijjah:
-                                'The best fasting after Ramadan is the month of Allah, Muharram.' (Sahih Muslim 1163), and the Prophet ﷺ fasted abundantly in Sha'ban (Bukhari 1969).
-
-                                7. The Fast of Prophet Dawud (Alternate Days):
-                                'The most beloved fasting to Allah is the fasting of Dawud: he used to fast one day and break his fast one day.' (Bukhari 1131 & Muslim 1159).
-                                """.trimIndent().toWesternDigits()
-                            }
-                        }
-
-                        // #15 & #16: Separate Islamic Occasions Tab (تبويب المناسبات الدينية)
-                        SakinaDrawerPillItem(R.drawable.ic_star_ornament, s.occasionsTitle) {
-                            scope.launch { drawerState.close() }
-                            hadithTitle = s.occasionsTitle
-                            hadithBody = buildReligiousOccasionsReport(Prefs.hijriOffset(ctx), isArOrUr)
-                        }
-
-                        SakinaDrawerPillItem(R.drawable.ic_settings, s.settingsTitle) {
-                            scope.launch { drawerState.close() }; openedFromDrawer = true; extraSection = ExtraSection.SETTINGS
-                        }
-                    }
-                }
-            }
-        ) {
-            SakinaBackgroundLayer(headerImageRes = headerImg, showMihrabFrame = true) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    when (extraSection) {
-                        ExtraSection.DUAS -> SakinaDuasScreen(onBackToHome = { returnFromExtra() })
-                        ExtraSection.RUQYAH -> SakinaRuqyahScreen(onBackToHome = { returnFromExtra() })
-                        ExtraSection.ALARM -> SakinaAlarmScreen(ctx = ctx, onBackClick = { returnFromExtra() })
-                        ExtraSection.SETTINGS -> SakinaSettingsScreen(
-                            ctx = ctx,
-                            selectedTheme = currentTheme,
-                            selectedLang = currentLang,
-                            onThemeChange = { t -> currentTheme = t; sp.edit().putInt("theme_index", t.ordinal).apply() },
-                            onLangChange = { l -> currentLang = l; sp.edit().putString("app_lang", l.code).apply() },
-                            onBackClick = { returnFromExtra() }
-                        )
-                        ExtraSection.NONE -> {
-                            Crossfade(targetState = currentTab, label = "sakina5Tabs") { tab ->
-                                when (tab) {
-                                    SakinaNavTab.HOME -> SakinaHomeContent(ctx = ctx)
-                                    SakinaNavTab.QIBLA -> SakinaQiblaScreen(ctx = ctx)
-                                    SakinaNavTab.QURAN -> SakinaQuranScreen(ctx = ctx)
-                                    SakinaNavTab.ADHKAR -> SakinaAdhkarScreen(ctx = ctx)
-                                    SakinaNavTab.CALENDAR -> SakinaCalendarScreen(ctx = ctx)
+        // Outer Drawer: Physical RIGHT edge (Settings, Alarms, Duas, Ruqyah, Diagnostics)
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            ModalNavigationDrawer(
+                drawerState = rightDrawerState,
+                drawerContent = {
+                    CompositionLocalProvider(LocalLayoutDirection provides appDir) {
+                        ModalDrawerSheet(drawerContainerColor = effectiveTheme.bgDeep, modifier = Modifier.width(292.dp)) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                    SakinaTitle3D(text = s.appName, fontSize = 21.sp, modifier = Modifier.weight(1f))
+                                    SakinaBackIconButton(onClick = { scope.launch { rightDrawerState.close() } })
+                                }
+                                Text(
+                                    text = if (isArOrUr) "العبادات والإعدادات" else "Worship & Settings",
+                                    fontFamily = SakinaBodyFont,
+                                    fontSize = 11.sp,
+                                    color = effectiveTheme.accentGold,
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                )
+                                SakinaDrawerPillItem(R.drawable.ic_duas, s.duasTitle) {
+                                    scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.DUAS
+                                }
+                                SakinaDrawerPillItem(R.drawable.ic_ruqyah, s.ruqyahTitle) {
+                                    scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.RUQYAH
+                                }
+                                SakinaDrawerPillItem(R.drawable.ic_alarm, s.alarmTitle) {
+                                    scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.ALARM
+                                }
+                                SakinaDrawerPillItem(R.drawable.ic_settings, s.settingsTitle) {
+                                    scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.SETTINGS
+                                }
+                                SakinaDrawerPillItem(
+                                    R.drawable.ic_star_ornament,
+                                    if (isArOrUr) "تشخيص البطارية والصلاحيات" else "Battery & Alarm Diagnostics"
+                                ) {
+                                    scope.launch { rightDrawerState.close() }
+                                    showDiagnostics = true
                                 }
                             }
                         }
                     }
+                }
+            ) {
+                // Inner Drawer: Physical LEFT edge (Adhkar & Tasbih, Hijri Calendar, Sunan, Duha, Qiyam, Fasting, Occasions + Language)
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    ModalNavigationDrawer(
+                        drawerState = leftDrawerState,
+                        drawerContent = {
+                            CompositionLocalProvider(LocalLayoutDirection provides appDir) {
+                                ModalDrawerSheet(drawerContainerColor = effectiveTheme.bgDeep, modifier = Modifier.width(296.dp)) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .verticalScroll(rememberScrollState())
+                                            .padding(horizontal = 16.dp, vertical = 20.dp),
+                                        verticalArrangement = Arrangement.spacedBy(7.dp)
+                                    ) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                            SakinaTitle3D(text = if (isArOrUr) "الأذكار والتقويم" else "Adhkar & Calendar", fontSize = 18.sp, modifier = Modifier.weight(1f))
+                                            SakinaBackIconButton(onClick = { scope.launch { leftDrawerState.close() } })
+                                        }
+                                        Spacer(Modifier.height(2.dp))
 
-                    if (extraSection == ExtraSection.NONE) {
-                        // Symmetrical 34.dp Top-Right Menu Button with larger 19.dp icon (#19)
-                        Box(
-                            modifier = Modifier
-                                .align(AbsoluteAlignment.TopRight)
-                                .statusBarsPadding()
-                                .padding(end = 15.dp, top = 14.dp)
-                                .size(34.dp)
-                                .clip(CircleShape)
-                                .background(currentTheme.bgDeep.copy(alpha = 0.88f))
-                                .border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                .clickable { scope.launch { drawerState.open() } },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(painter = painterResource(id = R.drawable.ic_menu), contentDescription = "Menu", modifier = Modifier.size(19.dp))
+                                        SakinaDrawerPillItem(R.drawable.ic_tasbih, s.adhkarTitle) {
+                                            scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.ADHKAR
+                                        }
+                                        SakinaDrawerPillItem(R.drawable.ic_calendar, s.calendarTitle) {
+                                            scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.CALENDAR
+                                        }
+                                        SakinaDrawerPillItem(R.drawable.ic_sunan, s.sunanTitle) {
+                                            scope.launch { leftDrawerState.close() }
+                                            hadithTitle = s.sunanTitle
+                                            hadithBody = if (isArOrUr) {
+                                                """
+                                                ❖ تفصيل النوافل القبلية والبعدية لكل صلاة ❖
+
+                                                1. صلاة الفجر:
+                                                • القبلية: ركعتان مؤكدتان قبل الفريضة (قال ﷺ: «ركعتا الفجر خير من الدنيا وما فيها» رواه مسلم 725).
+                                                • البعدية: لا نافلة بعدها حتى تشرق الشمس وترتفع.
+
+                                                2. صلاة الظهر:
+                                                • القبلية: 4 ركعات مؤكدة قبلها (بتسليمتين).
+                                                • البعدية: ركعتان مؤكدتان بعدها (ويُستحب زيادة ركعتين لتكون 4 قبلها و4 بعدها؛ رواه الترمذي 428).
+
+                                                3. صلاة العصر:
+                                                • القبلية: 4 ركعات مستحبة قبلها («رحم الله امرأً صلى قبل العصر أربعاً» أبو داود 1271).
+                                                • البعدية: لا نافلة بعدها حتى تغرب الشمس.
+
+                                                4. صلاة المغرب:
+                                                • القبلية: ركعتان مستحبتان (البخاري 1183).
+                                                • البعدية: ركعتان مؤكدتان بعدها.
+
+                                                5. صلاة العشاء:
+                                                • القبلية: ركعتان مستحبتان.
+                                                • البعدية: ركعتان مؤكدتان بعدها، ثم صلاة الوتر.
+                                                """.trimIndent().toWesternDigits()
+                                            } else {
+                                                "1. Fajr: 2 before
+2. Dhuhr: 4 before + 2 after
+3. Asr: 4 recommended before
+4. Maghrib: 2 after
+5. Isha: 2 after + Witr (Sahih Muslim 728)."
+                                            }
+                                        }
+                                        SakinaDrawerPillItem(R.drawable.ic_dhuhr, s.duhaTitle) {
+                                            scope.launch { leftDrawerState.close() }
+                                            val events = PrayerEngine.events(ctx, 0)
+                                            val hm = SimpleDateFormat("HH:mm", Locale.US)
+                                            val duhaStart = hm.format(Date(events.first { it.first == 1 }.second.time + 15 * 60_000L))
+                                            val duhaEnd = hm.format(Date(events.first { it.first == 2 }.second.time - 10 * 60_000L))
+                                            hadithTitle = "${s.duhaTitle} ($duhaStart – $duhaEnd)"
+                                            hadithBody = if (isArOrUr) {
+                                                "وقت صلاة الضحى اليوم: $duhaStart – $duhaEnd
+• أقلها: ركعتان (صحيح مسلم 720).
+• أوسطها: 4 ركعات (صحيح مسلم 719).
+• أفضلها: 8 ركعات مثنى مثنى (متفق عليه).".toWesternDigits()
+                                            } else {
+                                                "Today's Duha Window: $duhaStart – $duhaEnd
+• Minimum: 2 Rak'ahs (Muslim 720)
+• Regular: 4 Rak'ahs (Muslim 719)
+• Best: 8 Rak'ahs (Bukhari 1176 & Muslim 336)."
+                                            }
+                                        }
+                                        SakinaDrawerPillItem(R.drawable.ic_isha, s.qiyamTitle) {
+                                            scope.launch { leftDrawerState.close() }
+                                            hadithTitle = s.qiyamTitle
+                                            hadithBody = if (isArOrUr) {
+                                                "• هدي النبي ﷺ: 11 أو 13 ركعة (متفق عليه: البخاري 1147 ومسلم 736).
+• تصلى مثنى مثنى ويُوتر بواحدة أو ثلاث (البخاري 990).
+• ينزل ربنا في الثلث الأخير من الليل فيستجيب للداعين (متفق عليه).".toWesternDigits()
+                                            } else {
+                                                "• Prophetic practice: 11 or 13 Rak'ahs (Bukhari 1147 & Muslim 736), prayed two by two + odd Witr (Bukhari 990)."
+                                            }
+                                        }
+                                        SakinaDrawerPillItem(R.drawable.ic_calendar, s.fastingTitle) {
+                                            scope.launch { leftDrawerState.close() }
+                                            hadithTitle = s.fastingTitle
+                                            hadithBody = if (isArOrUr) {
+                                                "• ست من شوال (مسلم 1164)
+• يوم عرفة لغير الحاج (مسلم 1162)
+• عاشوراء وتاسوعاء (مسلم 1162)
+• الأيام البيض 13-14-15 (البخاري 1981)
+• الإثنين والخميس (مسلم 1162)
+• شهر الله المحرم وشعبان (مسلم 1163)".toWesternDigits()
+                                            } else {
+                                                "• 6 of Shawwal (Muslim 1164)
+• Day of Arafah (Muslim 1162)
+• Ashura 9-10 Muharram
+• White Days 13-15
+• Mondays & Thursdays"
+                                            }
+                                        }
+                                        SakinaDrawerPillItem(R.drawable.ic_star_ornament, s.occasionsTitle) {
+                                            scope.launch { leftDrawerState.close() }
+                                            hadithTitle = s.occasionsTitle
+                                            hadithBody = buildReligiousOccasionsReport(Prefs.hijriOffset(ctx), isArOrUr)
+                                        }
+                                    }
+                                }
+                            }
                         }
+                    ) {
+                        // Restore app's natural RTL/LTR LayoutDirection for main screen content
+                        CompositionLocalProvider(LocalLayoutDirection provides appDir) {
+                            SakinaBackgroundLayer(headerImageRes = headerImg, showMihrabFrame = true) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    when (extraSection) {
+                                        ExtraSection.ADHKAR -> SakinaAdhkarScreen(ctx = ctx)
+                                        ExtraSection.CALENDAR -> SakinaCalendarScreen(ctx = ctx)
+                                        ExtraSection.DUAS -> SakinaDuasScreen(onBackToHome = { returnFromExtra() })
+                                        ExtraSection.RUQYAH -> SakinaRuqyahScreen(onBackToHome = { returnFromExtra() })
+                                        ExtraSection.ALARM -> SakinaAlarmScreen(ctx = ctx, onBackClick = { returnFromExtra() })
+                                        ExtraSection.SETTINGS -> SakinaSettingsScreen(
+                                            ctx = ctx,
+                                            selectedTheme = currentTheme,
+                                            selectedLang = currentLang,
+                                            onThemeChange = { t -> currentTheme = t; sp.edit().putInt("theme_index", t.ordinal).apply() },
+                                            onLangChange = { l -> currentLang = l; sp.edit().putString("app_lang", l.code).apply() },
+                                            onBackClick = { returnFromExtra() }
+                                        )
+                                        ExtraSection.NONE -> {
+                                            Crossfade(targetState = currentTab, label = "sakina3Tabs") { tab ->
+                                                when (tab) {
+                                                    SakinaNavTab.HOME -> SakinaHomeContent(ctx = ctx)
+                                                    SakinaNavTab.QIBLA -> SakinaQiblaScreen(ctx = ctx)
+                                                    SakinaNavTab.QURAN -> SakinaQuranScreen(ctx = ctx)
+                                                }
+                                            }
+                                        }
+                                    }
 
-                        // Symmetrical 34.dp Top-Left Language Switcher (#10, #19)
-                        Box(
-                            modifier = Modifier
-                                .align(AbsoluteAlignment.TopLeft)
-                                .statusBarsPadding()
-                                .padding(start = 15.dp, top = 14.dp)
-                                .size(34.dp)
-                                .clip(CircleShape)
-                                .background(currentTheme.bgDeep.copy(alpha = 0.88f))
-                                .border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                .clickable {
-                                    val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
-                                    currentLang = next
-                                    sp.edit().putString("app_lang", next.code).apply()
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_language),
-                                contentDescription = "Language",
-                                alpha = 0.35f,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Text(
-                                text = currentLang.code.uppercase(),
-                                fontFamily = SakinaNumeralFont,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.5.sp,
-                                color = currentTheme.accentBright,
-                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                            )
+                                    if (extraSection == ExtraSection.NONE) {
+                                        // Top-Right Menu Button (34.dp): Opens Worship & Settings Drawer
+                                        Box(
+                                            modifier = Modifier
+                                                .align(AbsoluteAlignment.TopRight)
+                                                .statusBarsPadding()
+                                                .padding(end = 15.dp, top = 14.dp)
+                                                .size(34.dp)
+                                                .clip(CircleShape)
+                                                .background(effectiveTheme.bgDeep.copy(alpha = 0.88f))
+                                                .border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
+                                                .clickable { scope.launch { rightDrawerState.open() } },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(painter = painterResource(id = R.drawable.ic_menu), contentDescription = "Menu", modifier = Modifier.size(19.dp))
+                                        }
+
+                                        // Top-Left Group: Left Drawer Button (Adhkar & Calendar) + Language Switcher Pill beside it (#1)
+                                        Row(
+                                            modifier = Modifier
+                                                .align(AbsoluteAlignment.TopLeft)
+                                                .statusBarsPadding()
+                                                .padding(start = 15.dp, top = 14.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(34.dp)
+                                                    .clip(CircleShape)
+                                                    .background(effectiveTheme.bgDeep.copy(alpha = 0.88f))
+                                                    .border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
+                                                    .clickable { scope.launch { leftDrawerState.open() } },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Image(painter = painterResource(id = R.drawable.ic_tasbih), contentDescription = "Adhkar & Calendar", modifier = Modifier.size(20.dp))
+                                            }
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(34.dp)
+                                                    .clip(CircleShape)
+                                                    .background(effectiveTheme.bgDeep.copy(alpha = 0.88f))
+                                                    .border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
+                                                    .clickable {
+                                                        val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
+                                                        currentLang = next
+                                                        sp.edit().putString("app_lang", next.code).apply()
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Image(painter = painterResource(id = R.drawable.ic_language), contentDescription = "Language", alpha = 0.35f, modifier = Modifier.size(22.dp))
+                                                Text(
+                                                    text = currentLang.code.uppercase(),
+                                                    fontFamily = SakinaNumeralFont,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 10.sp,
+                                                    color = effectiveTheme.accentBright,
+                                                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                                                )
+                                            }
+                                        }
+                                    } else if (extraSection == ExtraSection.ADHKAR || extraSection == ExtraSection.CALENDAR) {
+                                        // Back button on top-left when viewing Adhkar or Calendar from Left Drawer
+                                        SakinaBackIconButton(
+                                            onClick = { returnFromExtra() },
+                                            modifier = Modifier
+                                                .align(AbsoluteAlignment.TopLeft)
+                                                .statusBarsPadding()
+                                                .padding(start = 16.dp, top = 54.dp)
+                                        )
+                                    }
+
+                                    SakinaBottomPillBar(
+                                        currentTab = currentTab,
+                                        onTabSelected = { extraSection = ExtraSection.NONE; openedFromRightDrawer = false; openedFromLeftDrawer = false; currentTab = it },
+                                        modifier = Modifier.align(Alignment.BottomCenter)
+                                    )
+                                }
+                            }
                         }
                     }
-
-                    SakinaBottomPillBar(
-                        currentTab = currentTab,
-                        onTabSelected = { extraSection = ExtraSection.NONE; openedFromDrawer = false; currentTab = it },
-                        modifier = Modifier.align(Alignment.BottomCenter)
-                    )
                 }
             }
+        }
+
+
+        if (showDiagnostics) {
+            val pm = remember { ctx.getSystemService(Context.POWER_SERVICE) as PowerManager }
+            val batteryExempt = remember(showDiagnostics) { pm.isIgnoringBatteryOptimizations(ctx.packageName) }
+            val exactAlarmOk = remember(showDiagnostics) {
+                if (Build.VERSION.SDK_INT >= 31) ctx.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() ?: true
+                else true
+            }
+            val nm = remember { ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
+            val notifOk = remember(showDiagnostics) { nm.areNotificationsEnabled() }
+
+            AlertDialog(
+                onDismissRequest = { showDiagnostics = false },
+                containerColor = effectiveTheme.bgCard,
+                title = {
+                    Text(
+                        text = if (isArOrUr) "تشخيص الموثوقية والبطارية" else "Battery & Alarm Diagnostics",
+                        fontFamily = SakinaHeadingFont,
+                        fontWeight = FontWeight.Bold,
+                        color = effectiveTheme.accentBright
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "${if (notifOk) "✓" else "⚠"} ${if (isArOrUr) "صلاحية الإشعارات" else "Notifications"}: ${if (notifOk) (if (isArOrUr) "مفعّلة" else "Enabled") else (if (isArOrUr) "معطّلة" else "Disabled")}",
+                            fontFamily = SakinaBodyFont,
+                            color = if (notifOk) SakinaBrandColors.StableEmerald else Color(0xFFF59E0B)
+                        )
+                        Text(
+                            text = "${if (exactAlarmOk) "✓" else "⚠"} ${if (isArOrUr) "التنبيهات الدقيقة (Exact Alarm)" else "Exact Alarms"}: ${if (exactAlarmOk) (if (isArOrUr) "مفعّلة" else "Allowed") else (if (isArOrUr) "تحتاج إذن" else "Needs Permission")}",
+                            fontFamily = SakinaBodyFont,
+                            color = if (exactAlarmOk) SakinaBrandColors.StableEmerald else Color(0xFFF59E0B)
+                        )
+                        Text(
+                            text = "${if (batteryExempt) "✓" else "⚠"} ${if (isArOrUr) "استثناء توفير البطارية" else "Battery Optimization Exempt"}: ${if (batteryExempt) (if (isArOrUr) "مستثنى" else "Exempt") else (if (isArOrUr) "مقيّد (قد يتأخر الأذان)" else "Restricted")}",
+                            fontFamily = SakinaBodyFont,
+                            color = if (batteryExempt) SakinaBrandColors.StableEmerald else Color(0xFFF59E0B)
+                        )
+                        if (!batteryExempt) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Brush.verticalGradient(listOf(effectiveTheme.accentBright, effectiveTheme.accentGold)))
+                                    .clickable {
+                                        try {
+                                            ctx.startActivity(
+                                                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                                    data = Uri.parse("package:${ctx.packageName}")
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                }
+                                            )
+                                        } catch (_: Exception) {}
+                                    }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (isArOrUr) "استثناء التطبيق من توفير البطارية الآن" else "Disable Battery Optimization",
+                                    fontFamily = SakinaHeadingFont,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = effectiveTheme.bgDeep
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    SakinaBackIconButton(onClick = { showDiagnostics = false })
+                }
+            )
         }
 
         if (hadithTitle != null && hadithBody != null) {
@@ -617,7 +669,7 @@ fun HomeScreen(ctx: Context) {
                     }
                 },
                 confirmButton = {
-                    SakinaBackIconButton(onClick = { hadithTitle = null; scope.launch { drawerState.open() } })
+                    SakinaBackIconButton(onClick = { hadithTitle = null; scope.launch { leftDrawerState.open() } })
                 }
             )
         }

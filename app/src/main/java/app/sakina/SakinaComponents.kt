@@ -50,16 +50,12 @@ import kotlin.math.sin
 enum class SakinaNavTab(@DrawableRes val iconRes: Int) {
     HOME(R.drawable.ic_mosque),
     QIBLA(R.drawable.ic_kaaba),
-    QURAN(R.drawable.ic_adhkar),
-    ADHKAR(R.drawable.ic_tasbih),
-    CALENDAR(R.drawable.ic_calendar);
+    QURAN(R.drawable.ic_adhkar);
 
     fun label(s: SakinaStrings): String = when (this) {
         HOME -> s.tabHome
         QIBLA -> s.tabQibla
         QURAN -> s.tabQuran
-        ADHKAR -> s.tabAdhkar
-        CALENDAR -> s.tabCalendar
     }
 }
 
