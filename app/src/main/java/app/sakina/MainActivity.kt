@@ -24,6 +24,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationCompat
 import com.batoulapps.adhan.*
 import com.batoulapps.adhan.data.DateComponents
@@ -462,79 +463,4 @@ class MainActivity : ComponentActivity() {
     private val openAfterPrayerState = mutableStateOf(false)
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if ((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) && SakinaAdhanAudio.isPlaying()) {
-            SakinaAdhanAudio.stop()
-            SakinaAdhanForegroundService.stop(this)
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        if (intent.getBooleanExtra("open_after_prayer", false)) {
-            openAfterPrayerState.value = true
-        }
-    }
-
-    override fun onCreate(s: Bundle?) {
-        super.onCreate(s)
-        openAfterPrayerState.value = intent?.getBooleanExtra("open_after_prayer", false) == true
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
-        )
-        if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
-        AlarmScheduler.scheduleNext(this)
-        setContent { HomeScreen(this@MainActivity, openAfterPrayer = openAfterPrayerState.value) }
-    }
-}
-
-class StopAdhanReceiver : BroadcastReceiver() {
-    override fun onReceive(c: Context, i: Intent) {
-        SakinaAdhanAudio.stop()
-        SakinaAdhanForegroundService.stop(c)
-    }
-}
-
-object SilentModeScheduler {
-    fun scheduleIfEnabled(c: Context, prayerName: String) {
-        if (!SakinaAdvancedPrefs.autoSilentEnabled(c)) return
-        try {
-            val nm = c.getSystemService(NotificationManager::class.java)
-            if (Build.VERSION.SDK_INT >= 23 && !nm.isNotificationPolicyAccessGranted) return
-            val am = c.getSystemService(AlarmManager::class.java)
-            val now = System.currentTimeMillis()
-            val startAt = now + 10 * 60_000L
-            val isFridayDhuhr = prayerName == "الظهر" && Calendar.getInstance().get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY
-            val durMin = if (isFridayDhuhr) SakinaAdvancedPrefs.fridaySilentDurationMin(c).toLong() else SakinaAdvancedPrefs.autoSilentDurationMin(c).toLong()
-            val endAt = startAt + durMin * 60_000L
-
-            val startPi = PendingIntent.getBroadcast(
-                c, 810, Intent(c, AutoSilentReceiver::class.java).putExtra("silent", true),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            val endPi = PendingIntent.getBroadcast(
-                c, 811, Intent(c, AutoSilentReceiver::class.java).putExtra("silent", false),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startAt, startPi)
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endAt, endPi)
-        } catch (_: Exception) {}
-    }
-}
-
-class AutoSilentReceiver : BroadcastReceiver() {
-    override fun onReceive(c: Context, i: Intent) {
-        try {
-            val audio = c.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            val goSilent = i.getBooleanExtra("silent", false)
-            if (goSilent) {
-                val target = if (SakinaAdvancedPrefs.autoSilentVibrate(c)) AudioManager.RINGER_MODE_VIBRATE else AudioManager.RINGER_MODE_SILENT
-                audio.ringerMode = target
-            } else {
-                audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
-            }
-        } catch (_: Exception) {}
-    }
-}
+        if ((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCOD
