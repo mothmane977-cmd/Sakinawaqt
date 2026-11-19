@@ -29,7 +29,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 object Offsets {
-    const val MAX = 15
+    const val MAX = 120
     private fun sp(c: Context) = c.getSharedPreferences("offsets", Context.MODE_PRIVATE)
     fun get(c: Context, name: String): Int = sp(c).getInt(name, 0)
     fun set(c: Context, name: String, m: Int) { sp(c).edit().putInt(name, m.coerceIn(-MAX, MAX)).apply() }
@@ -100,6 +100,11 @@ object Prefs {
             else -> CalculationMethod.OTHER.parameters.apply { fajrAngle = 18.0; ishaAngle = 17.0 }
         }
         p.madhab = if (hanafi(c)) Madhab.HANAFI else Madhab.SHAFI
+        p.highLatitudeRule = when (SakinaAdvancedPrefs.highLatRule(c)) {
+            1 -> HighLatitudeRule.MIDDLE_OF_THE_NIGHT
+            2 -> HighLatitudeRule.SEVENTH_OF_THE_NIGHT
+            else -> HighLatitudeRule.TWILIGHT_ANGLE
+        }
         return p
     }
 }
@@ -308,7 +313,7 @@ object Notifier {
         val ch = NotificationChannel(chId, Modes.labels[mode], NotificationManager.IMPORTANCE_HIGH).apply {
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             enableVibration(true)
-            vibrationPattern = longArrayOf(0, 600, 300, 600)
+            vibrationPattern = SakinaAdvancedPrefs.vibrationPatternFor(c)
             if (mode == 2 || !playSoundInChannel) {
                 setSound(null, null)
             } else {

@@ -150,8 +150,22 @@ object SakinaLiveNotifier {
 
     fun update(ctx: Context) {
         try {
-            ensureDismissRestoreReceiver(ctx)
             val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (!SakinaAdvancedPrefs.persistentNotifEnabled(ctx)) {
+                nm.cancel(NOTIF_ID)
+                return
+            }
+            val winCode = SakinaAdvancedPrefs.persistentNotifWindow(ctx)
+            if (winCode > 0) {
+                val limitMs = (if (winCode == 1) 30L else 45L) * 60_000L
+                val nowCheck = System.currentTimeMillis()
+                val nearAny = PrayerEngine.day(ctx, 0).any { kotlin.math.abs(it.second.time - nowCheck) <= limitMs }
+                if (!nearAny) {
+                    nm.cancel(NOTIF_ID)
+                    return
+                }
+            }
+            ensureDismissRestoreReceiver(ctx)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val ch = NotificationChannel(
                     CHANNEL_ID,

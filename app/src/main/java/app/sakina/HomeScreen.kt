@@ -211,6 +211,7 @@ private fun bgForPrayer(nameAr: String): Int = when (nameAr) {
 @Composable
 fun HomeScreen(ctx: Context) {
     val sp = remember { ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE) }
+    val autoNight = SakinaAdvancedPrefs.autoNightMode(ctx)
     var currentTheme by remember {
         mutableStateOf(SakinaLuxuryTheme.entries.getOrElse(sp.getInt("theme_index", 0)) { SakinaLuxuryTheme.ROYAL_NAVY })
     }
@@ -248,7 +249,12 @@ fun HomeScreen(ctx: Context) {
         }
     }
 
-    SakinaBrandTheme(theme = currentTheme, lang = currentLang) {
+    val isNightHours = remember {
+        val h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        h >= 19 || h < 5
+    }
+    val effectiveTheme = if (autoNight && isNightHours) SakinaLuxuryTheme.MIDNIGHT_AMOLED else currentTheme
+    SakinaBrandTheme(theme = effectiveTheme, lang = currentLang) {
         val s = LocalSakinaStrings.current
         val isArOrUr = currentLang == SakinaLang.AR || currentLang == SakinaLang.UR
 
@@ -683,7 +689,7 @@ private fun SakinaHomeContent(ctx: Context) {
             BrandPrayerRow(
                 keyNameAr = keyAr,
                 displayTitle = s.prayers.getOrElse(idx) { keyAr },
-                timeText = hmFmt.format(date).toWesternDigits(),
+                timeText = SakinaAdvancedPrefs.formatPrayerTime(ctx, date),
                 iconRes = iconForPrayer(keyAr),
                 bgRes = bgForPrayer(keyAr),
                 isNext = idx == highlightIdx,
