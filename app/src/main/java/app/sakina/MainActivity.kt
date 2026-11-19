@@ -333,8 +333,12 @@ class AlarmReceiver : BroadcastReceiver() {
     private fun ring(c: Context, name: String, mode: Int) {
         if (mode == 3) return
         if (mode == 0) {
-            SakinaAdhanAudio.playAlarmAdhan(c, name)
-            Notifier.show(c, name, mode, playSoundInChannel = false)
+            try {
+                SakinaAdhanForegroundService.start(c, name)
+            } catch (_: Exception) {
+                SakinaAdhanAudio.playAlarmAdhan(c, name)
+                Notifier.show(c, name, mode, playSoundInChannel = false)
+            }
             SilentModeScheduler.scheduleIfEnabled(c, name)
             PostPrayerAdhkarScheduler.scheduleIfEnabled(c, name)
             return
@@ -455,29 +459,41 @@ class PostPrayerAdhkarReceiver : BroadcastReceiver() {
 }
 
 class MainActivity : ComponentActivity() {
+    private val openAfterPrayerState = mutableStateOf(false)
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if ((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) && SakinaAdhanAudio.isPlaying()) {
             SakinaAdhanAudio.stop()
+            SakinaAdhanForegroundService.stop(this)
             return true
         }
         return super.onKeyDown(keyCode, event)
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.getBooleanExtra("open_after_prayer", false)) {
+            openAfterPrayerState.value = true
+        }
+    }
+
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
+        openAfterPrayerState.value = intent?.getBooleanExtra("open_after_prayer", false) == true
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
         )
         if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
         AlarmScheduler.scheduleNext(this)
-        setContent { HomeScreen(this@MainActivity) }
+        setContent { HomeScreen(this@MainActivity, openAfterPrayer = openAfterPrayerState.value) }
     }
 }
 
 class StopAdhanReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
         SakinaAdhanAudio.stop()
+        SakinaAdhanForegroundService.stop(c)
     }
 }
 

@@ -218,7 +218,7 @@ private fun bgForPrayer(nameAr: String): Int = when (nameAr) {
 }
 
 @Composable
-fun HomeScreen(ctx: Context) {
+fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     val sp = remember { ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE) }
     val autoNight = SakinaAdvancedPrefs.autoNightMode(ctx)
     var currentTheme by remember {
@@ -229,7 +229,14 @@ fun HomeScreen(ctx: Context) {
         mutableStateOf(SakinaLang.entries.firstOrNull { it.code == code } ?: SakinaLang.AR)
     }
     var currentTab by remember { mutableStateOf(SakinaNavTab.HOME) }
-    var extraSection by remember { mutableStateOf(ExtraSection.NONE) }
+    var extraSection by remember { mutableStateOf(if (openAfterPrayer) ExtraSection.ADHKAR else ExtraSection.NONE) }
+    var adhkarInitCat by remember { mutableStateOf<Int?>(if (openAfterPrayer) 2 else null) }
+    LaunchedEffect(openAfterPrayer) {
+        if (openAfterPrayer) {
+            adhkarInitCat = null; extraSection = ExtraSection.ADHKAR
+            adhkarInitCat = 2
+        }
+    }
     var openedFromRightDrawer by remember { mutableStateOf(false) }
     var openedFromLeftDrawer by remember { mutableStateOf(false) }
     var hadithTitle by remember { mutableStateOf<String?>(null) }
@@ -361,7 +368,7 @@ fun HomeScreen(ctx: Context) {
                                         Spacer(Modifier.height(2.dp))
 
                                         SakinaDrawerPillItem(R.drawable.ic_tasbih, s.adhkarTitle) {
-                                            scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.ADHKAR
+                                            scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; adhkarInitCat = null; extraSection = ExtraSection.ADHKAR
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_calendar, s.calendarTitle) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.CALENDAR
@@ -443,7 +450,7 @@ fun HomeScreen(ctx: Context) {
                             SakinaBackgroundLayer(headerImageRes = headerImg, showMihrabFrame = true) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     when (extraSection) {
-                                        ExtraSection.ADHKAR -> SakinaAdhkarScreen(ctx = ctx)
+                                        ExtraSection.ADHKAR -> SakinaAdhkarScreen(ctx = ctx, initialCategoryIndex = adhkarInitCat)
                                         ExtraSection.CALENDAR -> SakinaCalendarScreen(ctx = ctx)
                                         ExtraSection.DUAS -> SakinaDuasScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.RUQYAH -> SakinaRuqyahScreen(onBackToHome = { returnFromExtra() })

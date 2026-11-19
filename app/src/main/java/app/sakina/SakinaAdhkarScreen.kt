@@ -152,7 +152,7 @@ private val ADHKAR_CATEGORIES = listOf(
 private val TASBIH_PHRASES = listOf("سُبْحَانَ اللَّهِ", "الْحَمْدُ لِلَّهِ", "اللَّهُ أَكْبَرُ", "لَا إِلَٰهَ إِلَّا اللَّهُ", "أَسْتَغْفِرُ اللَّهَ")
 
 @Composable
-fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
+fun SakinaAdhkarScreen(ctx: Context, initialCategoryIndex: Int? = null, modifier: Modifier = Modifier) {
     val theme = LocalSakinaTheme.current
     val s = LocalSakinaStrings.current
     val lang = LocalSakinaLang.current
@@ -160,7 +160,10 @@ fun SakinaAdhkarScreen(ctx: Context, modifier: Modifier = Modifier) {
     val view = LocalView.current
     val sp = remember { ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE) }
 
-    var selectedCategoryIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedCategoryIndex by remember { mutableStateOf<Int?>(initialCategoryIndex) }
+    LaunchedEffect(initialCategoryIndex) {
+        if (initialCategoryIndex != null) selectedCategoryIndex = initialCategoryIndex
+    }
     var phraseIdx by remember { mutableIntStateOf(0) }
     var count by remember { mutableIntStateOf(sp.getInt("tasbih_count", 0)) }
     val target = 33
