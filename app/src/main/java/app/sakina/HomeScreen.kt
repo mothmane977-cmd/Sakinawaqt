@@ -265,7 +265,16 @@ fun HomeScreen(ctx: Context) {
         ExtraSection.CALENDAR -> R.drawable.bg_header_madinah
         ExtraSection.ALARM, ExtraSection.SETTINGS -> R.drawable.bg_header_mosque
         ExtraSection.NONE -> when (currentTab) {
-            SakinaNavTab.HOME -> R.drawable.bg_header_mosque
+            SakinaNavTab.HOME -> {
+                val nowHr = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                when (nowHr) {
+                    in 4..6 -> R.drawable.bg_header_mosque
+                    in 7..14 -> R.drawable.bg_header_kaaba
+                    in 15..16 -> R.drawable.bg_header_madinah
+                    in 17..18 -> R.drawable.bg_header_adhkar
+                    else -> R.drawable.bg_header_quran
+                }
+            }
             SakinaNavTab.QIBLA -> R.drawable.bg_header_kaaba
             SakinaNavTab.QURAN -> R.drawable.bg_header_quran
         }
@@ -385,11 +394,7 @@ fun HomeScreen(ctx: Context) {
                                                 • البعدية: ركعتان مؤكدتان بعدها، ثم صلاة الوتر.
                                                 """.trimIndent().toWesternDigits()
                                             } else {
-                                                "1. Fajr: 2 before
-2. Dhuhr: 4 before + 2 after
-3. Asr: 4 recommended before
-4. Maghrib: 2 after
-5. Isha: 2 after + Witr (Sahih Muslim 728)."
+                                                "1. Fajr: 2 before\n2. Dhuhr: 4 before + 2 after\n3. Asr: 4 recommended before\n4. Maghrib: 2 after\n5. Isha: 2 after + Witr (Sahih Muslim 728)."
                                             }
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_dhuhr, s.duhaTitle) {
@@ -400,24 +405,16 @@ fun HomeScreen(ctx: Context) {
                                             val duhaEnd = hm.format(Date(events.first { it.first == 2 }.second.time - 10 * 60_000L))
                                             hadithTitle = "${s.duhaTitle} ($duhaStart – $duhaEnd)"
                                             hadithBody = if (isArOrUr) {
-                                                "وقت صلاة الضحى اليوم: $duhaStart – $duhaEnd
-• أقلها: ركعتان (صحيح مسلم 720).
-• أوسطها: 4 ركعات (صحيح مسلم 719).
-• أفضلها: 8 ركعات مثنى مثنى (متفق عليه).".toWesternDigits()
+                                                "وقت صلاة الضحى اليوم: $duhaStart – $duhaEnd\n• أقلها: ركعتان (صحيح مسلم 720).\n• أوسطها: 4 ركعات (صحيح مسلم 719).\n• أفضلها: 8 ركعات مثنى مثنى (متفق عليه).".toWesternDigits()
                                             } else {
-                                                "Today's Duha Window: $duhaStart – $duhaEnd
-• Minimum: 2 Rak'ahs (Muslim 720)
-• Regular: 4 Rak'ahs (Muslim 719)
-• Best: 8 Rak'ahs (Bukhari 1176 & Muslim 336)."
+                                                "Today's Duha Window: $duhaStart – $duhaEnd\n• Minimum: 2 Rak'ahs (Muslim 720)\n• Regular: 4 Rak'ahs (Muslim 719)\n• Best: 8 Rak'ahs (Bukhari 1176 & Muslim 336)."
                                             }
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_isha, s.qiyamTitle) {
                                             scope.launch { leftDrawerState.close() }
                                             hadithTitle = s.qiyamTitle
                                             hadithBody = if (isArOrUr) {
-                                                "• هدي النبي ﷺ: 11 أو 13 ركعة (متفق عليه: البخاري 1147 ومسلم 736).
-• تصلى مثنى مثنى ويُوتر بواحدة أو ثلاث (البخاري 990).
-• ينزل ربنا في الثلث الأخير من الليل فيستجيب للداعين (متفق عليه).".toWesternDigits()
+                                                "• هدي النبي ﷺ: 11 أو 13 ركعة (متفق عليه: البخاري 1147 ومسلم 736).\n• تصلى مثنى مثنى ويُوتر بواحدة أو ثلاث (البخاري 990).\n• ينزل ربنا في الثلث الأخير من الليل فيستجيب للداعين (متفق عليه).".toWesternDigits()
                                             } else {
                                                 "• Prophetic practice: 11 or 13 Rak'ahs (Bukhari 1147 & Muslim 736), prayed two by two + odd Witr (Bukhari 990)."
                                             }
@@ -426,18 +423,9 @@ fun HomeScreen(ctx: Context) {
                                             scope.launch { leftDrawerState.close() }
                                             hadithTitle = s.fastingTitle
                                             hadithBody = if (isArOrUr) {
-                                                "• ست من شوال (مسلم 1164)
-• يوم عرفة لغير الحاج (مسلم 1162)
-• عاشوراء وتاسوعاء (مسلم 1162)
-• الأيام البيض 13-14-15 (البخاري 1981)
-• الإثنين والخميس (مسلم 1162)
-• شهر الله المحرم وشعبان (مسلم 1163)".toWesternDigits()
+                                                "• ست من شوال (مسلم 1164)\n• يوم عرفة لغير الحاج (مسلم 1162)\n• عاشوراء وتاسوعاء (مسلم 1162)\n• الأيام البيض 13-14-15 (البخاري 1981)\n• الإثنين والخميس (مسلم 1162)\n• شهر الله المحرم وشعبان (مسلم 1163)".toWesternDigits()
                                             } else {
-                                                "• 6 of Shawwal (Muslim 1164)
-• Day of Arafah (Muslim 1162)
-• Ashura 9-10 Muharram
-• White Days 13-15
-• Mondays & Thursdays"
+                                                "• 6 of Shawwal (Muslim 1164)\n• Day of Arafah (Muslim 1162)\n• Ashura 9-10 Muharram\n• White Days 13-15\n• Mondays & Thursdays"
                                             }
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_star_ornament, s.occasionsTitle) {
@@ -603,6 +591,52 @@ fun HomeScreen(ctx: Context) {
                             text = "${if (batteryExempt) "✓" else "⚠"} ${if (isArOrUr) "استثناء توفير البطارية" else "Battery Optimization Exempt"}: ${if (batteryExempt) (if (isArOrUr) "مستثنى" else "Exempt") else (if (isArOrUr) "مقيّد (قد يتأخر الأذان)" else "Restricted")}",
                             fontFamily = SakinaBodyFont,
                             color = if (batteryExempt) SakinaBrandColors.StableEmerald else Color(0xFFF59E0B)
+                        )
+                        if (!notifOk) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0x33F59E0B))
+                                    .clickable {
+                                        try {
+                                            ctx.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                                putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            })
+                                        } catch (_: Exception) {}
+                                    }
+                                    .padding(vertical = 7.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(if (isArOrUr) "تفعيل صلاحية الإشعارات" else "Enable Notifications", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = effectiveTheme.accentBright)
+                            }
+                        }
+                        if (!exactAlarmOk && Build.VERSION.SDK_INT >= 31) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0x33F59E0B))
+                                    .clickable {
+                                        try {
+                                            ctx.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                                data = Uri.parse("package:${ctx.packageName}")
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            })
+                                        } catch (_: Exception) {}
+                                    }
+                                    .padding(vertical = 7.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(if (isArOrUr) "منح إذن التنبيهات الدقيقة" else "Grant Exact Alarm Permission", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = effectiveTheme.accentBright)
+                            }
+                        }
+                        Text(
+                            text = if (isArOrUr) "ملاحظة لهواتف Xiaomi / Samsung: فعّل (التشغيل التلقائي Autostart) واختر (بلا قيود على البطارية) لضمان انطلاق الأذان دائماً." else "Xiaomi/Samsung tip: Enable Autostart and set Battery to Unrestricted.",
+                            fontFamily = SakinaBodyFont,
+                            fontSize = 11.sp,
+                            color = SakinaBrandColors.SoftSilver
                         )
                         if (!batteryExempt) {
                             Box(

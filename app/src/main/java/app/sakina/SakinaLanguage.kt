@@ -133,6 +133,9 @@ fun localizeMethodName(raw: String, lang: SakinaLang): String {
         raw.contains("أم القرى") -> "Umm al-Qura (Makkah)"
         raw.contains("مصر") -> "Egyptian General Authority"
         raw.contains("كراتشي") -> "Karachi (Hanafi)"
+        raw.contains("المغرب") -> if (lang == SakinaLang.FR) "Maroc (Habous 19°/17°)" else "Morocco (Awqaf 19°/17°)"
+        raw.contains("تونس") -> if (lang == SakinaLang.FR) "Tunisie (18°/18°)" else "Tunisia (18°/18°)"
+        raw.contains("ISNA") -> "ISNA (North America 15°)"
         else -> raw
     }
 }

@@ -1,6 +1,10 @@
 package app.sakina
 
 import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import androidx.annotation.RawRes
@@ -54,6 +58,8 @@ enum class AdhanVoice(
 object SakinaAdhanAudio {
     private const val PREF_VOICE = "adhan_voice_key"
     private var activePlayer: MediaPlayer? = null
+    private var flipSm: SensorManager? = null
+    private var flipListener: SensorEventListener? = null
 
     fun selectedVoice(ctx: Context): AdhanVoice {
         val sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
@@ -68,13 +74,61 @@ object SakinaAdhanAudio {
             .apply()
     }
 
-    @RawRes
-    fun rawResForPrayer(ctx: Context, prayerNameAr: String? = null): Int {
-        val chosen = selectedVoice(ctx)
-        if (prayerNameAr == "الفجر" && chosen == AdhanVoice.RIAD) {
-            return R.raw.riad_fajr
+    fun voiceForPrayer(ctx: Context, prayerNameAr: String?): AdhanVoice {
+        if (!prayerNameAr.isNullOrBlank()) {
+            val sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val perKey = sp.getString("adhan_voice_$prayerNameAr", null)
+            if (!perKey.isNullOrBlank()) {
+                AdhanVoice.entries.firstOrNull { it.key == perKey }?.let { return it }
+            }
         }
-        return chosen.rawRes
+        val global = selectedVoice(ctx)
+        if (prayerNameAr == "الفجر" && global == AdhanVoice.RIAD) return AdhanVoice.RIAD_FAJR
+        return global
+    }
+
+    fun setVoiceForPrayer(ctx: Context, prayerNameAr: String, voice: AdhanVoice?) {
+        val ed = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE).edit()
+        if (voice == null) ed.remove("adhan_voice_$prayerNameAr")
+        else ed.putString("adhan_voice_$prayerNameAr", voice.key)
+        ed.apply()
+    }
+
+    @RawRes
+    fun rawResForPrayer(ctx: Context, prayerNameAr: String? = null): Int =
+        voiceForPrayer(ctx, prayerNameAr).rawRes
+
+    private fun registerFlipToSilence(ctx: Context) {
+        unregisterFlipToSilence()
+        if (!SakinaAdvancedPrefs.flipToSilence(ctx)) return
+        try {
+            val sm = ctx.applicationContext.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return
+            val accel = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) ?: return
+            var seenFaceUp = false
+            val listener = object : SensorEventListener {
+                override fun onSensorChanged(event: SensorEvent) {
+                    val z = event.values[2]
+                    if (z > 6.0f) seenFaceUp = true
+                    if (seenFaceUp && z < -7.5f) {
+                        stop()
+                    }
+                }
+                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+            }
+            sm.registerListener(listener, accel, SensorManager.SENSOR_DELAY_UI)
+            flipSm = sm
+            flipListener = listener
+        } catch (_: Exception) {}
+    }
+
+    private fun unregisterFlipToSilence() {
+        try {
+            if (flipSm != null && flipListener != null) {
+                flipSm?.unregisterListener(flipListener)
+            }
+        } catch (_: Exception) {}
+        flipSm = null
+        flipListener = null
     }
 
     fun startPreview(ctx: Context, voice: AdhanVoice, onComplete: () -> Unit = {}) {
@@ -124,13 +178,17 @@ object SakinaAdhanAudio {
             }
             mp.start()
             activePlayer = mp
+            registerFlipToSilence(ctx)
         } catch (_: Exception) {
             stop()
             onComplete()
         }
     }
 
+    fun isPlaying(): Boolean = try { activePlayer?.isPlaying == true } catch (_: Exception) { false }
+
     fun stop() {
+        unregisterFlipToSilence()
         try {
             activePlayer?.let {
                 if (it.isPlaying) it.stop()

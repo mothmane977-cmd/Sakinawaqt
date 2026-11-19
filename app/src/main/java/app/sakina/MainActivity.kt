@@ -13,10 +13,12 @@ import android.content.Intent
 import android.location.Location
 import android.location.LocationManager
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.view.KeyEvent
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -73,7 +75,14 @@ val PRAYER_NAMES = listOf("الفجر", "الشروق", "الظهر", "العص�
 
 object Prefs {
     val METHODS = listOf(
-        "زاويتا الجزائر 18°/17°", "رابطة العالم الإسلامي", "الهيئة المصرية", "أم القرى", "كراتشي"
+        "زاويتا الجزائر 18°/17°",
+        "رابطة العالم الإسلامي",
+        "الهيئة المصرية",
+        "أم القرى",
+        "كراتشي",
+        "وزارة الأوقاف المغربية 19°/17°",
+        "الجمهورية التونسية 18°/18°",
+        "أمريكا الشمالية (ISNA 15°)"
     )
     private fun sp(c: Context) = c.getSharedPreferences("prefs", Context.MODE_PRIVATE)
 
@@ -97,6 +106,9 @@ object Prefs {
             2 -> CalculationMethod.EGYPTIAN.parameters
             3 -> CalculationMethod.UMM_AL_QURA.parameters
             4 -> CalculationMethod.KARACHI.parameters
+            5 -> CalculationMethod.OTHER.parameters.apply { fajrAngle = 19.0; ishaAngle = 17.0 }
+            6 -> CalculationMethod.OTHER.parameters.apply { fajrAngle = 18.0; ishaAngle = 18.0 }
+            7 -> CalculationMethod.NORTH_AMERICA.parameters
             else -> CalculationMethod.OTHER.parameters.apply { fajrAngle = 18.0; ishaAngle = 17.0 }
         }
         p.madhab = if (hanafi(c)) Madhab.HANAFI else Madhab.SHAFI
@@ -113,7 +125,14 @@ object PrayerEngine {
     fun events(c: Context, offset: Int): List<Pair<Int, Date>> {
         val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, offset) }
         val t = PrayerTimes(Place.coords(c), DateComponents.from(cal.time), Prefs.params(c))
-        fun sh(i: Int, d: Date) = Date(d.time + Offsets.get(c, PRAYER_NAMES[i]) * 60_000L)
+        val tz = TimeZone.getDefault()
+        val inDst = tz.inDaylightTime(cal.time)
+        val dstShiftMs = when (SakinaAdvancedPrefs.dstMode(c)) {
+            1 -> if (!inDst) 3_600_000L else 0L
+            2 -> if (inDst) -3_600_000L else 0L
+            else -> 0L
+        }
+        fun sh(i: Int, d: Date) = Date(d.time + Offsets.get(c, PRAYER_NAMES[i]) * 60_000L + dstShiftMs)
         return listOf(
             0 to sh(0, t.fajr), 1 to t.sunrise, 2 to sh(2, t.dhuhr),
             3 to sh(3, t.asr), 4 to sh(4, t.maghrib), 5 to sh(5, t.isha)
@@ -207,6 +226,18 @@ object AlarmScheduler {
     }
 
     fun scheduleNext(c: Context, after: Long = System.currentTimeMillis()) {
+        // Background travel check: auto-update coordinates if user moved > 10 km
+        try {
+            if (c.getSharedPreferences("prefs", Context.MODE_PRIVATE).getBoolean("auto_gps_location", true)) {
+                val loc = Place.fromDevice(c)
+                if (loc != null) {
+                    val cur = Place.coords(c)
+                    if (kotlin.math.abs(loc.latitude - cur.latitude) > 0.1 || kotlin.math.abs(loc.longitude - cur.longitude) > 0.1) {
+                        Place.set(c, loc.latitude, loc.longitude, "GPS")
+                    }
+                }
+            }
+        } catch (_: Exception) {}
         checkMissed(c)
         cancelWindow(c)
 
@@ -283,6 +314,8 @@ class AlarmReceiver : BroadcastReceiver() {
         if (mode == 0) {
             SakinaAdhanAudio.playAlarmAdhan(c, name)
             Notifier.show(c, name, mode, playSoundInChannel = false)
+            SilentModeScheduler.scheduleIfEnabled(c, name)
+            PostPrayerAdhkarScheduler.scheduleIfEnabled(c, name)
             return
         }
         if (mode == 1) {
@@ -327,18 +360,23 @@ object Notifier {
             c, 10, Intent(c, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        nm.notify(
-            name.hashCode(),
-            NotificationCompat.Builder(c, chId)
-                .setSmallIcon(R.drawable.ic_stat_sakina)
-                .setColor(0xFFC69C53.toInt())
-                .setContentTitle("حان وقت $name")
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setContentIntent(openPi)
-                .setAutoCancel(true)
-                .build()
+        val stopPi = PendingIntent.getBroadcast(
+            c, 778, Intent(c, StopAdhanReceiver::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val b = NotificationCompat.Builder(c, chId)
+            .setSmallIcon(R.drawable.ic_stat_sakina)
+            .setColor(0xFFC69C53.toInt())
+            .setContentTitle("حان وقت $name")
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(openPi)
+            .setDeleteIntent(stopPi)
+            .setAutoCancel(true)
+        if (mode == 0) {
+            b.addAction(0, "إيقاف الأذان", stopPi)
+        }
+        nm.notify(name.hashCode(), b.build())
     }
 }
 
@@ -349,7 +387,61 @@ class BootReceiver : BroadcastReceiver() {
     }
 }
 
+object PostPrayerAdhkarScheduler {
+    fun scheduleIfEnabled(c: Context, prayerName: String) {
+        if (!SakinaAdvancedPrefs.postPrayerAdhkarNotif(c)) return
+        try {
+            val am = c.getSystemService(AlarmManager::class.java)
+            val fireAt = System.currentTimeMillis() + 12 * 60_000L
+            val pi = PendingIntent.getBroadcast(
+                c, 820, Intent(c, PostPrayerAdhkarReceiver::class.java).putExtra("p", prayerName),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pi)
+        } catch (_: Exception) {}
+    }
+}
+
+class PostPrayerAdhkarReceiver : BroadcastReceiver() {
+    override fun onReceive(c: Context, i: Intent) {
+        try {
+            val nm = c.getSystemService(NotificationManager::class.java)
+            val chId = "sakina_post_prayer_adhkar"
+            if (Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(
+                    NotificationChannel(chId, "أذكار ما بعد الصلاة", NotificationManager.IMPORTANCE_DEFAULT)
+                )
+            }
+            val openIntent = Intent(c, MainActivity::class.java).apply {
+                putExtra("open_after_prayer", true)
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pi = PendingIntent.getActivity(c, 821, openIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            val pName = i.getStringExtra("p") ?: "الصلاة"
+            nm.notify(
+                820,
+                NotificationCompat.Builder(c, chId)
+                    .setSmallIcon(R.drawable.ic_stat_sakina)
+                    .setColor(0xFFC69C53.toInt())
+                    .setContentTitle("أذكار بعد صلاة $pName")
+                    .setContentText("سبحان الله (33) · الحمد لله (33) · الله أكبر (33) · آية الكرسي")
+                    .setContentIntent(pi)
+                    .setAutoCancel(true)
+                    .build()
+            )
+        } catch (_: Exception) {}
+    }
+}
+
 class MainActivity : ComponentActivity() {
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if ((keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || keyCode == KeyEvent.KEYCODE_VOLUME_UP) && SakinaAdhanAudio.isPlaying()) {
+            SakinaAdhanAudio.stop()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
         enableEdgeToEdge(
@@ -359,5 +451,53 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
         AlarmScheduler.scheduleNext(this)
         setContent { HomeScreen(this@MainActivity) }
+    }
+}
+
+class StopAdhanReceiver : BroadcastReceiver() {
+    override fun onReceive(c: Context, i: Intent) {
+        SakinaAdhanAudio.stop()
+    }
+}
+
+object SilentModeScheduler {
+    fun scheduleIfEnabled(c: Context, prayerName: String) {
+        if (!SakinaAdvancedPrefs.autoSilentEnabled(c)) return
+        try {
+            val nm = c.getSystemService(NotificationManager::class.java)
+            if (Build.VERSION.SDK_INT >= 23 && !nm.isNotificationPolicyAccessGranted) return
+            val am = c.getSystemService(AlarmManager::class.java)
+            val now = System.currentTimeMillis()
+            val startAt = now + 10 * 60_000L
+            val isFridayDhuhr = prayerName == "الظهر" && Calendar.getInstance().get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY
+            val durMin = if (isFridayDhuhr) SakinaAdvancedPrefs.fridaySilentDurationMin(c).toLong() else SakinaAdvancedPrefs.autoSilentDurationMin(c).toLong()
+            val endAt = startAt + durMin * 60_000L
+
+            val startPi = PendingIntent.getBroadcast(
+                c, 810, Intent(c, AutoSilentReceiver::class.java).putExtra("silent", true),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val endPi = PendingIntent.getBroadcast(
+                c, 811, Intent(c, AutoSilentReceiver::class.java).putExtra("silent", false),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startAt, startPi)
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endAt, endPi)
+        } catch (_: Exception) {}
+    }
+}
+
+class AutoSilentReceiver : BroadcastReceiver() {
+    override fun onReceive(c: Context, i: Intent) {
+        try {
+            val audio = c.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val goSilent = i.getBooleanExtra("silent", false)
+            if (goSilent) {
+                val target = if (SakinaAdvancedPrefs.autoSilentVibrate(c)) AudioManager.RINGER_MODE_VIBRATE else AudioManager.RINGER_MODE_SILENT
+                audio.ringerMode = target
+            } else {
+                audio.ringerMode = AudioManager.RINGER_MODE_NORMAL
+            }
+        } catch (_: Exception) {}
     }
 }

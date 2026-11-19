@@ -76,6 +76,15 @@ object SakinaAdvancedPrefs {
     fun autoSilentTransitionAlert(c: Context): Int = sp(c).getInt("auto_silent_alert", 1)
     fun setAutoSilentTransitionAlert(c: Context, v: Int) = sp(c).edit().putInt("auto_silent_alert", v.coerceIn(0, 3)).apply()
 
+    fun autoSilentDurationMin(c: Context): Int = sp(c).getInt("auto_silent_dur_min", 20)
+    fun setAutoSilentDurationMin(c: Context, v: Int) = sp(c).edit().putInt("auto_silent_dur_min", v).apply()
+
+    fun fridaySilentDurationMin(c: Context): Int = sp(c).getInt("friday_silent_dur_min", 45)
+    fun setFridaySilentDurationMin(c: Context, v: Int) = sp(c).edit().putInt("friday_silent_dur_min", v).apply()
+
+    fun postPrayerAdhkarNotif(c: Context): Boolean = sp(c).getBoolean("post_prayer_adhkar_notif", true)
+    fun setPostPrayerAdhkarNotif(c: Context, v: Boolean) = sp(c).edit().putBoolean("post_prayer_adhkar_notif", v).apply()
+
     fun silentBypassFor(c: Context, prayerKeyAr: String): Boolean =
         sp(c).getBoolean("silent_bypass_$prayerKeyAr", false)
 

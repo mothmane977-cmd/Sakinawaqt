@@ -94,6 +94,7 @@ fun SakinaSettingsScreen(
     var showCityPicker by remember { mutableStateOf(false) }
     var showVoicePicker by remember { mutableStateOf(false) }
     var showManualOffsets by remember { mutableStateOf(false) }
+    var showPerPrayerMuezzin by remember { mutableStateOf(false) }
 
     var autoLocation by remember { mutableStateOf(sp.getBoolean("auto_gps_location", true)) }
     var autoNight by remember { mutableStateOf(SakinaAdvancedPrefs.autoNightMode(ctx)) }
@@ -117,6 +118,9 @@ fun SakinaSettingsScreen(
     var autoSilent by remember { mutableStateOf(SakinaAdvancedPrefs.autoSilentEnabled(ctx)) }
     var autoSilentVib by remember { mutableStateOf(SakinaAdvancedPrefs.autoSilentVibrate(ctx)) }
     var silentAlertMode by remember { mutableIntStateOf(SakinaAdvancedPrefs.autoSilentTransitionAlert(ctx)) }
+    var silentDurMin by remember { mutableIntStateOf(SakinaAdvancedPrefs.autoSilentDurationMin(ctx)) }
+    var fridaySilentMin by remember { mutableIntStateOf(SakinaAdvancedPrefs.fridaySilentDurationMin(ctx)) }
+    var postPrayerNotif by remember { mutableStateOf(SakinaAdvancedPrefs.postPrayerAdhkarNotif(ctx)) }
     var customReminders by remember { mutableStateOf(SakinaAdvancedPrefs.customReminders(ctx)) }
 
     var calDays by remember { mutableIntStateOf(SakinaAdvancedPrefs.calendarSyncDays(ctx)) }
@@ -388,6 +392,13 @@ fun SakinaSettingsScreen(
                     SakinaSettingsPill(R.drawable.ic_alarm, s.adhanVoiceLabel, selectedVoice.localizedTitle(lang)) {
                         showVoicePicker = true
                     }
+                    SakinaSettingsPill(
+                        R.drawable.ic_mosque,
+                        if (isArOrUr) "تخصيص مؤذن لكل صلاة" else "Muezzin per Prayer",
+                        if (isArOrUr) "الصلوات الخمس" else "5 Prayers"
+                    ) {
+                        showPerPrayerMuezzin = true
+                    }
 
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
                         SettingSwitchRow(
@@ -460,7 +471,32 @@ fun SakinaSettingsScreen(
                             SettingSegmentedRow(labels = trLabels, selectedIdx = silentAlertMode) {
                                 silentAlertMode = it; SakinaAdvancedPrefs.setAutoSilentTransitionAlert(ctx, it)
                             }
+                            Spacer(Modifier.height(6.dp))
+                            Text(if (isArOrUr) "مدة الصامت (الأيام العادية / الجمعة)" else "Silent Duration (Regular / Friday)", fontFamily = SakinaBodyFont, fontSize = 11.sp, color = theme.accentBright)
+                            Spacer(Modifier.height(4.dp))
+                            val durOpts = listOf(15, 20, 30, 45)
+                            SettingSegmentedRow(
+                                labels = durOpts.map { "$it ${s.minuteShort}".toWesternDigits() },
+                                selectedIdx = durOpts.indexOf(silentDurMin).coerceAtLeast(1)
+                            ) {
+                                silentDurMin = durOpts[it]; SakinaAdvancedPrefs.setAutoSilentDurationMin(ctx, silentDurMin)
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            val friOpts = listOf(30, 45, 60)
+                            SettingSegmentedRow(
+                                labels = friOpts.map { "${if (isArOrUr) "الجمعة" else "Fri"} $it${s.minuteShort}".toWesternDigits() },
+                                selectedIdx = friOpts.indexOf(fridaySilentMin).coerceAtLeast(1)
+                            ) {
+                                fridaySilentMin = friOpts[it]; SakinaAdvancedPrefs.setFridaySilentDurationMin(ctx, fridaySilentMin)
+                            }
                         }
+                    }
+                    SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
+                        SettingSwitchRow(
+                            title = if (isArOrUr) "تذكير أذكار ما بعد الصلاة (بعد الأذان بـ 12د)" else "Post-Prayer Adhkar Reminder (+12m)",
+                            checked = postPrayerNotif,
+                            onCheckedChange = { postPrayerNotif = it; SakinaAdvancedPrefs.setPostPrayerAdhkarNotif(ctx, it) }
+                        )
                     }
 
                     // Custom Prayer Reminders
@@ -578,6 +614,49 @@ fun SakinaSettingsScreen(
     }
 
     // Manual Prayer Time Offsets Dialog (-120..+120 min)
+    if (showPerPrayerMuezzin) {
+        val prayerKeys = listOf("الفجر", "الظهر", "العصر", "المغرب", "العشاء")
+        var tick by remember { mutableIntStateOf(0) }
+        AlertDialog(
+            onDismissRequest = { showPerPrayerMuezzin = false },
+            containerColor = theme.bgCard,
+            title = {
+                Text(
+                    text = if (isArOrUr) "تخصيص مؤذن لكل صلاة" else "Muezzin per Prayer",
+                    fontFamily = SakinaHeadingFont,
+                    color = theme.accentBright
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    prayerKeys.forEachIndexed { idx, pKey ->
+                        val curVoice = remember(tick) { SakinaAdhanAudio.voiceForPrayer(ctx, pKey) }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0x22FFFFFF))
+                                .clickable {
+                                    val nextVoice = AdhanVoice.entries[(curVoice.ordinal + 1) % AdhanVoice.entries.size]
+                                    SakinaAdhanAudio.setVoiceForPrayer(ctx, pKey, nextVoice)
+                                    tick++
+                                }
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(s.prayers.getOrElse(idx) { pKey }, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, color = theme.accentBright)
+                            Text(curVoice.localizedTitle(lang), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPerPrayerMuezzin = false }) { Text("×", color = theme.accentBright, fontSize = 18.sp) }
+            }
+        )
+    }
+
     if (showManualOffsets) {
         AlertDialog(
             onDismissRequest = { showManualOffsets = false },
