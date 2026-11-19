@@ -14,7 +14,7 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.7
+          gradle-version: 8.11.1
 
       # تجهيز خط النسخ الأصيل (Amiri) + المصحف الكامل (حفص وورش) أوفلاين
       - name: Bundle Amiri Naskh Font & Offline Quran (Hafs & Warsh)
@@ -52,9 +52,9 @@ jobs:
       - name: Bundle 604 Offline Mushaf Pages
         run: |
           mkdir -p app/src/main/assets/mushaf
-          curl -L -s "https://github.com/quran/quran_android/releases/download/v3.6.3/quran_images_1260.zip" -o /tmp/mushaf.zip
-          unzip -j -q -o /tmp/mushaf.zip "*.png" -d app/src/main/assets/mushaf/
-          rm -f /tmp/mushaf.zip
+          git clone --depth 1 https://github.com/GovarJabbar/Quran-PNG.git /tmp/quran-png
+          cp /tmp/quran-png/[0-9][0-9][0-9].png app/src/main/assets/mushaf/
+          rm -rf /tmp/quran-png
           ls app/src/main/assets/mushaf | wc -l
 
       # بناء نسخة الـ Release
