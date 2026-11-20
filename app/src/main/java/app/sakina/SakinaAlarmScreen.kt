@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -55,15 +57,25 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
     var selectedVoice by remember { mutableStateOf(SakinaAdhanAudio.selectedVoice(ctx)) }
     var playingVoiceKey by remember { mutableStateOf<String?>(null) }
     var showVoiceDialog by remember { mutableStateOf(false) }
+    var alarmTab by remember { mutableIntStateOf(0) } // 0 = المنبهات الصوتية (13-1..4), 1 = التنبيهات الهادئة
+    var fajrSnooze by remember { mutableStateOf(SakinaAdvancedPrefs.fajrSnoozeEnabled(ctx)) }
+    var qiyamOn by remember { mutableStateOf(SakinaAdvancedPrefs.qiyamAlarmEnabled(ctx)) }
+    var qiyamMin by remember { mutableIntStateOf(SakinaAdvancedPrefs.qiyamAlarmMinutesBefore(ctx)) }
+    var iqamaOn by remember { mutableStateOf(SakinaAdvancedPrefs.iqamaAlarmEnabled(ctx)) }
+    var iqamaMin by remember { mutableIntStateOf(SakinaAdvancedPrefs.iqamaMinutesAfter(ctx)) }
+    var postAdhkarOn by remember { mutableStateOf(SakinaAdvancedPrefs.postPrayerAdhkarNotif(ctx)) }
+    var fastingOn by remember { mutableStateOf(SakinaAdvancedPrefs.voluntaryFastingNotif(ctx)) }
+    var kahfOn by remember { mutableStateOf(SakinaAdvancedPrefs.fridayKahfNotif(ctx)) }
+    var liveNotifOn by remember { mutableStateOf(SakinaAdvancedPrefs.persistentNotifEnabled(ctx)) }
 
-    // #5: Single non-scrolling page positioned cleanly below the Mihrab arch (top = 56.dp, bottom = 74.dp)
     Column(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, top = 56.dp, bottom = 74.dp),
-        verticalArrangement = Arrangement.SpaceBetween
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 76.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             SakinaBackIconButton(
@@ -89,6 +101,124 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
                 )
+            }
+        }
+
+        // v18 Point 13: Clear separation between Active Alarms (المنبهات) and Quiet Notifications (التنبيهات)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(theme.bgCard.copy(alpha = 0.88f))
+                .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(18.dp))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            listOf("المنبهات الصوتية", "التنبيهات الهادئة").forEachIndexed { idx, label ->
+                val sel = alarmTab == idx
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (sel) theme.accentGold else Color.Transparent)
+                        .clickable { alarmTab = idx }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        fontFamily = SakinaEditorialFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.5.sp,
+                        color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory
+                    )
+                }
+            }
+        }
+
+        if (alarmTab == 1) {
+            SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
+                Text("التنبيهات والإشعارات الهادئة", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = theme.accentBright)
+                Spacer(Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("الإشعار الحي الدائم لمواقيت الصلاة", fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    SakinaGoldSwitch(checked = liveNotifOn, onCheckedChange = {
+                        liveNotifOn = it; SakinaAdvancedPrefs.setPersistentNotifEnabled(ctx, it); SakinaLiveNotifier.update(ctx)
+                    })
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("تذكير أذكار ما بعد الصلاة (بعد 12 د)", fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    SakinaGoldSwitch(checked = postAdhkarOn, onCheckedChange = {
+                        postAdhkarOn = it; SakinaAdvancedPrefs.setPostPrayerAdhkarNotif(ctx, it)
+                    })
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("تذكير ليلي بصيام التطوع والأيام البيض", fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    SakinaGoldSwitch(checked = fastingOn, onCheckedChange = {
+                        fastingOn = it; SakinaAdvancedPrefs.setVoluntaryFastingNotif(ctx, it); try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {}
+                    })
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("تذكير سورة الكهف صباح الجمعة", fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    SakinaGoldSwitch(checked = kahfOn, onCheckedChange = {
+                        kahfOn = it; SakinaAdvancedPrefs.setFridayKahfNotif(ctx, it)
+                    })
+                }
+            }
+        } else {
+            // 13-1, 13-3, 13-4 Categorized Alarm Modes Card
+            SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
+                Text("تصنيف المنبهات حسب الوظيفة", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
+                Spacer(Modifier.height(6.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("1. منبه الفجر المشدّد (تدرّج صوتي + غفوة)", fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    SakinaGoldSwitch(checked = fajrSnooze, onCheckedChange = {
+                        fajrSnooze = it; SakinaAdvancedPrefs.setFajrSnoozeEnabled(ctx, it); Prefs.setFajrFade(ctx, it)
+                    })
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("3. منبه قيام الليل والسحور (قبل الفجر بـ $qiyamMin د)".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    SakinaGoldSwitch(checked = qiyamOn, onCheckedChange = {
+                        qiyamOn = it; SakinaAdvancedPrefs.setQiyamAlarmEnabled(ctx, it); try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {}
+                    })
+                }
+                if (qiyamOn) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(30, 45, 60).forEach { m ->
+                            Box(
+                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                                    .background(if (qiyamMin == m) theme.accentGold else Color(0x22FFFFFF))
+                                    .clickable { qiyamMin = m; SakinaAdvancedPrefs.setQiyamAlarmMinutesBefore(ctx, m); try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {} }
+                                    .padding(vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Text("${m} د".toWesternDigits(), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (qiyamMin == m) theme.bgDeep else SakinaBrandColors.LuminousIvory) }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("4. منبه الإقامة (بعد الأذان بـ $iqamaMin د)".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    SakinaGoldSwitch(checked = iqamaOn, onCheckedChange = {
+                        iqamaOn = it; SakinaAdvancedPrefs.setIqamaAlarmEnabled(ctx, it)
+                    })
+                }
+                if (iqamaOn) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(10, 15, 20).forEach { m ->
+                            Box(
+                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                                    .background(if (iqamaMin == m) theme.accentGold else Color(0x22FFFFFF))
+                                    .clickable { iqamaMin = m; SakinaAdvancedPrefs.setIqamaMinutesAfter(ctx, m) }
+                                    .padding(vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Text("${m} د".toWesternDigits(), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (iqamaMin == m) theme.bgDeep else SakinaBrandColors.LuminousIvory) }
+                        }
+                    }
+                }
             }
         }
 

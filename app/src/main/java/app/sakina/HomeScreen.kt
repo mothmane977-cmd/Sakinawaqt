@@ -54,7 +54,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-private enum class ExtraSection { NONE, ADHKAR, CALENDAR, DUAS, RUQYAH, ALARM, SETTINGS }
+private enum class ExtraSection { NONE, ADHKAR, CALENDAR, DUAS, RUQYAH, ALARM, SETTINGS, SUNNAH }
 
 private data class BrandPrayerRow(
     val keyNameAr: String,
@@ -313,26 +313,20 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    SakinaTitle3D(text = s.appName, fontSize = 21.sp, modifier = Modifier.weight(1f))
+                                    SakinaTitle3D(text = if (isArOrUr) "الإعدادات العامة" else "General Settings", fontSize = 17.sp)
                                     SakinaBackIconButton(onClick = { scope.launch { rightDrawerState.close() } })
                                 }
                                 Text(
-                                    text = if (isArOrUr) "العبادات والإعدادات" else "Worship & Settings",
+                                    text = if (isArOrUr) "التنبيهات والمنبهات والضبط" else "Alarms, Notifications & Settings",
                                     fontFamily = SakinaBodyFont,
                                     fontSize = 11.sp,
                                     color = effectiveTheme.accentGold,
                                     modifier = Modifier.padding(horizontal = 4.dp)
                                 )
-                                SakinaDrawerPillItem(R.drawable.ic_duas, s.duasTitle) {
-                                    scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.DUAS
-                                }
-                                SakinaDrawerPillItem(R.drawable.ic_ruqyah, s.ruqyahTitle) {
-                                    scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.RUQYAH
-                                }
-                                SakinaDrawerPillItem(R.drawable.ic_alarm, s.alarmTitle) {
+                                SakinaDrawerPillItem(R.drawable.ic_alarm, if (isArOrUr) "المنبهات والتنبيهات" else s.alarmTitle) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.ALARM
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_settings, s.settingsTitle) {
+                                SakinaDrawerPillItem(R.drawable.ic_settings, if (isArOrUr) "الإعدادات العامة والمظهر" else s.settingsTitle) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.SETTINGS
                                 }
                                 SakinaDrawerPillItem(
@@ -351,6 +345,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     ModalNavigationDrawer(
                         drawerState = leftDrawerState,
+                        gesturesEnabled = leftDrawerState.isOpen,
                         drawerContent = {
                             CompositionLocalProvider(LocalLayoutDirection provides appDir) {
                                 ModalDrawerSheet(drawerContainerColor = effectiveTheme.bgDeep, modifier = Modifier.width(296.dp)) {
@@ -362,13 +357,22 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         verticalArrangement = Arrangement.spacedBy(7.dp)
                                     ) {
                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                            SakinaTitle3D(text = if (isArOrUr) "الأذكار والتقويم" else "Adhkar & Calendar", fontSize = 18.sp, modifier = Modifier.weight(1f))
+                                            SakinaTitle3D(text = if (isArOrUr) "الأذكار والعبادات" else "Adhkar & Worship", fontSize = 17.sp)
                                             SakinaBackIconButton(onClick = { scope.launch { leftDrawerState.close() } })
                                         }
                                         Spacer(Modifier.height(2.dp))
 
                                         SakinaDrawerPillItem(R.drawable.ic_tasbih, s.adhkarTitle) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; adhkarInitCat = null; extraSection = ExtraSection.ADHKAR
+                                        }
+                                        SakinaDrawerPillItem(R.drawable.ic_duas, s.duasTitle) {
+                                            scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.DUAS
+                                        }
+                                        SakinaDrawerPillItem(R.drawable.ic_ruqyah, s.ruqyahTitle) {
+                                            scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.RUQYAH
+                                        }
+                                        SakinaDrawerPillItem(R.drawable.ic_sunan, if (isArOrUr) "السنن والنوافل والورد اليومي" else "Voluntary Worship & Sunnah") {
+                                            scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.SUNNAH
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_calendar, s.calendarTitle) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.CALENDAR
@@ -454,6 +458,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         ExtraSection.CALENDAR -> SakinaCalendarScreen(ctx = ctx)
                                         ExtraSection.DUAS -> SakinaDuasScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.RUQYAH -> SakinaRuqyahScreen(onBackToHome = { returnFromExtra() })
+                                        ExtraSection.SUNNAH -> SakinaSunnahScreen(ctx = ctx, onBackClick = { returnFromExtra() })
                                         ExtraSection.ALARM -> SakinaAlarmScreen(ctx = ctx, onBackClick = { returnFromExtra() })
                                         ExtraSection.SETTINGS -> SakinaSettingsScreen(
                                             ctx = ctx,
@@ -475,42 +480,29 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     }
 
                                     if (extraSection == ExtraSection.NONE) {
-                                        // Top-Right Menu Button (34.dp): Opens Worship & Settings Drawer
-                                        Box(
+                                        // Top-Right Menu Button (11ب): Graduated 3 gold lines -> General Settings Drawer
+                                        SakinaGraduatedMenuIcon(
+                                            mirror = false,
+                                            onClick = { scope.launch { rightDrawerState.open() } },
                                             modifier = Modifier
                                                 .align(AbsoluteAlignment.TopRight)
                                                 .statusBarsPadding()
-                                                .padding(end = 15.dp, top = 14.dp)
-                                                .size(34.dp)
-                                                .clip(CircleShape)
-                                                .background(effectiveTheme.bgDeep.copy(alpha = 0.88f))
-                                                .border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                                .clickable { scope.launch { rightDrawerState.open() } },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Image(painter = painterResource(id = R.drawable.ic_menu), contentDescription = "Menu", modifier = Modifier.size(19.dp))
-                                        }
+                                                .padding(end = 16.dp, top = 14.dp)
+                                        )
 
-                                        // Top-Left Group: Left Drawer Button (Adhkar & Calendar) + Language Switcher Pill beside it (#1)
+                                        // Top-Left Group: Matching Graduated 3 gold lines (Adhkar & Worship) + Language Switcher
                                         Row(
                                             modifier = Modifier
                                                 .align(AbsoluteAlignment.TopLeft)
                                                 .statusBarsPadding()
-                                                .padding(start = 15.dp, top = 14.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                .padding(start = 16.dp, top = 14.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(34.dp)
-                                                    .clip(CircleShape)
-                                                    .background(effectiveTheme.bgDeep.copy(alpha = 0.88f))
-                                                    .border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                                    .clickable { scope.launch { leftDrawerState.open() } },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Image(painter = painterResource(id = R.drawable.ic_tasbih), contentDescription = "Adhkar & Calendar", modifier = Modifier.size(20.dp))
-                                            }
+                                            SakinaGraduatedMenuIcon(
+                                                mirror = true,
+                                                onClick = { scope.launch { leftDrawerState.open() } }
+                                            )
 
                                             Box(
                                                 modifier = Modifier
@@ -794,15 +786,16 @@ private fun SakinaHomeContent(ctx: Context) {
     val viewedCal = remember(dayOffset, nowMs / 3_600_000L) {
         Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dayOffset) }
     }
-    val datePillText = remember(viewedCal, s) {
-        val g = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(viewedCal.time).toWesternDigits()
+    val datePillText = remember(viewedCal, s, lang) {
+        val dayName = SimpleDateFormat("EEEE", lang.locale).format(viewedCal.time)
+        val gregWords = SimpleDateFormat("d MMMM yyyy", lang.locale).format(viewedCal.time).toWesternDigits()
         val ic = IslamicCalendar().apply {
             timeInMillis = viewedCal.timeInMillis
             add(IslamicCalendar.DAY_OF_MONTH, Prefs.hijriOffset(ctx))
         }
         val hMonth = s.hijriMonths.getOrElse(ic.get(IslamicCalendar.MONTH).coerceIn(0, 11)) { "" }
         val h = "${ic.get(IslamicCalendar.DAY_OF_MONTH)} $hMonth ${ic.get(IslamicCalendar.YEAR)}".toWesternDigits()
-        "$g · $h"
+        "$dayName، $h · $gregWords"
     }
     val localizedCity = remember(lang, locRefreshTick) { localizeCityName(Place.name(ctx), lang) }
 
@@ -863,14 +856,14 @@ private fun SakinaHomeContent(ctx: Context) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_location),
                     contentDescription = null,
-                    modifier = Modifier.size(17.dp)
+                    modifier = Modifier.size(22.dp)
                 )
-                Spacer(Modifier.width(5.dp))
+                Spacer(Modifier.width(6.dp))
                 Text(
                     text = localizedCity,
                     fontFamily = SakinaEditorialFont,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 11.5.sp,
+                    fontSize = 18.sp,
                     color = theme.accentBright
                 )
                 if (dayOffset != 0) {
@@ -932,7 +925,7 @@ private fun SakinaHomeContent(ctx: Context) {
                 } else {
                     SakinaAnalogClockDial(
                         timeMs = nowMs,
-                        size = 84.dp
+                        size = 172.dp
                     )
                 }
 

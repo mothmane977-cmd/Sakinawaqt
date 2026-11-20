@@ -278,7 +278,7 @@ private fun loadMushafAsset(context: Context, riwaya: QuranRiwaya): List<SurahEn
 private suspend fun loadMushafPageBitmap(ctx: Context, pageNum: Int): ImageBitmap? = withContext(Dispatchers.IO) {
     val padded = pageNum.toString().padStart(3, '0')
     // 1. Check bundled APK assets
-    for (assetPath in listOf("mushaf/page$padded.png", "mushaf/$padded.png", "mushaf/$pageNum.png")) {
+    for (assetPath in listOf("mushaf/$padded.webp", "mushaf/page$padded.webp", "mushaf/page$padded.png", "mushaf/$padded.png", "mushaf/$pageNum.png")) {
         try {
             ctx.assets.open(assetPath).use { stream ->
                 val bmp = BitmapFactory.decodeStream(stream)

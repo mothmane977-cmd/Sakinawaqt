@@ -84,21 +84,33 @@ fun SakinaTitle3D(
     fontSize: TextUnit = 21.sp,
     modifier: Modifier = Modifier
 ) {
-    Text(
-        text = text,
-        textAlign = TextAlign.Center,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        style = TextStyle(
-            fontFamily = SakinaEditorialFont,
-            fontWeight = FontWeight.Bold,
-            fontSize = fontSize,
-            brush = SakinaCalligraphyBrush(),
-            shadow = Shadow(color = Color(0xEE000000), offset = Offset(0f, 3f), blurRadius = 7f),
-            platformStyle = PlatformTextStyle(includeFontPadding = false)
-        ),
-        modifier = modifier.fillMaxWidth()
-    )
+    val theme = LocalSakinaTheme.current
+    val isRtl = LocalSakinaLang.current.isRtl
+    val pillShape = RoundedCornerShape(18.dp)
+    Box(
+        modifier = modifier
+            .wrapContentWidth()
+            .clip(pillShape)
+            .background(theme.bgDeep.copy(alpha = 0.90f))
+            .border(1.1.dp, Sakina3DGoldBevelBrush, pillShape)
+            .padding(horizontal = 18.dp, vertical = 5.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = TextStyle(
+                fontFamily = if (isRtl) SakinaOrnateArabicFont else SakinaLatinLuxuryFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = fontSize,
+                brush = SakinaCalligraphyBrush(),
+                shadow = Shadow(color = Color(0xEE000000), offset = Offset(0f, 2f), blurRadius = 6f),
+                platformStyle = PlatformTextStyle(includeFontPadding = false)
+            )
+        )
+    }
 }
 
 @Composable
@@ -278,22 +290,55 @@ fun SakinaBackIconButton(
     modifier: Modifier = Modifier
 ) {
     val theme = LocalSakinaTheme.current
-    Box(
+    val isRtl = LocalSakinaLang.current.isRtl
+    val pill = RoundedCornerShape(20.dp)
+    Row(
         modifier = modifier
-            .size(34.dp)
-            .shadow(4.dp, CircleShape)
-            .clip(CircleShape)
-            .background(Brush.verticalGradient(listOf(theme.bgCard, theme.bgDeep)))
-            .border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
+            .shadow(4.dp, pill)
+            .clip(pill)
+            .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.95f), theme.bgDeep.copy(alpha = 0.95f))))
+            .border(1.dp, Sakina3DGoldBevelBrush, pill)
+            .clickable { onClick() }
+            .padding(horizontal = 11.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
             contentDescription = null,
             tint = theme.accentBright,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(17.dp)
         )
+        Text(
+            text = if (isRtl) "رجوع" else "Back",
+            fontFamily = SakinaBodyFont,
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.5.sp,
+            color = theme.accentBright,
+            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+        )
+    }
+}
+
+@Composable
+fun SakinaGraduatedMenuIcon(
+    mirror: Boolean = false,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val theme = LocalSakinaTheme.current
+    Column(
+        modifier = modifier
+            .size(38.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 6.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+        horizontalAlignment = if (mirror) Alignment.Start else Alignment.End
+    ) {
+        Box(modifier = Modifier.width(24.dp).height(2.6.dp).clip(RoundedCornerShape(2.dp)).background(theme.accentBright))
+        Box(modifier = Modifier.width(18.dp).height(2.6.dp).clip(RoundedCornerShape(2.dp)).background(theme.accentGold))
+        Box(modifier = Modifier.width(13.dp).height(2.6.dp).clip(RoundedCornerShape(2.dp)).background(theme.accentBright))
     }
 }
 

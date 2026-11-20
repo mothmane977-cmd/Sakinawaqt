@@ -178,4 +178,77 @@ object SakinaAdvancedPrefs {
             ctx.startActivity(Intent.createChooser(sendIntent, "مشاركة وقت الصلاة").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (_: Exception) {}
     }
+
+    // === v18 New High-Value Settings (16-أ..و) ===
+    fun keepScreenOn(c: Context): Boolean = sp(c).getBoolean("keep_screen_on", false)
+    fun setKeepScreenOn(c: Context, v: Boolean) = sp(c).edit().putBoolean("keep_screen_on", v).apply()
+
+    fun readingFontScale(c: Context): Float = sp(c).getFloat("reading_font_scale", 1.0f).coerceIn(0.85f, 1.50f)
+    fun setReadingFontScale(c: Context, v: Float) = sp(c).edit().putFloat("reading_font_scale", v.coerceIn(0.85f, 1.50f)).apply()
+
+    fun voluntaryFastingNotif(c: Context): Boolean = sp(c).getBoolean("voluntary_fasting_notif", true)
+    fun setVoluntaryFastingNotif(c: Context, v: Boolean) = sp(c).edit().putBoolean("voluntary_fasting_notif", v).apply()
+
+    // 0 = Normal, 1 = Warm Paper, 2 = Dark Night
+    fun mushafReadTheme(c: Context): Int = sp(c).getInt("mushaf_read_theme", 0).coerceIn(0, 2)
+    fun setMushafReadTheme(c: Context, v: Int) = sp(c).edit().putInt("mushaf_read_theme", v.coerceIn(0, 2)).apply()
+
+    // === v18 Categorized Alarms (13-1..4) ===
+    fun fajrSnoozeEnabled(c: Context): Boolean = sp(c).getBoolean("fajr_snooze_on", true)
+    fun setFajrSnoozeEnabled(c: Context, v: Boolean) = sp(c).edit().putBoolean("fajr_snooze_on", v).apply()
+
+    fun qiyamAlarmEnabled(c: Context): Boolean = sp(c).getBoolean("qiyam_alarm_on", false)
+    fun setQiyamAlarmEnabled(c: Context, v: Boolean) = sp(c).edit().putBoolean("qiyam_alarm_on", v).apply()
+
+    fun qiyamAlarmMinutesBefore(c: Context): Int = sp(c).getInt("qiyam_alarm_min", 45).coerceIn(15, 120)
+    fun setQiyamAlarmMinutesBefore(c: Context, v: Int) = sp(c).edit().putInt("qiyam_alarm_min", v.coerceIn(15, 120)).apply()
+
+    fun iqamaAlarmEnabled(c: Context): Boolean = sp(c).getBoolean("iqama_alarm_on", false)
+    fun setIqamaAlarmEnabled(c: Context, v: Boolean) = sp(c).edit().putBoolean("iqama_alarm_on", v).apply()
+
+    fun iqamaMinutesAfter(c: Context): Int = sp(c).getInt("iqama_min_after", 15).coerceIn(5, 45)
+    fun setIqamaMinutesAfter(c: Context, v: Int) = sp(c).edit().putInt("iqama_min_after", v.coerceIn(5, 45)).apply()
+
+    fun fridayKahfNotif(c: Context): Boolean = sp(c).getBoolean("friday_kahf_notif", true)
+    fun setFridayKahfNotif(c: Context, v: Boolean) = sp(c).edit().putBoolean("friday_kahf_notif", v).apply()
+
+    // === v18 Daily Sunnah Checklist (Point 12) ===
+    private fun todayKey(): String = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
+    fun isSunnahDoneToday(c: Context, id: String): Boolean =
+        c.getSharedPreferences("sunnah_daily", Context.MODE_PRIVATE).getBoolean("${todayKey()}_$id", false)
+    fun toggleSunnahToday(c: Context, id: String): Boolean {
+        val ssp = c.getSharedPreferences("sunnah_daily", Context.MODE_PRIVATE)
+        val k = "${todayKey()}_$id"
+        val next = !ssp.getBoolean(k, false)
+        ssp.edit().putBoolean(k, next).apply()
+        return next
+    }
+
+    // === v18 Local Settings JSON Backup & Restore (16-و) ===
+    fun exportSettingsJson(c: Context): String {
+        val obj = org.json.JSONObject()
+        obj.put("city", Place.name(c))
+        obj.put("method", Prefs.method(c))
+        obj.put("hanafi", Prefs.hanafi(c))
+        obj.put("hijri", Prefs.hijriOffset(c))
+        obj.put("keepScreenOn", keepScreenOn(c))
+        obj.put("fontScale", readingFontScale(c).toDouble())
+        obj.put("fastingNotif", voluntaryFastingNotif(c))
+        obj.put("flipSilence", flipToSilence(c))
+        obj.put("mushafTheme", mushafReadTheme(c))
+        obj.put("voice", SakinaAdhanAudio.selectedVoice(c).key)
+        return obj.toString(2)
+    }
+
+    fun importSettingsJson(c: Context, raw: String): Boolean = try {
+        val obj = org.json.JSONObject(raw)
+        if (obj.has("hanafi")) Prefs.setHanafi(c, obj.getBoolean("hanafi"))
+        if (obj.has("hijri")) Prefs.setHijriOffset(c, obj.getInt("hijri"))
+        if (obj.has("keepScreenOn")) setKeepScreenOn(c, obj.getBoolean("keepScreenOn"))
+        if (obj.has("fontScale")) setReadingFontScale(c, obj.getDouble("fontScale").toFloat())
+        if (obj.has("fastingNotif")) setVoluntaryFastingNotif(c, obj.getBoolean("fastingNotif"))
+        if (obj.has("flipSilence")) setFlipToSilence(c, obj.getBoolean("flipSilence"))
+        if (obj.has("mushafTheme")) setMushafReadTheme(c, obj.getInt("mushafTheme"))
+        true
+    } catch (_: Exception) { false }
 }

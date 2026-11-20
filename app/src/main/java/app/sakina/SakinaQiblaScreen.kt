@@ -110,6 +110,13 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
         fun pushHeadingFromMatrix(rotMatrix: FloatArray) {
             val orientation = FloatArray(3)
             SensorManager.getOrientation(rotMatrix, orientation)
+            val pitchDeg = Math.toDegrees(orientation[1].toDouble())
+            // v18 Point 22ج: Tilt-compensated axis remap when phone is held upright (>45 deg)
+            val effectiveMatrix = FloatArray(9)
+            if (kotlin.math.abs(pitchDeg) > 45.0) {
+                SensorManager.remapCoordinateSystem(rotMatrix, SensorManager.AXIS_X, SensorManager.AXIS_Z, effectiveMatrix)
+                SensorManager.getOrientation(effectiveMatrix, orientation)
+            }
             val rawDeg = ((Math.toDegrees(orientation[0].toDouble()).toFloat() + declination) + 360f) % 360f
             val rad = Math.toRadians(rawDeg.toDouble())
             val sVal = sin(rad).toFloat()
@@ -455,7 +462,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
     }
     if (showLocDialog) {
         val cities = listOf(
-            Triple("فرندة", 35.06, 1.04),
+            Triple("فرندة", 35.0653, 1.0494),
             Triple("الجزائر العاصمة", 36.75, 3.05),
             Triple("وهران", 35.70, -0.63),
             Triple("قسنطينة", 36.36, 6.61),

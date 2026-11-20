@@ -215,8 +215,6 @@ object SakinaLiveNotifier {
             val nextLine = "الصلاة القادمة: $nextName (${hm.format(nextDate)}) · بقي $remStr".toWesternDigits()
             val prevLine = "الصلاة الفائتة: $prevName · مضى عليها $elapStr".toWesternDigits()
 
-            val bannerBitmap = renderFeatheredBanner(ctx, placeAndDate, nextLine, prevLine)
-
             val openIntent = Intent(ctx, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
@@ -231,18 +229,15 @@ object SakinaLiveNotifier {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // #2: Show Hijri + Gregorian date & Next Prayer as crisp notification text + feathered banner image!
+            // v18 Point 20: Clean text-only Live Notification (no large image)
             val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_stat_sakina)
                 .setContentTitle(placeAndDate)
                 .setContentText(nextLine)
-                .setLargeIcon(bannerBitmap)
                 .setStyle(
-                    NotificationCompat.BigPictureStyle()
-                        .bigPicture(bannerBitmap)
-                        .bigLargeIcon(null as Bitmap?)
+                    NotificationCompat.BigTextStyle()
                         .setBigContentTitle(placeAndDate)
-                        .setSummaryText(nextLine)
+                        .bigText("$nextLine\n$prevLine")
                 )
                 .setOngoing(true)
                 .setAutoCancel(false)

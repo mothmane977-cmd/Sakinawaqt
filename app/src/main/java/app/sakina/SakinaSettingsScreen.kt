@@ -563,6 +563,65 @@ fun SakinaSettingsScreen(
                         }
                     }
 
+                    // === v18 New High-Value Settings (16-أ..و) ===
+                    SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
+                        var keepOn by remember { mutableStateOf(SakinaAdvancedPrefs.keepScreenOn(ctx)) }
+                        var fontSc by remember { mutableFloatStateOf(SakinaAdvancedPrefs.readingFontScale(ctx)) }
+                        var fastNotif by remember { mutableStateOf(SakinaAdvancedPrefs.voluntaryFastingNotif(ctx)) }
+                        var flipOff by remember { mutableStateOf(SakinaAdvancedPrefs.flipToSilence(ctx)) }
+                        var readTheme by remember { mutableIntStateOf(SakinaAdvancedPrefs.mushafReadTheme(ctx)) }
+
+                        Text(if (isArOrUr) "القراءة والراحة والنسخ الاحتياطي" else "Reading, Comfort & Backup", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
+                        Spacer(Modifier.height(6.dp))
+                        SettingSwitchRow(if (isArOrUr) "إبقاء الشاشة مضاءة أثناء القراءة" else "Keep Screen On While Reading", keepOn) {
+                            keepOn = it; SakinaAdvancedPrefs.setKeepScreenOn(ctx, it)
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        SettingSwitchRow(if (isArOrUr) "قلب الهاتف لإيقاف صوت الأذان" else "Flip Phone to Silence Adhan", flipOff) {
+                            flipOff = it; SakinaAdvancedPrefs.setFlipToSilence(ctx, it)
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        SettingSwitchRow(if (isArOrUr) "تذكير ليلي بصيام التطوع والأيام البيض" else "Voluntary Fasting Reminder", fastNotif) {
+                            fastNotif = it; SakinaAdvancedPrefs.setVoluntaryFastingNotif(ctx, it); try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {}
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Text(if (isArOrUr) "نمط قراءة المصحف الليلي الدافئ" else "Mushaf Reading Theme", fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver)
+                        Spacer(Modifier.height(4.dp))
+                        SettingSegmentedRow(listOf("عادي", "ورقي دافئ", "ليلي داكن"), readTheme) {
+                            readTheme = it; SakinaAdvancedPrefs.setMushafReadTheme(ctx, it)
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Text((if (isArOrUr) "حجم خط القراءة والأذكار: ${(fontSc * 100).toInt()}%" else "Reading Font Scale: ${(fontSc * 100).toInt()}%").toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver)
+                        Slider(
+                            value = fontSc,
+                            onValueChange = { fontSc = it; SakinaAdvancedPrefs.setReadingFontScale(ctx, it) },
+                            valueRange = 0.85f..1.45f,
+                            colors = SliderDefaults.colors(thumbColor = theme.accentBright, activeTrackColor = theme.accentGold)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(
+                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(theme.bgCard).border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                                    .clickable {
+                                        val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        cm.setPrimaryClip(android.content.ClipData.newPlainText("SakinaBackup", SakinaAdvancedPrefs.exportSettingsJson(ctx)))
+                                        Toast.makeText(ctx, "تم نسخ إعداداتك للحافظة", Toast.LENGTH_SHORT).show()
+                                    }.padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Text("نسخ الإعدادات", fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = theme.accentBright) }
+                            Box(
+                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(theme.bgCard).border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                                    .clickable {
+                                        val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        val txt = cm.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                                        val ok = SakinaAdvancedPrefs.importSettingsJson(ctx, txt)
+                                        Toast.makeText(ctx, if (ok) "تمت استعادة الإعدادات" else "انسخ نص النسخة أولاً", Toast.LENGTH_SHORT).show()
+                                    }.padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Text("استعادة الإعدادات", fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = theme.accentBright) }
+                        }
+                    }
+
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
                         Text(if (isArOrUr) "تواصل معنا وحول التطبيق" else "Contact & About Sakina", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(6.dp))
@@ -580,14 +639,20 @@ fun SakinaSettingsScreen(
                         SakinaSettingsPill(R.drawable.ic_star_ornament, if (isArOrUr) "اقترح ميزة أو بلّغ عن خطأ" else "Feedback & Bug Report", "Email") {
                             try {
                                 val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = Uri.parse("mailto:support@sakina.app")
+                                    data = Uri.parse("mailto:islam.app.dev@gmail.com")
                                     putExtra(Intent.EXTRA_SUBJECT, "Sakina App Feedback")
                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 }
                                 ctx.startActivity(emailIntent)
                             } catch (_: Exception) {
-                                Toast.makeText(ctx, "support@sakina.app", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(ctx, "islam.app.dev@gmail.com", Toast.LENGTH_SHORT).show()
                             }
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        SakinaSettingsPill(R.drawable.ic_settings, if (isArOrUr) "سياسة الخصوصية" else "Privacy Policy", "HTTPS") {
+                            try {
+                                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://mothmane977-cmd.github.io/Sakinawaqt/")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                            } catch (_: Exception) {}
                         }
                         Spacer(Modifier.height(6.dp))
                         Text(

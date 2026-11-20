@@ -39,8 +39,8 @@ object Offsets {
 }
 
 object Place {
-    private const val DEF_LAT = 35.06
-    private const val DEF_LON = 1.04
+    private const val DEF_LAT = 35.0653
+    private const val DEF_LON = 1.0494
     private fun sp(c: Context) = c.getSharedPreferences("place", Context.MODE_PRIVATE)
 
     fun coords(c: Context): Coordinates {
@@ -76,7 +76,7 @@ val PRAYER_NAMES = listOf("الفجر", "الشروق", "الظهر", "العص�
 
 object Prefs {
     val METHODS = listOf(
-        "زاويتا الجزائر 18°/17°",
+        "الجزائر الرسمية 18°/17° (رزنامة الأوقاف)",
         "رابطة العالم الإسلامي",
         "الهيئة المصرية",
         "أم القرى",
@@ -133,7 +133,8 @@ object PrayerEngine {
             2 -> if (inDst) -3_600_000L else 0L
             else -> 0L
         }
-        fun sh(i: Int, d: Date) = Date(d.time + Offsets.get(c, PRAYER_NAMES[i]) * 60_000L + dstShiftMs)
+        val algSafety = if (Prefs.method(c) == 0) intArrayOf(0, 0, 1, 0, 2, 0) else intArrayOf(0, 0, 0, 0, 0, 0)
+        fun sh(i: Int, d: Date) = Date(d.time + (Offsets.get(c, PRAYER_NAMES[i]) + algSafety[i]) * 60_000L + dstShiftMs)
         return listOf(
             0 to sh(0, t.fajr), 1 to t.sunrise, 2 to sh(2, t.dhuhr),
             3 to sh(3, t.asr), 4 to sh(4, t.maghrib), 5 to sh(5, t.isha)
@@ -190,11 +191,20 @@ object AlarmScheduler {
         )
 
     private fun setClock(c: Context, code: Int, name: String, at: Long) {
-        val am = c.getSystemService(AlarmManager::class.java)
-        val show = PendingIntent.getActivity(
-            c, 2, Intent(c, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
-        )
-        am.setAlarmClock(AlarmManager.AlarmClockInfo(at, show), fireIntent(c, code, name, at, false))
+        val am = c.getSystemService(AlarmManager::class.java) ?: return
+        val pi = fireIntent(c, code, name, at, false)
+        try {
+            if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+                return
+            }
+            val show = PendingIntent.getActivity(
+                c, 2, Intent(c, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
+            )
+            am.setAlarmClock(AlarmManager.AlarmClockInfo(at, show), pi)
+        } catch (_: SecurityException) {
+            try { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi) } catch (_: Exception) {}
+        }
     }
 
     private fun cancelWindow(c: Context) {
@@ -289,17 +299,77 @@ object AlarmScheduler {
                 }
             }
         } catch (_: Exception) {}
+        // 13-3: Qiyam / Suhoor Alarm before Fajr
+        try {
+            if (SakinaAdvancedPrefs.qiyamAlarmEnabled(c)) {
+                val amQ = c.getSystemService(AlarmManager::class.java)
+                val fajrNext = (PrayerEngine.day(c, 0) + PrayerEngine.day(c, 1))
+                    .firstOrNull { it.first == "الفجر" && (it.second.time - SakinaAdvancedPrefs.qiyamAlarmMinutesBefore(c) * 60_000L) > after }
+                if (fajrNext != null && amQ != null) {
+                    val qAt = fajrNext.second.time - SakinaAdvancedPrefs.qiyamAlarmMinutesBefore(c) * 60_000L
+                    val qPi = PendingIntent.getBroadcast(
+                        c, 920,
+                        Intent(c, PostPrayerAdhkarReceiver::class.java).putExtra("p", "قيام الليل والسحور").putExtra("custom", true),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    if (Build.VERSION.SDK_INT >= 31 && !amQ.canScheduleExactAlarms()) {
+                        amQ.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, qAt, qPi)
+                    } else {
+                        amQ.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, qAt, qPi)
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+        // 16-ج: Evening Voluntary Fasting Reminder (Sun/Wed/White Days at 20:30)
+        try {
+            if (SakinaAdvancedPrefs.voluntaryFastingNotif(c)) {
+                val amF = c.getSystemService(AlarmManager::class.java)
+                val calF = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 20); set(Calendar.MINUTE, 30); set(Calendar.SECOND, 0)
+                    if (timeInMillis <= after) add(Calendar.DAY_OF_YEAR, 1)
+                }
+                val dow = calF.get(Calendar.DAY_OF_WEEK)
+                val ic = android.icu.util.IslamicCalendar().apply {
+                    timeInMillis = calF.timeInMillis
+                    add(android.icu.util.IslamicCalendar.DAY_OF_MONTH, Prefs.hijriOffset(c) + 1)
+                }
+                val nextHDay = ic.get(android.icu.util.IslamicCalendar.DAY_OF_MONTH)
+                val label = when {
+                    nextHDay in 13..15 -> "صيام الأيام البيض غداً ($nextHDay هجري)"
+                    dow == Calendar.SUNDAY -> "تذكير بصيام غد الإثنين"
+                    dow == Calendar.WEDNESDAY -> "تذكير بصيام غد الخميس"
+                    else -> null
+                }
+                if (label != null && amF != null) {
+                    val fPi = PendingIntent.getBroadcast(
+                        c, 930,
+                        Intent(c, PostPrayerAdhkarReceiver::class.java).putExtra("p", label).putExtra("custom", true),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    amF.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calF.timeInMillis, fPi)
+                }
+            }
+        } catch (_: Exception) {}
         SakinaWidgetUpdater.updateAll(c)
         DiagLog.add(c, "جُدول $count تنبيهاً (14 يوماً)، التالي $firstName ${hm(firstAt)} | توفير: $saver | استثناء: $exempt")
     }
 
     fun scheduleTest(c: Context) {
-        val am = c.getSystemService(AlarmManager::class.java)
-        val show = PendingIntent.getActivity(
-            c, 2, Intent(c, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
-        )
+        val am = c.getSystemService(AlarmManager::class.java) ?: return
         val at = System.currentTimeMillis() + 10_000
-        am.setAlarmClock(AlarmManager.AlarmClockInfo(at, show), fireIntent(c, 3, TEST, at, false))
+        val pi = fireIntent(c, 3, TEST, at, false)
+        try {
+            if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+            } else {
+                val show = PendingIntent.getActivity(
+                    c, 2, Intent(c, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
+                )
+                am.setAlarmClock(AlarmManager.AlarmClockInfo(at, show), pi)
+            }
+        } catch (_: SecurityException) {
+            try { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi) } catch (_: Exception) {}
+        }
         DiagLog.add(c, "جُدولت تجربة بعد 10 ثوانٍ")
     }
 }
@@ -481,12 +551,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
         openAfterPrayerState.value = intent?.getBooleanExtra("open_after_prayer", false) == true
+        if (SakinaAdvancedPrefs.keepScreenOn(this)) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
         )
         if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
-        AlarmScheduler.scheduleNext(this)
+        try { AlarmScheduler.scheduleNext(this) } catch (_: Exception) {}
         setContent { HomeScreen(this@MainActivity, openAfterPrayer = openAfterPrayerState.value) }
     }
 }

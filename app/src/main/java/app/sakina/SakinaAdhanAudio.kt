@@ -41,8 +41,23 @@ enum class AdhanVoice(
     ),
     ASEREHY(
         "aserehy", R.raw.aserehy,
-        "الشيخ السريحي", "Sheikh Aserehy", "Cheikh Aserehy",
-        "Şeyh Aserehy", "Syekh Aserehy", "شیخ السریحي"
+        "الشيخ عبد المجيد السريحي", "Sheikh Abdulmajeed Al-Suraihi", "Cheikh Al-Suraihi",
+        "Şeyh El-Süreyhi", "Syekh Al-Suraihi", "شیخ عبدالمجید السریحي"
+    ),
+    MAKKAH(
+        "makkah", R.raw.makkah,
+        "أذان المسجد الحرام (مكة)", "Makkah Al-Haram Adhan", "Adhan de La Mecque",
+        "Mekke Ezanı", "Adzan Makkah", "اذانِ مسجد الحرام"
+    ),
+    AFASY(
+        "afasy", R.raw.afasy,
+        "الشيخ مشاري العفاسي", "Mishary Al-Afasy", "Mishary Al-Afasy",
+        "Mişari El-Afasi", "Mishary Al-Afasy", "شیخ مشاری العفاسی"
+    ),
+    AQSA(
+        "aqsa", R.raw.aqsa,
+        "أذان المسجد الأقصى", "Al-Aqsa Adhan", "Adhan d'Al-Aqsa",
+        "Mescid-i Aksa Ezanı", "Adzan Al-Aqsa", "اذانِ مسجد اقصیٰ"
     );
 
     fun localizedTitle(lang: SakinaLang): String = when (lang) {

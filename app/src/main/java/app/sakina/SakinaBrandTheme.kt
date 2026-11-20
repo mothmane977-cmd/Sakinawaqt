@@ -63,6 +63,12 @@ val SakinaLatinLuxuryFontFamily = FontFamily(
     Font(R.font.c059_bold, FontWeight.Bold)
 )
 
+// Ornate Arabic Calligraphy Font (Aref Ruqaa Bold) for Screen & Tab Headers (#7)
+val SakinaOrnateArabicFont = FontFamily(
+    Font(R.font.sakina_ornate_title, FontWeight.Normal),
+    Font(R.font.sakina_ornate_title, FontWeight.Bold)
+)
+
 val SakinaEditorialFont: FontFamily
     @Composable
     get() = if (LocalSakinaLang.current.isRtl) SakinaNaskhFontFamily else SakinaLatinLuxuryFontFamily
