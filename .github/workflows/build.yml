@@ -33,7 +33,6 @@ jobs:
           curl -L -s "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf" -o app/src/main/res/font/noto_naskh_arabic_regular.ttf
           curl -L -s "https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Bold.ttf" -o app/src/main/res/font/noto_naskh_arabic_bold.ttf
 
-          # خط العناوين العربية المزخرف (Aref Ruqaa Bold - النقطة 7) مع احتياطي آمن
           curl -L -s "https://raw.githubusercontent.com/google/fonts/main/ofl/arefruqaa/ArefRuqaa-Bold.ttf" -o /tmp/aref.ttf || true
           if [ -s /tmp/aref.ttf ] && [ $(wc -c < /tmp/aref.ttf) -gt 10000 ]; then
             cp /tmp/aref.ttf app/src/main/res/font/sakina_ornate_title.ttf
@@ -41,7 +40,6 @@ jobs:
             cp app/src/main/res/font/noto_naskh_arabic_bold.ttf app/src/main/res/font/sakina_ornate_title.ttf
           fi
 
-          # الخط اللاتيني Plus Jakarta Sans (النقطة 17-و) مع استبدال آمن لـ c059
           curl -L -s "https://raw.githubusercontent.com/google/fonts/main/ofl/plusjakartasans/static/PlusJakartaSans-Medium.ttf" -o /tmp/pjs_med.ttf || true
           curl -L -s "https://raw.githubusercontent.com/google/fonts/main/ofl/plusjakartasans/static/PlusJakartaSans-Bold.ttf" -o /tmp/pjs_bold.ttf || true
           if [ -s /tmp/pjs_med.ttf ] && [ $(wc -c < /tmp/pjs_med.ttf) -gt 10000 ] && [ -s /tmp/pjs_bold.ttf ] && [ $(wc -c < /tmp/pjs_bold.ttf) -gt 10000 ]; then
@@ -71,7 +69,7 @@ jobs:
       # 2. ضغط الأذان إلى OGG + إثراء المؤذنين (مكة، العفاسي، الأقصى + السريحي الموجود)
       - name: Compress Adhan Audio & Add Extra Muezzins (OGG)
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg webp
+          sudo apt-get update && sudo apt-get install -y ffmpeg python3-pil
           for f in app/src/main/res/raw/*.mp3; do
             [ -f "$f" ] && ffmpeg -y -i "$f" -c:a libvorbis -q:a 1 "${f%.mp3}.ogg" && rm "$f"
           done
@@ -101,12 +99,35 @@ jobs:
           EOF
           rm -rf /tmp/athan-mp3
 
-      # 3. دمج وضغط صفحات المصحف الـ 604 إلى WebP بعرض 900px (النقطة 4ب: أوفلاين 100% وحجم خفيف ~55-65MB)
-      - name: Bundle & Compress 604 Offline Mushaf Pages (WebP 900px)
+      # 3. ضغط صفحات المصحف الـ 604 إلى WebP معتم على خلفية ورقية دافئة (~35-45MB إجمالاً)
+      - name: Bundle & Compress 604 Offline Mushaf Pages (Compact WebP)
         run: |
+          rm -rf app/src/main/assets/mushaf
           mkdir -p app/src/main/assets/mushaf
           git clone --depth 1 https://github.com/GovarJabbar/Quran-PNG.git /tmp/quran-png
-          find /tmp/quran-png -maxdepth 1 -name "[0-9][0-9][0-9].png" -print0 | xargs -0 -P 4 -I {} sh -c 'base=$(basename "{}" .png); cwebp -quiet -resize 900 0 -q 75 "{}" -o "app/src/main/assets/mushaf/${base}.webp"'
+          python3 - << 'EOF'
+          import glob, os
+          from concurrent.futures import ProcessPoolExecutor
+          from PIL import Image
+
+          LANCZOS = getattr(Image, "Resampling", Image).LANCZOS
+          bg_color = (250, 244, 230, 255)
+          files = sorted(glob.glob("/tmp/quran-png/[0-9][0-9][0-9].png"))
+
+          def convert_one(src):
+              base = os.path.splitext(os.path.basename(src))[0]
+              im = Image.open(src).convert("RGBA")
+              bg = Image.new("RGBA", im.size, bg_color)
+              flat = Image.alpha_composite(bg, im).convert("RGB")
+              w = 780
+              h = int(flat.height * (w / flat.width))
+              flat = flat.resize((w, h), LANCZOS)
+              flat.save(f"app/src/main/assets/mushaf/{base}.webp", "WEBP", quality=62, method=4)
+
+          with ProcessPoolExecutor(max_workers=4) as ex:
+              list(ex.map(convert_one, files))
+          print("Converted compact Mushaf pages:", len(files))
+          EOF
           rm -rf /tmp/quran-png
           du -sh app/src/main/assets/mushaf
           ls app/src/main/assets/mushaf | wc -l
