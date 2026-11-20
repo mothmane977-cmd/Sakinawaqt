@@ -66,7 +66,16 @@ class SakinaAdhanForegroundService : Service() {
             .addAction(0, "إيقاف الأذان", stopPi)
             .build()
 
-        startForeground(779, notif)
+        if (Build.VERSION.SDK_INT >= 29) {
+            androidx.core.app.ServiceCompat.startForeground(
+                this,
+                779,
+                notif,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            )
+        } else {
+            startForeground(779, notif)
+        }
 
         SakinaAdhanAudio.playAlarmAdhan(this, prayerName) {
             stopSelf()

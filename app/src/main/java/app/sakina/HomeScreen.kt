@@ -268,7 +268,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     }
 
     val headerImg = when (extraSection) {
-        ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH -> R.drawable.bg_header_adhkar
+        ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH, ExtraSection.SUNNAH -> R.drawable.bg_header_adhkar
         ExtraSection.CALENDAR -> R.drawable.bg_header_madinah
         ExtraSection.ALARM, ExtraSection.SETTINGS -> R.drawable.bg_header_mosque
         ExtraSection.NONE -> when (currentTab) {
