@@ -66,12 +66,12 @@ jobs:
           print("Bundled Fonts and Hafs & Warsh offline JSONs successfully")
           EOF
 
-      # 2. ضغط الأذان إلى OGG + إثراء المؤذنين (مكة، العفاسي، الأقصى + السريحي الموجود)
+      # 2. ضغط الأذان إلى OGG (مع -vn لتجاهل صور الغلاف التالفة) + إثراء المؤذنين
       - name: Compress Adhan Audio & Add Extra Muezzins (OGG)
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg python3-pil
           for f in app/src/main/res/raw/*.mp3; do
-            [ -f "$f" ] && ffmpeg -y -i "$f" -c:a libvorbis -q:a 1 "${f%.mp3}.ogg" && rm "$f"
+            [ -f "$f" ] && ffmpeg -y -i "$f" -vn -c:a libvorbis -q:a 1 "${f%.mp3}.ogg" && rm "$f"
           done
           git clone --depth 1 https://github.com/abodehq/Athan-MP3.git /tmp/athan-mp3 || true
           python3 - << 'EOF'
@@ -84,7 +84,7 @@ jobs:
               for m in mp3s:
                   low = os.path.basename(m).lower()
                   if any(k in low for k in keywords):
-                      subprocess.run(["ffmpeg", "-y", "-i", m, "-c:a", "libvorbis", "-q:a", "1", out_ogg], check=False)
+                      subprocess.run(["ffmpeg", "-y", "-i", m, "-vn", "-c:a", "libvorbis", "-q:a", "1", out_ogg], check=False)
                       if os.path.exists(out_ogg) and os.path.getsize(out_ogg) > 10000:
                           print(f"Added {target_name}.ogg from {os.path.basename(m)}")
                           return
@@ -107,7 +107,7 @@ jobs:
           git clone --depth 1 https://github.com/GovarJabbar/Quran-PNG.git /tmp/quran-png
           python3 - << 'EOF'
           import glob, os
-          from concurrent.futures import ProcessPoolExecutor
+          from concurrent.futures import ThreadPoolExecutor
           from PIL import Image
 
           LANCZOS = getattr(Image, "Resampling", Image).LANCZOS
@@ -124,7 +124,7 @@ jobs:
               flat = flat.resize((w, h), LANCZOS)
               flat.save(f"app/src/main/assets/mushaf/{base}.webp", "WEBP", quality=62, method=4)
 
-          with ProcessPoolExecutor(max_workers=4) as ex:
+          with ThreadPoolExecutor(max_workers=4) as ex:
               list(ex.map(convert_one, files))
           print("Converted compact Mushaf pages:", len(files))
           EOF
