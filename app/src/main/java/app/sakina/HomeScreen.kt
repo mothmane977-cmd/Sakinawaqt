@@ -930,6 +930,48 @@ private fun SakinaHomeContent(ctx: Context) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
+        // Exact Alarm 1-tap warning banner (only visible on Android 12+ when Exact Alarm permission is still OFF)
+        val exactAllowed = remember(nowMs / 5_000L) {
+            if (Build.VERSION.SDK_INT >= 31) ctx.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() ?: true
+            else true
+        }
+        if (!exactAllowed && Build.VERSION.SDK_INT >= 31) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xEE7A1F1F))
+                    .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                    .clickable {
+                        try {
+                            ctx.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                data = Uri.parse("package:${ctx.packageName}")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            })
+                        } catch (_: Exception) {}
+                    }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = sakinaTr(
+                        lang,
+                        "⚠ اضغط هنا لتفعيل «التنبيهات الدقيقة» حتى يؤذن التطبيق في وقته بالثانية",
+                        "⚠ Tap here to enable Exact Alarms so Adhan rings on time",
+                        "⚠ Touchez ici pour activer les alarmes exactes (Adhan à l'heure)",
+                        "⚠ Ezanın vaktinde çalması için Tam Alarmları etkinleştirin",
+                        "⚠ Ketuk untuk mengaktifkan Alarm Tepat agar Adzan tepat waktu",
+                        "⚠ وقت پر اذان کے لیے درست الارم کی اجازت دینے کے لیے یہاں ٹیپ کریں"
+                    ),
+                    fontFamily = SakinaHeadingFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    color = Color(0xFFFFF4C2),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
         // Top Header with larger icons (#19)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             SakinaTitle3D(text = s.appName, fontSize = 24.sp, useAmiri = true)

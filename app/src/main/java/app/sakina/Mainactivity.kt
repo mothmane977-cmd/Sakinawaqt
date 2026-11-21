@@ -360,6 +360,7 @@ object AlarmScheduler {
                 }
             }
         } catch (_: Exception) {}
+        try { SakinaLiveNotifier.update(c) } catch (_: Exception) {}
         SakinaWidgetUpdater.updateAll(c)
         DiagLog.add(c, "جُدول $count تنبيهاً (14 يوماً)، التالي $firstName ${hm(firstAt)} | توفير: $saver | استثناء: $exempt")
     }
@@ -404,11 +405,18 @@ class AlarmReceiver : BroadcastReceiver() {
         }
         AlarmScheduler.markFired(c, at)
 
-        val mode = Modes.get(c, name)
-        val kind = if (backup) "رنّ احتياطياً" else "رنّ"
-        DiagLog.add(c, "$kind $name بتأخر $delay ث (${Modes.labels[mode]})")
-        ring(c, name, mode)
-        AlarmScheduler.scheduleNext(c, at + 1000)
+        val pm = c.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        val wl = try { pm?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "sakina:rcv_wl")?.apply { acquire(15_000L) } } catch (_: Exception) { null }
+        try {
+            val mode = Modes.get(c, name)
+            val kind = if (backup) "رنّ احتياطياً" else "رنّ"
+            DiagLog.add(c, "$kind $name بتأخر $delay ث (${Modes.labels[mode]})")
+            ring(c, name, mode)
+            try { SakinaLiveNotifier.update(c) } catch (_: Exception) {}
+            AlarmScheduler.scheduleNext(c, at + 1000)
+        } finally {
+            try { if (wl?.isHeld == true) wl.release() } catch (_: Exception) {}
+        }
     }
 
     private fun ring(c: Context, name: String, mode: Int) {
@@ -553,6 +561,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        try { AlarmScheduler.scheduleNext(this) } catch (_: Exception) {}
         try { SakinaLiveNotifier.update(this) } catch (_: Exception) {}
         try { SakinaWidgetUpdater.updateAll(this) } catch (_: Exception) {}
     }
