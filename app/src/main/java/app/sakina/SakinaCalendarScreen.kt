@@ -276,6 +276,7 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
         IslamicCalendar().apply { add(IslamicCalendar.DAY_OF_MONTH, hijriOffsetDays) }.get(IslamicCalendar.DAY_OF_MONTH)
     }
     val todayGregDay = remember { Calendar.getInstance().get(Calendar.DAY_OF_MONTH) }
+    val todayDayNum = if (isHijriMode) todayHijriDay else todayGregDay
     var selectedDay by remember(isHijriMode) { mutableIntStateOf(if (isHijriMode) todayHijriDay else todayGregDay) }
 
     // Compute month start, length, and selected Calendar accurately for BOTH Hijri & Gregorian modes
