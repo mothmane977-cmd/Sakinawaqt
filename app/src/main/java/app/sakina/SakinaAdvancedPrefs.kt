@@ -190,8 +190,8 @@ object SakinaAdvancedPrefs {
     fun setVoluntaryFastingNotif(c: Context, v: Boolean) = sp(c).edit().putBoolean("voluntary_fasting_notif", v).apply()
 
     // 0 = Normal, 1 = Warm Paper, 2 = Dark Night
-    fun mushafReadTheme(c: Context): Int = sp(c).getInt("mushaf_read_theme", 0).coerceIn(0, 2)
-    fun setMushafReadTheme(c: Context, v: Int) = sp(c).edit().putInt("mushaf_read_theme", v.coerceIn(0, 2)).apply()
+    fun mushafReadTheme(c: Context): Int = sp(c).getInt("mushaf_theme", 0).coerceIn(0, 2)
+    fun setMushafReadTheme(c: Context, v: Int) = sp(c).edit().putInt("mushaf_theme", v.coerceIn(0, 2)).apply()
 
     // === v18 Categorized Alarms (13-1..4) ===
     fun fajrSnoozeEnabled(c: Context): Boolean = sp(c).getBoolean("fajr_snooze_on", true)
@@ -227,28 +227,72 @@ object SakinaAdvancedPrefs {
     // === v18 Local Settings JSON Backup & Restore (16-و) ===
     fun exportSettingsJson(c: Context): String {
         val obj = org.json.JSONObject()
+        val co = Place.coords(c)
         obj.put("city", Place.name(c))
+        obj.put("lat", co.latitude)
+        obj.put("lon", co.longitude)
         obj.put("method", Prefs.method(c))
         obj.put("hanafi", Prefs.hanafi(c))
         obj.put("hijri", Prefs.hijriOffset(c))
+        obj.put("timeFormat", timeFormatMode(c))
+        obj.put("autoNight", autoNightMode(c))
         obj.put("keepScreenOn", keepScreenOn(c))
+        obj.put("fontStyle", appFontStyle(c))
         obj.put("fontScale", readingFontScale(c).toDouble())
+        obj.put("textColorIdx", appTextColorIndex(c))
+        obj.put("qiblaSensorMode", qiblaSensorMode(c))
         obj.put("fastingNotif", voluntaryFastingNotif(c))
         obj.put("flipSilence", flipToSilence(c))
-        obj.put("mushafTheme", mushafReadTheme(c))
+        obj.put("mushafTheme", mushafTheme(c))
         obj.put("voice", SakinaAdhanAudio.selectedVoice(c).key)
         return obj.toString(2)
     }
 
     fun importSettingsJson(c: Context, raw: String): Boolean = try {
-        val obj = org.json.JSONObject(raw)
+        val obj = org.json.JSONObject(raw.trim())
+        if (obj.has("lat") && obj.has("lon") && obj.has("city")) {
+            val lat = obj.optDouble("lat", Double.NaN)
+            val lon = obj.optDouble("lon", Double.NaN)
+            val city = obj.optString("city", "").trim()
+            if (!lat.isNaN() && !lon.isNaN() && lat in -90.0..90.0 && lon in -180.0..180.0 && city.isNotEmpty()) {
+                Place.set(c, lat, lon, city)
+            }
+        }
+        if (obj.has("method")) Prefs.setMethod(c, obj.getInt("method").coerceIn(0, Prefs.METHODS.lastIndex))
         if (obj.has("hanafi")) Prefs.setHanafi(c, obj.getBoolean("hanafi"))
-        if (obj.has("hijri")) Prefs.setHijriOffset(c, obj.getInt("hijri"))
+        if (obj.has("hijri")) Prefs.setHijriOffset(c, obj.getInt("hijri").coerceIn(-2, 2))
+        if (obj.has("timeFormat")) setTimeFormatMode(c, obj.getInt("timeFormat"))
+        if (obj.has("autoNight")) setAutoNightMode(c, obj.getBoolean("autoNight"))
         if (obj.has("keepScreenOn")) setKeepScreenOn(c, obj.getBoolean("keepScreenOn"))
+        if (obj.has("fontStyle")) setAppFontStyle(c, obj.getInt("fontStyle"))
         if (obj.has("fontScale")) setReadingFontScale(c, obj.getDouble("fontScale").toFloat())
+        if (obj.has("textColorIdx")) setAppTextColorIndex(c, obj.getInt("textColorIdx"))
+        if (obj.has("qiblaSensorMode")) setQiblaSensorMode(c, obj.getInt("qiblaSensorMode"))
         if (obj.has("fastingNotif")) setVoluntaryFastingNotif(c, obj.getBoolean("fastingNotif"))
         if (obj.has("flipSilence")) setFlipToSilence(c, obj.getBoolean("flipSilence"))
-        if (obj.has("mushafTheme")) setMushafReadTheme(c, obj.getInt("mushafTheme"))
+        if (obj.has("mushafTheme")) setMushafTheme(c, obj.getInt("mushafTheme"))
+        if (obj.has("voice")) {
+            val vk = obj.optString("voice", "")
+            AdhanVoice.entries.firstOrNull { it.key == vk }?.let { SakinaAdhanAudio.setSelectedVoice(c, it) }
+        }
+        try { AlarmScheduler.scheduleNext(c) } catch (_: Exception) {}
+        try { SakinaLiveNotifier.update(c) } catch (_: Exception) {}
+        try { SakinaWidgetUpdater.updateAll(c) } catch (_: Exception) {}
         true
     } catch (_: Exception) { false }
+
+    // v19 Appearance: Font Style (0=Amiri Naskh, 1=Ornate Ruqaa, 2=Modern), Text Color Index (0..4), Qibla Sensor Mode (0=Fused, 1=Direct Mag)
+    fun appFontStyle(c: Context): Int = sp(c).getInt("app_font_style", 0)
+    fun setAppFontStyle(c: Context, v: Int) = sp(c).edit().putInt("app_font_style", v.coerceIn(0, 2)).apply()
+
+    fun appTextColorIndex(c: Context): Int = sp(c).getInt("app_text_color_idx", 0)
+    fun setAppTextColorIndex(c: Context, v: Int) = sp(c).edit().putInt("app_text_color_idx", v.coerceIn(0, 4)).apply()
+
+    fun qiblaSensorMode(c: Context): Int = sp(c).getInt("qibla_sensor_mode", 0)
+    fun setQiblaSensorMode(c: Context, v: Int) = sp(c).edit().putInt("qibla_sensor_mode", v.coerceIn(0, 1)).apply()
+
+
+    fun mushafTheme(c: Context): Int = sp(c).getInt("mushaf_theme", 0)
+    fun setMushafTheme(c: Context, v: Int) = sp(c).edit().putInt("mushaf_theme", v.coerceIn(0, 2)).apply()
+
 }

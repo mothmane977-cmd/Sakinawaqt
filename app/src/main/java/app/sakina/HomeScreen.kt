@@ -54,7 +54,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-private enum class ExtraSection { NONE, ADHKAR, CALENDAR, DUAS, RUQYAH, ALARM, SETTINGS, SUNNAH }
+private enum class ExtraSection { NONE, ADHKAR, DUAS, RUQYAH, ALARM, NOTIFICATIONS, APPEARANCE, SETTINGS, SUNNAH }
 
 private data class BrandPrayerRow(
     val keyNameAr: String,
@@ -269,8 +269,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
 
     val headerImg = when (extraSection) {
         ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH, ExtraSection.SUNNAH -> R.drawable.bg_header_adhkar
-        ExtraSection.CALENDAR -> R.drawable.bg_header_madinah
-        ExtraSection.ALARM, ExtraSection.SETTINGS -> R.drawable.bg_header_mosque
+        ExtraSection.ALARM, ExtraSection.NOTIFICATIONS, ExtraSection.APPEARANCE, ExtraSection.SETTINGS -> R.drawable.bg_header_mosque
         ExtraSection.NONE -> when (currentTab) {
             SakinaNavTab.HOME -> {
                 val nowHr = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
@@ -284,6 +283,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
             }
             SakinaNavTab.QIBLA -> R.drawable.bg_header_kaaba
             SakinaNavTab.QURAN -> R.drawable.bg_header_quran
+            SakinaNavTab.CALENDAR -> R.drawable.bg_header_madinah
         }
     }
 
@@ -291,8 +291,18 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
         val h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         h >= 19 || h < 5
     }
+    var appearanceTick by remember { mutableIntStateOf(0) }
+    val appFontStyle = remember(appearanceTick) { SakinaAdvancedPrefs.appFontStyle(ctx) }
+    val appFontScale = remember(appearanceTick) { SakinaAdvancedPrefs.readingFontScale(ctx) }
+    val appTextColorIdx = remember(appearanceTick) { SakinaAdvancedPrefs.appTextColorIndex(ctx) }
     val effectiveTheme = if (autoNight && isNightHours) SakinaLuxuryTheme.MIDNIGHT_AMOLED else currentTheme
-    SakinaBrandTheme(theme = effectiveTheme, lang = currentLang) {
+    SakinaBrandTheme(
+        theme = effectiveTheme,
+        lang = currentLang,
+        fontStyle = appFontStyle,
+        fontScale = appFontScale,
+        textColorIdx = appTextColorIdx
+    ) {
         val s = LocalSakinaStrings.current
         val isArOrUr = currentLang == SakinaLang.AR || currentLang == SakinaLang.UR
 
@@ -302,6 +312,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             ModalNavigationDrawer(
                 drawerState = rightDrawerState,
+                gesturesEnabled = rightDrawerState.isOpen,
                 drawerContent = {
                     CompositionLocalProvider(LocalLayoutDirection provides appDir) {
                         ModalDrawerSheet(drawerContainerColor = effectiveTheme.bgDeep, modifier = Modifier.width(292.dp)) {
@@ -323,10 +334,16 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     color = effectiveTheme.accentGold,
                                     modifier = Modifier.padding(horizontal = 4.dp)
                                 )
-                                SakinaDrawerPillItem(R.drawable.ic_alarm, if (isArOrUr) "المنبهات والتنبيهات" else s.alarmTitle) {
+                                SakinaDrawerPillItem(R.drawable.ic_alarm, if (isArOrUr) "المنبهات الصوتية" else "Sound Alarms") {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.ALARM
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_settings, if (isArOrUr) "الإعدادات العامة والمظهر" else s.settingsTitle) {
+                                SakinaDrawerPillItem(R.drawable.ic_after_prayer, if (isArOrUr) "التنبيهات الهادئة" else "Quiet Notifications") {
+                                    scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.NOTIFICATIONS
+                                }
+                                SakinaDrawerPillItem(R.drawable.ic_star_ornament, if (isArOrUr) "المظهر والخطوط" else "Appearance & Fonts") {
+                                    scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.APPEARANCE
+                                }
+                                SakinaDrawerPillItem(R.drawable.ic_settings, if (isArOrUr) "الإعدادات العامة" else s.settingsTitle) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.SETTINGS
                                 }
                                 SakinaDrawerPillItem(
@@ -365,17 +382,14 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         SakinaDrawerPillItem(R.drawable.ic_tasbih, s.adhkarTitle) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; adhkarInitCat = null; extraSection = ExtraSection.ADHKAR
                                         }
-                                        SakinaDrawerPillItem(R.drawable.ic_duas, s.duasTitle) {
+                                        SakinaDrawerPillItem(R.drawable.ic_duas, if (isArOrUr) "أدعية من القرآن والسنة" else s.duasTitle) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.DUAS
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_ruqyah, s.ruqyahTitle) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.RUQYAH
                                         }
-                                        SakinaDrawerPillItem(R.drawable.ic_sunan, if (isArOrUr) "السنن والنوافل والورد اليومي" else "Voluntary Worship & Sunnah") {
+                                        SakinaDrawerPillItem(R.drawable.ic_sunan, if (isArOrUr) "تذكير بالعبادات وصالح الأعمال" else "Worship & Good Deeds") {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.SUNNAH
-                                        }
-                                        SakinaDrawerPillItem(R.drawable.ic_calendar, s.calendarTitle) {
-                                            scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.CALENDAR
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_sunan, s.sunanTitle) {
                                             scope.launch { leftDrawerState.close() }
@@ -455,25 +469,38 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     when (extraSection) {
                                         ExtraSection.ADHKAR -> SakinaAdhkarScreen(ctx = ctx, initialCategoryIndex = adhkarInitCat)
-                                        ExtraSection.CALENDAR -> SakinaCalendarScreen(ctx = ctx)
                                         ExtraSection.DUAS -> SakinaDuasScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.RUQYAH -> SakinaRuqyahScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.SUNNAH -> SakinaSunnahScreen(ctx = ctx, onBackClick = { returnFromExtra() })
-                                        ExtraSection.ALARM -> SakinaAlarmScreen(ctx = ctx, onBackClick = { returnFromExtra() })
+                                        ExtraSection.ALARM -> SakinaAlarmScreen(ctx = ctx, initialSection = 0, onBackClick = { returnFromExtra() })
+                                        ExtraSection.NOTIFICATIONS -> SakinaAlarmScreen(ctx = ctx, initialSection = 1, onBackClick = { returnFromExtra() })
+                                        ExtraSection.APPEARANCE -> SakinaSettingsScreen(
+                                            ctx = ctx,
+                                            selectedTheme = currentTheme,
+                                            selectedLang = currentLang,
+                                            onThemeChange = { t -> currentTheme = t; sp.edit().putInt("theme_index", t.ordinal).apply() },
+                                            onLangChange = { l -> currentLang = l; sp.edit().putString("app_lang", l.code).apply() },
+                                            onBackClick = { returnFromExtra() },
+                                            appearanceOnly = true,
+                                            onAppearanceChanged = { appearanceTick++ }
+                                        )
                                         ExtraSection.SETTINGS -> SakinaSettingsScreen(
                                             ctx = ctx,
                                             selectedTheme = currentTheme,
                                             selectedLang = currentLang,
                                             onThemeChange = { t -> currentTheme = t; sp.edit().putInt("theme_index", t.ordinal).apply() },
                                             onLangChange = { l -> currentLang = l; sp.edit().putString("app_lang", l.code).apply() },
-                                            onBackClick = { returnFromExtra() }
+                                            onBackClick = { returnFromExtra() },
+                                            appearanceOnly = false,
+                                            onAppearanceChanged = { appearanceTick++ }
                                         )
                                         ExtraSection.NONE -> {
-                                            Crossfade(targetState = currentTab, label = "sakina3Tabs") { tab ->
+                                            Crossfade(targetState = currentTab, label = "sakina4Tabs") { tab ->
                                                 when (tab) {
                                                     SakinaNavTab.HOME -> SakinaHomeContent(ctx = ctx)
                                                     SakinaNavTab.QIBLA -> SakinaQiblaScreen(ctx = ctx)
                                                     SakinaNavTab.QURAN -> SakinaQuranScreen(ctx = ctx)
+                                                    SakinaNavTab.CALENDAR -> SakinaCalendarScreen(ctx = ctx)
                                                 }
                                             }
                                         }
@@ -490,12 +517,15 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                                 .padding(end = 16.dp, top = 14.dp)
                                         )
 
-                                        // Top-Left Group: Matching Graduated 3 gold lines (Adhkar & Worship) + Language Switcher
-                                        Row(
+                                        // Top-Left Group pinned in LTR so Language Switcher NEVER jumps across AR/UR/EN/FR (Point 5)
+                                        Box(
                                             modifier = Modifier
                                                 .align(AbsoluteAlignment.TopLeft)
                                                 .statusBarsPadding()
-                                                .padding(start = 16.dp, top = 14.dp),
+                                                .padding(start = 16.dp, top = 14.dp)
+                                        ) {
+                                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                        Row(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
@@ -528,7 +558,9 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                                 )
                                             }
                                         }
-                                    } else if (extraSection == ExtraSection.ADHKAR || extraSection == ExtraSection.CALENDAR) {
+                                        }
+                                        }
+                                    } else if (extraSection == ExtraSection.ADHKAR) {
                                         // Back button on top-left when viewing Adhkar or Calendar from Left Drawer
                                         SakinaBackIconButton(
                                             onClick = { returnFromExtra() },
@@ -637,6 +669,78 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                             fontSize = 11.sp,
                             color = SakinaBrandColors.SoftSilver
                         )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0x28D4AF37))
+                                .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(10.dp))
+                                .clickable {
+                                    val oemIntents = listOf(
+                                        android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+                                        android.content.ComponentName("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity"),
+                                        android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+                                        android.content.ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+                                        android.content.ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")
+                                    )
+                                    var launched = false
+                                    for (cn in oemIntents) {
+                                        try {
+                                            ctx.startActivity(Intent().setComponent(cn).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                            launched = true
+                                            break
+                                        } catch (_: Exception) {}
+                                    }
+                                    if (!launched) {
+                                        try {
+                                            ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                data = Uri.parse("package:${ctx.packageName}")
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            })
+                                        } catch (_: Exception) {}
+                                    }
+                                }
+                                .padding(vertical = 7.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (isArOrUr) "فتح إعدادات التشغيل التلقائي والبطارية (Autostart)" else "Open Vendor Autostart & Battery Settings",
+                                fontFamily = SakinaHeadingFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = effectiveTheme.accentBright
+                            )
+                        }
+                        val recentLogs = remember(showDiagnostics) { DiagLog.get(ctx).take(6) }
+                        if (recentLogs.isNotEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xAA040D14))
+                                    .border(0.6.dp, Color(0x44C5A059), RoundedCornerShape(8.dp))
+                                    .padding(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = if (isArOrUr) "سجل آخر التنبيهات (DiagLog):" else "Recent Alarm Log:",
+                                    fontFamily = SakinaHeadingFont,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.5.sp,
+                                    color = effectiveTheme.accentGold
+                                )
+                                recentLogs.forEach { entry ->
+                                    Text(
+                                        text = "• $entry".toWesternDigits(),
+                                        fontFamily = SakinaBodyFont,
+                                        fontSize = 9.5.sp,
+                                        color = SakinaBrandColors.SoftSilver,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
                         if (!batteryExempt) {
                             Box(
                                 modifier = Modifier
@@ -755,14 +859,22 @@ private fun SakinaHomeContent(ctx: Context) {
     }
 
     val hmFmt = remember { SimpleDateFormat("HH:mm", Locale.US) }
-    val todayPrayers = remember(nowMs / 60_000L, dayOffset) { PrayerEngine.day(ctx, dayOffset) }
-    val tomorrowPrayers = remember(nowMs / 60_000L) { PrayerEngine.day(ctx, 1) }
+    val minuteBucket = nowMs / 60_000L
+    val currentDayPrayers = remember(minuteBucket, locRefreshTick) { PrayerEngine.day(ctx, 0) }
+    val todayPrayers = remember(minuteBucket, dayOffset, locRefreshTick) {
+        if (dayOffset == 0) currentDayPrayers else PrayerEngine.day(ctx, dayOffset)
+    }
+    val tomorrowPrayers = remember(minuteBucket, locRefreshTick) { PrayerEngine.day(ctx, 1) }
 
-    val nextIndexToday = PrayerEngine.day(ctx, 0).indexOfFirst { it.second.time > nowMs }
-    val (nextDisplayName, nextTimeMs) = if (nextIndexToday >= 0) {
-        s.prayers[nextIndexToday] to PrayerEngine.day(ctx, 0)[nextIndexToday].second.time
-    } else {
-        s.prayers[0] to tomorrowPrayers.first().second.time
+    val nextIndexToday = remember(currentDayPrayers, minuteBucket) {
+        currentDayPrayers.indexOfFirst { it.second.time > nowMs }
+    }
+    val (nextDisplayName, nextTimeMs) = remember(nextIndexToday, currentDayPrayers, tomorrowPrayers, s) {
+        if (nextIndexToday >= 0) {
+            s.prayers[nextIndexToday] to currentDayPrayers[nextIndexToday].second.time
+        } else {
+            s.prayers[0] to tomorrowPrayers.first().second.time
+        }
     }
 
     val remSec = ((nextTimeMs - nowMs).coerceAtLeast(0L) / 1000L)
@@ -810,7 +922,7 @@ private fun SakinaHomeContent(ctx: Context) {
     ) {
         // Top Header with larger icons (#19)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            SakinaTitle3D(text = s.appName, fontSize = 22.sp)
+            SakinaTitle3D(text = s.appName, fontSize = 24.sp, useAmiri = true)
             Spacer(Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 Box(
@@ -895,64 +1007,69 @@ private fun SakinaHomeContent(ctx: Context) {
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.height(4.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                val hmsFmt = remember { SimpleDateFormat("HH:mm:ss", Locale.US) }
-                if (!analogPrimary) {
-                    SakinaOrnamentCartouche(
-                        modifier = Modifier.clickable { showCurrentTimeInCartouche = !showCurrentTimeInCartouche },
-                        contentPadding = PaddingValues(horizontal = 38.dp, vertical = 9.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Image(painter = painterResource(id = R.drawable.ic_fajr), contentDescription = null, modifier = Modifier.size(22.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = if (showCurrentTimeInCartouche) hmsFmt.format(Date(nowMs)).toWesternDigits() else countdownText,
-                                fontFamily = SakinaNumeralFont,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp,
-                                color = theme.accentBright,
-                                maxLines = 1,
-                                style = TextStyle(
-                                    fontFeatureSettings = "tnum",
-                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
-                                )
-                            )
-                        }
-                    }
-                } else {
-                    SakinaAnalogClockDial(
-                        timeMs = nowMs,
-                        size = 172.dp
-                    )
-                }
-
-                // Sleek 1-tap toggle button on the side to switch between Digital & Analog Clock (#8)
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Box(
-                    modifier = Modifier
-                        .align(AbsoluteAlignment.CenterRight)
-                        .padding(end = 6.dp)
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(theme.bgCard.copy(alpha = 0.90f))
-                        .border(0.9.dp, Sakina3DGoldBevelBrush, CircleShape)
-                        .clickable { analogPrimary = !analogPrimary },
+                    modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (analogPrimary) {
-                        Text(
-                            text = "00",
-                            fontFamily = SakinaNumeralFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.5.sp,
-                            color = theme.accentBright,
-                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                        )
+                    val hmsFmt = remember { SimpleDateFormat("HH:mm:ss", Locale.US) }
+                    if (!analogPrimary) {
+                        SakinaOrnamentCartouche(
+                            modifier = Modifier.clickable { showCurrentTimeInCartouche = !showCurrentTimeInCartouche },
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = if (showCurrentTimeInCartouche) hmsFmt.format(Date(nowMs)).toWesternDigits() else countdownText,
+                                    fontFamily = SakinaNumeralFont,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 21.sp,
+                                    color = theme.accentBright,
+                                    maxLines = 1,
+                                    style = TextStyle(
+                                        fontFeatureSettings = "tnum",
+                                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                    )
+                                )
+                                Text(
+                                    text = if (showCurrentTimeInCartouche) (if (lang.isRtl) "الوقت الحالي" else "Current Time") else (if (lang.isRtl) "المتبقي للصلاة" else "Remaining"),
+                                    fontFamily = SakinaBodyFont,
+                                    fontSize = 9.5.sp,
+                                    color = SakinaBrandColors.SoftSilver,
+                                    maxLines = 1,
+                                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                                )
+                            }
+                        }
                     } else {
-                        SakinaAnalogClockDial(timeMs = nowMs, size = 24.dp)
+                        SakinaAnalogClockDial(
+                            timeMs = nowMs,
+                            size = 176.dp
+                        )
                     }
+
+                    // Left Symmetric 3D Gold Button (Point 15): Toggle Current Time <-> Remaining Countdown
+                    SakinaClockActionButton(
+                        isActive = showCurrentTimeInCartouche,
+                        iconType = 1,
+                        onClick = {
+                            if (analogPrimary) analogPrimary = false
+                            showCurrentTimeInCartouche = !showCurrentTimeInCartouche
+                        },
+                        modifier = Modifier
+                            .align(AbsoluteAlignment.CenterLeft)
+                            .padding(start = 6.dp)
+                    )
+
+                    // Right Symmetric 3D Gold Button (Point 14): Toggle Digital <-> Luxury Analog Clock
+                    SakinaClockActionButton(
+                        isActive = analogPrimary,
+                        iconType = 0,
+                        onClick = { analogPrimary = !analogPrimary },
+                        modifier = Modifier
+                            .align(AbsoluteAlignment.CenterRight)
+                            .padding(end = 6.dp)
+                    )
                 }
             }
         }
@@ -1001,7 +1118,7 @@ private fun SakinaFeaturedNextPrayerCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .heightIn(min = 66.dp)
             .shadow(10.dp, shape, ambientColor = theme.accentGold, spotColor = theme.accentGold)
             .clip(shape)
             .border(1.5.dp, Sakina3DGoldBevelBrush, shape)
@@ -1036,30 +1153,27 @@ private fun SakinaFeaturedNextPrayerCard(
                 )
                 Spacer(modifier = Modifier.width(9.dp))
                 Column(
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)
                 ) {
                     Text(
                         text = prayer.displayTitle,
                         fontFamily = SakinaEditorialFont,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.5.sp,
-                        lineHeight = 17.sp,
+                        fontSize = 16.sp,
+                        lineHeight = 22.sp,
                         color = theme.accentBright,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(1.dp))
                     Text(
                         text = nextLabel,
                         fontFamily = SakinaBodyFont,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 9.5.sp,
-                        lineHeight = 11.sp,
-                        color = SakinaBrandColors.LuminousIvory,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                        color = LocalSakinaTextColor.current,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

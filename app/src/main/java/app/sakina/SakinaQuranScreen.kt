@@ -685,11 +685,42 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                                 modifier = Modifier.fillMaxWidth().weight(1f),
                                 contentAlignment = Alignment.Center
                             ) {
+                                val mushafMode = remember { SakinaAdvancedPrefs.mushafTheme(ctx) }
+                                val readerView = androidx.compose.ui.platform.LocalView.current
+                                DisposableEffect(readerView) {
+                                    val prev = readerView.keepScreenOn
+                                    if (SakinaAdvancedPrefs.keepScreenOn(ctx)) readerView.keepScreenOn = true
+                                    onDispose { readerView.keepScreenOn = prev }
+                                }
+                                val darkInvertFilter = remember(mushafMode) {
+                                    if (mushafMode == 2) {
+                                        // Soft dark night-reading inversion matrix (high-contrast cream text on deep charcoal)
+                                        androidx.compose.ui.graphics.ColorFilter.colorMatrix(
+                                            androidx.compose.ui.graphics.ColorMatrix(
+                                                floatArrayOf(
+                                                    -0.90f, 0f, 0f, 0f, 238f,
+                                                    0f, -0.90f, 0f, 0f, 232f,
+                                                    0f, 0f, -0.88f, 0f, 215f,
+                                                    0f, 0f, 0f, 1f, 0f
+                                                )
+                                            )
+                                        )
+                                    } else null
+                                }
                                 Image(
                                     bitmap = pageBitmap!!,
                                     contentDescription = "صفحة $pNum",
                                     contentScale = ContentScale.Fit,
-                                    modifier = Modifier.fillMaxSize()
+                                    colorFilter = darkInvertFilter,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            when (mushafMode) {
+                                                2 -> Color(0xFF0E1318)
+                                                1 -> Color(0xFFFFFFFF)
+                                                else -> Color(0xFFFAF4E6)
+                                            }
+                                        )
                                 )
                             }
                         } else if (isLoading) {

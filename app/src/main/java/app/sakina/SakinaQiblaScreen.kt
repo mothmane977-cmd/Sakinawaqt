@@ -82,15 +82,19 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
     var fieldStrengthUt by remember { mutableFloatStateOf(48f) }
     var sensorAccuracy by remember { mutableIntStateOf(SensorManager.SENSOR_STATUS_ACCURACY_HIGH) }
     var hasSensor by remember { mutableStateOf(true) }
+    var sensorMode by remember { mutableIntStateOf(SakinaAdvancedPrefs.qiblaSensorMode(ctx)) } // 0 = المغناطيسي المباشر (أدق لشاومي), 1 = المدمج (جيروسكوب)
+    var wasAligned by remember { mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
-    DisposableEffect(ctx, lat, lon) {
+    DisposableEffect(ctx, lat, lon, sensorMode) {
         val sm = ctx.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val rotVector = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
         val geoRotVector = sm.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR)
+        val gravitySensor = sm.getDefaultSensor(Sensor.TYPE_GRAVITY)
         val accelSensor = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         val magSensor = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
 
-        if (rotVector == null && geoRotVector == null && (accelSensor == null || magSensor == null)) {
+        if (rotVector == null && geoRotVector == null && ((gravitySensor == null && accelSensor == null) || magSensor == null)) {
             hasSensor = false
         }
 
@@ -98,27 +102,38 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
         val geomagnetic = FloatArray(3)
         var hasGravity = false
         var hasMag = false
-        var rotVectorActive = false
         var smoothSin = 0f
         var smoothCos = 1f
         var initialized = false
 
+        // True North magnetic declination for exact user coordinates
         val declination = try {
             GeomagneticField(lat.toFloat(), lon.toFloat(), 0f, System.currentTimeMillis()).declination
         } catch (_: Exception) { 0f }
 
-        fun pushHeadingFromMatrix(rotMatrix: FloatArray) {
-            val orientation = FloatArray(3)
-            SensorManager.getOrientation(rotMatrix, orientation)
-            val pitchDeg = Math.toDegrees(orientation[1].toDouble())
-            // v18 Point 22ج: Tilt-compensated axis remap when phone is held upright (>45 deg)
-            val effectiveMatrix = FloatArray(9)
-            if (kotlin.math.abs(pitchDeg) > 45.0) {
-                SensorManager.remapCoordinateSystem(rotMatrix, SensorManager.AXIS_X, SensorManager.AXIS_Z, effectiveMatrix)
-                SensorManager.getOrientation(effectiveMatrix, orientation)
+        // v19 Point 13: Zero-flip, zero-gimbal-lock 3D ENU Azimuth from Rotation Matrix R
+        // Android R maps device (X, Y, Z) -> World (East, North, Up):
+        //   Device +Y (top of phone) horizontal projection: East = R[1], North = R[4]
+        //   Device -Z (back of phone, forward when held upright) horizontal projection: East = -R[2], North = -R[5]
+        //   Flatness cos(tilt) = R[8]. Smoothly blend +Y (flat) and -Z (upright) — ZERO 180-deg flip!
+        fun pushHeadingFromMatrix(r: FloatArray) {
+            val flatness = r[8].coerceIn(-1f, 1f)
+            val east: Double
+            val north: Double
+            if (flatness >= 0.35f) {
+                // Phone flat or moderately tilted (< 70 deg): top of phone (+Y) points forward
+                east = r[1].toDouble()
+                north = r[4].toDouble()
+            } else {
+                // Phone held upright (> 70 deg): back of phone (-Z) points forward away from user
+                east = -r[2].toDouble()
+                north = -r[5].toDouble()
             }
-            val rawDeg = ((Math.toDegrees(orientation[0].toDouble()).toFloat() + declination) + 360f) % 360f
-            val rad = Math.toRadians(rawDeg.toDouble())
+            if (east * east + north * north < 1e-6) return
+            val magAzimuthDeg = Math.toDegrees(atan2(east, north)).toFloat()
+            val trueAzimuthDeg = ((magAzimuthDeg + declination) + 360f) % 360f
+
+            val rad = Math.toRadians(trueAzimuthDeg.toDouble())
             val sVal = sin(rad).toFloat()
             val cVal = cos(rad).toFloat()
 
@@ -127,8 +142,10 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 smoothCos = cVal
                 initialized = true
             } else {
-                smoothSin = smoothSin * 0.80f + sVal * 0.20f
-                smoothCos = smoothCos * 0.80f + cVal * 0.20f
+                // Adaptive circular low-pass filter (responsive on fast turn, rock-steady when still)
+                val alpha = 0.16f
+                smoothSin = smoothSin * (1f - alpha) + sVal * alpha
+                smoothCos = smoothCos * (1f - alpha) + cVal * alpha
             }
 
             val filteredDeg = ((Math.toDegrees(atan2(smoothSin.toDouble(), smoothCos.toDouble())).toFloat() + 360f) % 360f)
@@ -141,29 +158,38 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             continuousHeading += delta
         }
 
+        val useFused = (sensorMode == 1) && (rotVector != null || geoRotVector != null)
+
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent) {
                 when (event.sensor.type) {
                     Sensor.TYPE_ROTATION_VECTOR, Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR -> {
-                        rotVectorActive = true
-                        val rotMatrix = FloatArray(9)
-                        SensorManager.getRotationMatrixFromVector(rotMatrix, event.values)
-                        pushHeadingFromMatrix(rotMatrix)
+                        if (useFused) {
+                            val rotMatrix = FloatArray(9)
+                            SensorManager.getRotationMatrixFromVector(rotMatrix, event.values)
+                            pushHeadingFromMatrix(rotMatrix)
+                        }
+                    }
+                    Sensor.TYPE_GRAVITY -> {
+                        for (i in 0..2) gravity[i] = event.values[i]
+                        hasGravity = true
                     }
                     Sensor.TYPE_ACCELEROMETER -> {
-                        for (i in 0..2) {
-                            gravity[i] = if (!hasGravity) event.values[i] else gravity[i] * 0.85f + event.values[i] * 0.15f
+                        if (gravitySensor == null) {
+                            for (i in 0..2) {
+                                gravity[i] = if (!hasGravity) event.values[i] else gravity[i] * 0.88f + event.values[i] * 0.12f
+                            }
+                            hasGravity = true
                         }
-                        hasGravity = true
                     }
                     Sensor.TYPE_MAGNETIC_FIELD -> {
                         for (i in 0..2) {
-                            geomagnetic[i] = if (!hasMag) event.values[i] else geomagnetic[i] * 0.85f + event.values[i] * 0.15f
+                            geomagnetic[i] = if (!hasMag) event.values[i] else geomagnetic[i] * 0.82f + event.values[i] * 0.18f
                         }
                         hasMag = true
                         val bx = event.values[0]; val by = event.values[1]; val bz = event.values[2]
                         fieldStrengthUt = sqrt(bx * bx + by * by + bz * bz)
-                        if (!rotVectorActive && hasGravity) {
+                        if (!useFused && hasGravity) {
                             val r = FloatArray(9)
                             val iMat = FloatArray(9)
                             if (SensorManager.getRotationMatrix(r, iMat, gravity, geomagnetic)) {
@@ -181,19 +207,17 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             }
         }
 
-        // Register fused Rotation Vector first (works reliably on Xiaomi/HyperOS/Samsung/Pixel) (#6)
-        if (rotVector != null) {
-            sm.registerListener(listener, rotVector, SensorManager.SENSOR_DELAY_GAME)
-        } else if (geoRotVector != null) {
-            sm.registerListener(listener, geoRotVector, SensorManager.SENSOR_DELAY_GAME)
+        if (useFused) {
+            val activeRot = rotVector ?: geoRotVector
+            if (activeRot != null) sm.registerListener(listener, activeRot, SensorManager.SENSOR_DELAY_GAME)
+        } else {
+            if (gravitySensor != null) sm.registerListener(listener, gravitySensor, SensorManager.SENSOR_DELAY_GAME)
+            else if (accelSensor != null) sm.registerListener(listener, accelSensor, SensorManager.SENSOR_DELAY_GAME)
         }
-        // Always listen to Magnetometer (for µT) + Accelerometer (for fallback)
-        if (magSensor != null) sm.registerListener(listener, magSensor, SensorManager.SENSOR_DELAY_UI)
-        if (accelSensor != null) sm.registerListener(listener, accelSensor, SensorManager.SENSOR_DELAY_UI)
+        if (magSensor != null) sm.registerListener(listener, magSensor, SensorManager.SENSOR_DELAY_GAME)
 
         onDispose { sm.unregisterListener(listener) }
     }
-
     val animatedHeading by animateFloatAsState(
         targetValue = continuousHeading,
         animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow),
@@ -201,7 +225,13 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
     )
 
     val deltaToQibla = ((qiblaBearing - normalizedHeading + 540f) % 360f) - 180f
-    val isAligned = abs(deltaToQibla) <= 4f
+    val isAligned = abs(deltaToQibla) <= 3f
+    LaunchedEffect(isAligned) {
+        if (isAligned && !wasAligned) {
+            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+        }
+        wasAligned = isAligned
+    }
     val isFieldNormal = fieldStrengthUt in 22f..68f
 
     Column(
@@ -360,8 +390,40 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
             }
         }
 
-        // 4. Bottom Status Pills + Manual Location Update (#6)
+        // 4. Bottom Status Pills + Sensor Mode Toggle + Manual Location Update
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(28.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xEE041218))
+                    .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                    .clickable {
+                        val nextMode = if (sensorMode == 0) 1 else 0
+                        sensorMode = nextMode
+                        SakinaAdvancedPrefs.setQiblaSensorMode(ctx, nextMode)
+                    }
+                    .padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (sensorMode == 0) "وضع البوصلة: المغناطيسي المباشر (أعلى دقة)" else "وضع البوصلة: المدمج (جيروسكوب + مغناطيس)",
+                    fontFamily = SakinaBodyFont,
+                    fontSize = 10.5.sp,
+                    color = theme.accentBright,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "تبديل ↻",
+                    fontFamily = SakinaHeadingFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.5.sp,
+                    color = SakinaBrandColors.StableEmerald
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

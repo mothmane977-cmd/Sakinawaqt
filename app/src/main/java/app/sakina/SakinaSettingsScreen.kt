@@ -52,6 +52,8 @@ fun SakinaSettingsScreen(
     onThemeChange: (SakinaLuxuryTheme) -> Unit,
     onLangChange: (SakinaLang) -> Unit,
     onBackClick: () -> Unit,
+    appearanceOnly: Boolean = false,
+    onAppearanceChanged: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BackHandler {
@@ -69,7 +71,11 @@ fun SakinaSettingsScreen(
     val sp = remember { ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE) }
 
     // 4 Organized Sub-Tabs
-    var activeSubTab by remember { mutableIntStateOf(0) }
+    var activeSubTab by remember(appearanceOnly) { mutableIntStateOf(if (appearanceOnly) 0 else 1) }
+    var appFontStyle by remember { mutableIntStateOf(SakinaAdvancedPrefs.appFontStyle(ctx)) }
+    var appFontScale by remember { mutableFloatStateOf(SakinaAdvancedPrefs.readingFontScale(ctx)) }
+    var appTextColorIdx by remember { mutableIntStateOf(SakinaAdvancedPrefs.appTextColorIndex(ctx)) }
+    var mushafThemeIdx by remember { mutableIntStateOf(SakinaAdvancedPrefs.mushafTheme(ctx)) }
     val subTabLabels = remember(lang) {
         when (lang) {
             SakinaLang.AR -> listOf("المظهر والوقت", "حساب المواقيت", "الأذان والصامت", "المشاركة وحول")
@@ -136,7 +142,7 @@ fun SakinaSettingsScreen(
                 contentPadding = PaddingValues(horizontal = 36.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = s.settingsTitle,
+                    text = if (appearanceOnly) (if (isArOrUr) "المظهر والخطوط" else "Appearance & Fonts") else (if (isArOrUr) "الإعدادات العامة" else s.settingsTitle),
                     style = TextStyle(
                         fontFamily = SakinaEditorialFont,
                         fontWeight = FontWeight.Bold,
@@ -152,8 +158,8 @@ fun SakinaSettingsScreen(
 
         Spacer(Modifier.height(6.dp))
 
-        // 4 Organized Sub-Tab Pills
-        Row(
+        // 4 Organized Sub-Tab Pills (hidden in dedicated Appearance & Fonts mode)
+        if (!appearanceOnly) Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(34.dp)
@@ -206,6 +212,131 @@ fun SakinaSettingsScreen(
                 // TAB 0: Appearance, Themes, Location, Timezone & Hijri
                 // =========================================================
                 0 -> {
+                        // v19 Point 8: Dedicated Font Style, Font Size, Text Color & Mushaf Theme Studio
+                        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), glowGold = true) {
+                            Text(
+                                text = if (isArOrUr) "تخصيص الخط وحجمه ولونه" else "Typography, Size & Color",
+                                fontFamily = SakinaHeadingFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.5.sp,
+                                color = theme.accentBright
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = if (isArOrUr) "نوع الخط" else "Font Family",
+                                fontFamily = SakinaBodyFont,
+                                fontSize = 11.5.sp,
+                                color = SakinaBrandColors.SoftSilver
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            SettingSegmentedRow(
+                                labels = if (isArOrUr) listOf("الأميري النسخ", "رقعة مزخرف", "خط حديث") else listOf("Amiri", "Ornate", "Modern"),
+                                selectedIdx = appFontStyle,
+                                onSelect = { idx ->
+                                    appFontStyle = idx
+                                    SakinaAdvancedPrefs.setAppFontStyle(ctx, idx)
+                                    onAppearanceChanged()
+                                }
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (isArOrUr) "حجم الخط العام" else "App Font Size",
+                                    fontFamily = SakinaBodyFont,
+                                    fontSize = 11.5.sp,
+                                    color = SakinaBrandColors.SoftSilver
+                                )
+                                Text(
+                                    text = "${(appFontScale * 100).toInt()}%".toWesternDigits(),
+                                    fontFamily = SakinaNumeralFont,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = theme.accentBright
+                                )
+                            }
+                            Slider(
+                                value = appFontScale,
+                                onValueChange = { v ->
+                                    appFontScale = v
+                                    SakinaAdvancedPrefs.setReadingFontScale(ctx, v)
+                                    onAppearanceChanged()
+                                },
+                                valueRange = 0.85f..1.35f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = theme.accentBright,
+                                    activeTrackColor = theme.accentGold,
+                                    inactiveTrackColor = Color(0x33FFFFFF)
+                                )
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = if (isArOrUr) "لون النصوص" else "Text Color",
+                                fontFamily = SakinaBodyFont,
+                                fontSize = 11.5.sp,
+                                color = SakinaBrandColors.SoftSilver
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                SakinaTextColorPresets.forEachIndexed { idx, (label, swatchColor) ->
+                                    val sel = appTextColorIdx == idx
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(if (sel) Color(0x33D4AF37) else Color(0x1AFFFFFF))
+                                            .border(if (sel) 1.3.dp else 0.6.dp, if (sel) theme.accentBright else Color(0x33FFFFFF), RoundedCornerShape(10.dp))
+                                            .clickable {
+                                                appTextColorIdx = idx
+                                                SakinaAdvancedPrefs.setAppTextColorIndex(ctx, idx)
+                                                onAppearanceChanged()
+                                            }
+                                            .padding(vertical = 6.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(18.dp)
+                                                .clip(CircleShape)
+                                                .background(swatchColor)
+                                                .border(1.dp, Color(0x88000000), CircleShape)
+                                        )
+                                        Spacer(Modifier.height(3.dp))
+                                        Text(
+                                            text = label.substringBefore(" "),
+                                            fontFamily = SakinaBodyFont,
+                                            fontSize = 9.sp,
+                                            color = swatchColor,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = if (isArOrUr) "ثيم قراءة المصحف" else "Mushaf Reading Theme",
+                                fontFamily = SakinaBodyFont,
+                                fontSize = 11.5.sp,
+                                color = SakinaBrandColors.SoftSilver
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            SettingSegmentedRow(
+                                labels = if (isArOrUr) listOf("ورقي دافئ", "عادي", "ليلي") else listOf("Warm", "Normal", "Dark"),
+                                selectedIdx = mushafThemeIdx,
+                                onSelect = { idx ->
+                                    mushafThemeIdx = idx
+                                    SakinaAdvancedPrefs.setMushafTheme(ctx, idx)
+                                }
+                            )
+                        }
+
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth(), glowGold = true) {
                         Text(s.themeTitle.toWesternDigits(), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(6.dp))

@@ -236,6 +236,18 @@ object AlarmScheduler {
         sp.edit().putLong("checked", now - 60_000L).apply()
     }
 
+    private fun safeExact(am: AlarmManager, at: Long, pi: PendingIntent) {
+        try {
+            if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+            } else {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+            }
+        } catch (_: SecurityException) {
+            try { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi) } catch (_: Exception) {}
+        } catch (_: Exception) {}
+    }
+
     fun scheduleNext(c: Context, after: Long = System.currentTimeMillis()) {
         // Background travel check: auto-update coordinates if user moved > 10 km
         try {
@@ -268,9 +280,7 @@ object AlarmScheduler {
         if (firstName != null) {
             try {
                 val am = c.getSystemService(AlarmManager::class.java)
-                am.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, firstAt + 90_000, fireIntent(c, 4, firstName, firstAt, true)
-                )
+                safeExact(am, firstAt + 90_000, fireIntent(c, 4, firstName, firstAt, true))
             } catch (e: SecurityException) {
                 DiagLog.add(c, "تعذّر الاحتياطي: ${e.javaClass.simpleName}")
             }
@@ -295,7 +305,7 @@ object AlarmScheduler {
                         Intent(c, PostPrayerAdhkarReceiver::class.java).putExtra("p", rem.title).putExtra("custom", true),
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
-                    amCustom.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pi)
+                    safeExact(amCustom, fireAt, pi)
                 }
             }
         } catch (_: Exception) {}
@@ -493,7 +503,7 @@ object PostPrayerAdhkarScheduler {
                 c, 820, Intent(c, PostPrayerAdhkarReceiver::class.java).putExtra("p", prayerName),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pi)
+            try { if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pi) else am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pi) } catch (_: Exception) {}
         } catch (_: Exception) {}
     }
 }
@@ -592,8 +602,8 @@ object SilentModeScheduler {
                 c, 811, Intent(c, AutoSilentReceiver::class.java).putExtra("silent", false),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startAt, startPi)
-            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endAt, endPi)
+            try { if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startAt, startPi) else am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startAt, startPi) } catch (_: Exception) {}
+            try { if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endAt, endPi) else am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endAt, endPi) } catch (_: Exception) {}
         } catch (_: Exception) {}
     }
 }

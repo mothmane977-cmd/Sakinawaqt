@@ -71,7 +71,7 @@ fun SakinaSunnahScreen(
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             SakinaBackIconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart))
-            SakinaTitle3D(text = "السنن والنوافل", fontSize = 20.sp, modifier = Modifier.align(Alignment.Center))
+            SakinaTitle3D(text = "تذكير بالعبادات وصالح الأعمال", fontSize = 20.sp, modifier = Modifier.align(Alignment.Center))
         }
 
         // Calm daily progress summary

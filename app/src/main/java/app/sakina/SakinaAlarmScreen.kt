@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
 @Composable
-fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier = Modifier) {
+fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> Unit, modifier: Modifier = Modifier) {
     BackHandler {
         SakinaAdhanAudio.stop()
         onBackClick()
@@ -57,7 +57,8 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
     var selectedVoice by remember { mutableStateOf(SakinaAdhanAudio.selectedVoice(ctx)) }
     var playingVoiceKey by remember { mutableStateOf<String?>(null) }
     var showVoiceDialog by remember { mutableStateOf(false) }
-    var alarmTab by remember { mutableIntStateOf(0) } // 0 = المنبهات الصوتية (13-1..4), 1 = التنبيهات الهادئة
+    var alarmTab by remember(initialSection) { mutableIntStateOf(initialSection) } // 0 = المنبهات الصوتية, 1 = التنبيهات الهادئة
+    var alarmSubTab by remember { mutableIntStateOf(0) } // 0 = أنواع المنبهات, 1 = المؤذنون والصوت
     var fajrSnooze by remember { mutableStateOf(SakinaAdvancedPrefs.fajrSnoozeEnabled(ctx)) }
     var qiyamOn by remember { mutableStateOf(SakinaAdvancedPrefs.qiyamAlarmEnabled(ctx)) }
     var qiyamMin by remember { mutableIntStateOf(SakinaAdvancedPrefs.qiyamAlarmMinutesBefore(ctx)) }
@@ -90,7 +91,7 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                 contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)
             ) {
                 Text(
-                    text = s.alarmTitle,
+                    text = if (alarmTab == 1) (if (lang.isRtl) "التنبيهات الهادئة" else "Quiet Notifications") else (if (lang.isRtl) "المنبهات الصوتية" else "Sound Alarms"),
                     style = TextStyle(
                         fontFamily = SakinaEditorialFont,
                         fontWeight = FontWeight.Bold,
@@ -136,6 +137,39 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
             }
         }
 
+        if (alarmTab == 0) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xEE05141C))
+                    .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                listOf("أنواع المنبهات", "المؤذنون والصوت").forEachIndexed { idx, label ->
+                    val sel = alarmSubTab == idx
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(if (sel) theme.accentBright else Color.Transparent)
+                            .clickable { alarmSubTab = idx }
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            fontFamily = SakinaHeadingFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory
+                        )
+                    }
+                }
+            }
+        }
+
         if (alarmTab == 1) {
             SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
                 Text("التنبيهات والإشعارات الهادئة", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = theme.accentBright)
@@ -168,7 +202,7 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                     })
                 }
             }
-        } else {
+        } else if (alarmSubTab == 0) {
             // 13-1, 13-3, 13-4 Categorized Alarm Modes Card
             SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
                 Text("تصنيف المنبهات حسب الوظيفة", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
@@ -222,6 +256,7 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
             }
         }
 
+        if (alarmTab == 0 && alarmSubTab == 1) {
         // 1. Compact Adhan Voice Selector Card with Preview + Change Dialog
         SakinaGlassCard(
             modifier = Modifier.fillMaxWidth(),
@@ -486,6 +521,7 @@ fun SakinaAlarmScreen(ctx: Context, onBackClick: () -> Unit, modifier: Modifier 
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+        }
         }
     }
 

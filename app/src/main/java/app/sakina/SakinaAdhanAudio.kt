@@ -6,8 +6,16 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.RawRes
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.pow
 
 enum class AdhanVoice(
     val key: String,
@@ -75,6 +83,11 @@ object SakinaAdhanAudio {
     private var activePlayer: MediaPlayer? = null
     private var flipSm: SensorManager? = null
     private var flipListener: SensorEventListener? = null
+    private var activeAudioManager: AudioManager? = null
+    private var activeFocusRequest: AudioFocusRequest? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var fadeRunnable: Runnable? = null
+    private val isStopping = AtomicBoolean(false)
 
     fun selectedVoice(ctx: Context): AdhanVoice {
         val sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
@@ -113,6 +126,97 @@ object SakinaAdhanAudio {
     fun rawResForPrayer(ctx: Context, prayerNameAr: String? = null): Int =
         voiceForPrayer(ctx, prayerNameAr).rawRes
 
+    private fun isInActiveCall(am: AudioManager?): Boolean {
+        if (am == null) return false
+        return try {
+            am.mode == AudioManager.MODE_IN_CALL || am.mode == AudioManager.MODE_IN_COMMUNICATION
+        } catch (_: Exception) { false }
+    }
+
+    private fun isHeadphonesConnected(am: AudioManager?): Boolean {
+        if (am == null) return false
+        return try {
+            val devices = am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            devices.any { d ->
+                d.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                    d.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                    d.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                    d.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    (Build.VERSION.SDK_INT >= 26 && d.type == AudioDeviceInfo.TYPE_USB_HEADSET)
+            }
+        } catch (_: Exception) { false }
+    }
+
+    private fun requestAudioFocus(am: AudioManager?, attrs: AudioAttributes) {
+        if (am == null) return
+        try {
+            activeAudioManager = am
+            if (Build.VERSION.SDK_INT >= 26) {
+                val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                    .setAudioAttributes(attrs)
+                    .setAcceptsDelayedFocusGain(false)
+                    .setOnAudioFocusChangeListener { change ->
+                        if (change == AudioManager.AUDIOFOCUS_LOSS) stop()
+                    }
+                    .build()
+                activeFocusRequest = req
+                am.requestAudioFocus(req)
+            } else {
+                @Suppress("DEPRECATION")
+                am.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun abandonAudioFocus() {
+        try {
+            val am = activeAudioManager
+            if (am != null) {
+                if (Build.VERSION.SDK_INT >= 26) {
+                    activeFocusRequest?.let { am.abandonAudioFocusRequest(it) }
+                } else {
+                    @Suppress("DEPRECATION")
+                    am.abandonAudioFocus(null)
+                }
+            }
+        } catch (_: Exception) {}
+        activeFocusRequest = null
+        activeAudioManager = null
+    }
+
+    private fun cancelFade() {
+        fadeRunnable?.let { mainHandler.removeCallbacks(it) }
+        fadeRunnable = null
+    }
+
+    private fun startLogarithmicFadeIn(mp: MediaPlayer, targetVol: Float, durationMs: Long = 12_000L) {
+        cancelFade()
+        val steps = 24
+        val stepDelay = durationMs / steps
+        var currentStep = 0
+        try { mp.setVolume(0.06f, 0.06f) } catch (_: Exception) {}
+
+        val r = object : Runnable {
+            override fun run() {
+                if (activePlayer !== mp) return
+                currentStep++
+                val progress = (currentStep.toFloat() / steps).coerceIn(0f, 1f)
+                // Smooth logarithmic-feel curve from 0.06f up to targetVol
+                val curved = (0.06f + (targetVol - 0.06f) * progress.pow(1.8f)).coerceIn(0.05f, 1.0f)
+                try {
+                    if (mp.isPlaying) mp.setVolume(curved, curved)
+                } catch (_: Exception) {
+                    return
+                }
+                if (currentStep < steps) {
+                    mainHandler.postDelayed(this, stepDelay)
+                }
+            }
+        }
+        fadeRunnable = r
+        mainHandler.postDelayed(r, stepDelay)
+    }
+
     private fun registerFlipToSilence(ctx: Context) {
         unregisterFlipToSilence()
         if (!SakinaAdvancedPrefs.flipToSilence(ctx)) return
@@ -146,24 +250,36 @@ object SakinaAdhanAudio {
         flipListener = null
     }
 
+    private fun createSafeMediaPlayer(ctx: Context, @RawRes resId: Int): MediaPlayer? {
+        return try {
+            MediaPlayer.create(ctx.applicationContext, resId)
+        } catch (_: Exception) {
+            null
+        } ?: try {
+            MediaPlayer.create(ctx.applicationContext, R.raw.madinah)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun startPreview(ctx: Context, voice: AdhanVoice, onComplete: () -> Unit = {}) {
         stop()
         try {
-            val vol = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val am = ctx.applicationContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            var vol = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
                 .getFloat("adhan_vol", 0.85f)
                 .coerceIn(0.05f, 1.0f)
-            val mp = MediaPlayer.create(ctx.applicationContext, voice.rawRes) ?: return
-            mp.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build()
-            )
+            if (isHeadphonesConnected(am)) vol = vol.coerceAtMost(0.55f)
+
+            val mp = createSafeMediaPlayer(ctx, voice.rawRes) ?: run { onComplete(); return }
+            val attrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build()
+            mp.setAudioAttributes(attrs)
             mp.setVolume(vol, vol)
-            mp.setOnCompletionListener {
-                stop()
-                onComplete()
-            }
+            mp.setOnCompletionListener { stop(); onComplete() }
+            mp.setOnErrorListener { _, _, _ -> stop(); onComplete(); true }
             mp.start()
             activePlayer = mp
         } catch (_: Exception) {
@@ -175,24 +291,41 @@ object SakinaAdhanAudio {
     fun playAlarmAdhan(ctx: Context, prayerNameAr: String? = null, onComplete: () -> Unit = {}) {
         stop()
         try {
-            val vol = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val am = ctx.applicationContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            // Call safety: never blast loud alarm Adhan over an active phone/VoIP call
+            if (isInActiveCall(am)) {
+                onComplete()
+                return
+            }
+
+            var targetVol = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
                 .getFloat("adhan_vol", 0.85f)
                 .coerceIn(0.05f, 1.0f)
-            val resId = rawResForPrayer(ctx, prayerNameAr)
-            val mp = MediaPlayer.create(ctx.applicationContext, resId) ?: return
-            mp.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-            mp.setVolume(vol, vol)
-            mp.setOnCompletionListener {
-                stop()
-                onComplete()
+            // Headphone ear-safety cap
+            if (isHeadphonesConnected(am)) {
+                targetVol = targetVol.coerceAtMost(0.50f)
             }
-            mp.start()
+
+            val resId = rawResForPrayer(ctx, prayerNameAr)
+            val mp = createSafeMediaPlayer(ctx, resId) ?: run { onComplete(); return }
+            val attrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            mp.setAudioAttributes(attrs)
+            requestAudioFocus(am, attrs)
+
+            val isFajrFade = (prayerNameAr == "الفجر") && Prefs.fajrFade(ctx)
+            mp.setOnCompletionListener { stop(); onComplete() }
+            mp.setOnErrorListener { _, _, _ -> stop(); onComplete(); true }
             activePlayer = mp
+            mp.start()
+
+            if (isFajrFade) {
+                startLogarithmicFadeIn(mp, targetVol, durationMs = 12_000L)
+            } else {
+                mp.setVolume(targetVol, targetVol)
+            }
             registerFlipToSilence(ctx)
         } catch (_: Exception) {
             stop()
@@ -203,13 +336,18 @@ object SakinaAdhanAudio {
     fun isPlaying(): Boolean = try { activePlayer?.isPlaying == true } catch (_: Exception) { false }
 
     fun stop() {
-        unregisterFlipToSilence()
+        if (!isStopping.compareAndSet(false, true)) return
         try {
+            cancelFade()
+            unregisterFlipToSilence()
             activePlayer?.let {
-                if (it.isPlaying) it.stop()
-                it.release()
+                try { if (it.isPlaying) it.stop() } catch (_: Exception) {}
+                try { it.release() } catch (_: Exception) {}
             }
-        } catch (_: Exception) {}
-        activePlayer = null
+            activePlayer = null
+            abandonAudioFocus()
+        } finally {
+            isStopping.set(false)
+        }
     }
 }
