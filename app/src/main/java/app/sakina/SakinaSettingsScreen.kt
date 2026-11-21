@@ -134,12 +134,16 @@ fun SakinaSettingsScreen(
             .navigationBarsPadding()
             .padding(start = 14.dp, end = 14.dp, top = 56.dp, bottom = 74.dp)
     ) {
-        // Pinned Header below Mihrab arch
-        Box(modifier = Modifier.fillMaxWidth()) {
-            SakinaBackIconButton(onClick = { SakinaAdhanAudio.stop(); onBackClick() }, modifier = Modifier.align(Alignment.CenterStart))
+        // Pinned Header below Mihrab arch (Row layout prevents Back button overlap in all languages)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SakinaBackIconButton(onClick = { SakinaAdhanAudio.stop(); onBackClick() })
+            Spacer(Modifier.width(8.dp))
             SakinaOrnamentCartouche(
-                modifier = Modifier.align(Alignment.Center),
-                contentPadding = PaddingValues(horizontal = 36.dp, vertical = 6.dp)
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = if (appearanceOnly) sakinaTr(lang, "المظهر والخطوط", "Appearance & Fonts", "Apparence et polices", "Görünüm ve Yazı Tipi", "Tampilan & Font", "ظاہری شکل اور فونٹس") else sakinaTr(lang, "الإعدادات العامة", "General Settings", "Paramètres généraux", "Genel Ayarlar", "Pengaturan Umum", "عمومی ترتیبات"),
@@ -367,7 +371,7 @@ fun SakinaSettingsScreen(
                         }
                         Spacer(Modifier.height(8.dp))
                         SettingSwitchRow(
-                            title = if (isArOrUr) "الوضع الليلي التلقائي (ليلاً)" else "Auto Night Mode (AMOLED)",
+                            title = sakinaTr(lang, "الوضع الليلي التلقائي (ليلاً)", "Auto Night Mode (AMOLED)", "Mode nuit automatique (AMOLED)", "Otomatik Gece Modu", "Mode Malam Otomatis", "خودکار نائٹ موڈ"),
                             checked = autoNight,
                             onCheckedChange = { autoNight = it; SakinaAdvancedPrefs.setAutoNightMode(ctx, it) }
                         )
@@ -419,22 +423,22 @@ fun SakinaSettingsScreen(
                         val tz = TimeZone.getDefault()
                         val offsetHrs = tz.rawOffset / 3_600_000
                         Text(
-                            text = "${if (isArOrUr) "المنطقة الزمنية" else "Timezone"}: ${tz.id} (UTC${if (offsetHrs >= 0) "+$offsetHrs" else "$offsetHrs"})".toWesternDigits(),
+                            text = "${sakinaTr(lang, "المنطقة الزمنية", "Timezone", "Fuseau horaire", "Saat Dilimi", "Zona Waktu", "ٹائم زون")}: ${tz.id} (UTC${if (offsetHrs >= 0) "+$offsetHrs" else "$offsetHrs"})".toWesternDigits(),
                             fontFamily = SakinaBodyFont,
                             fontSize = 11.5.sp,
                             color = SakinaBrandColors.SoftSilver
                         )
                         Spacer(Modifier.height(6.dp))
-                        Text(if (isArOrUr) "نظام عرض الأوقات" else "Time Format", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "نظام عرض الأوقات", "Time Format", "Format de l'heure", "Saat Biçimi", "Format Waktu", "وقت کا فارمیٹ"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(4.dp))
-                        val fmtLabels = if (isArOrUr) listOf("تلقائي", "12 ساعة", "24 ساعة") else listOf("Auto", "12h", "24h")
+                        val fmtLabels = listOf(sakinaTr(lang, "تلقائي", "Auto", "Auto", "Oto", "Oto", "خودکار"), sakinaTr(lang, "12 ساعة", "12h", "12h", "12s", "12j", "12 گھنٹے"), sakinaTr(lang, "24 ساعة", "24h", "24h", "24s", "24j", "24 گھنٹے"))
                         SettingSegmentedRow(labels = fmtLabels, selectedIdx = timeFmtMode) {
                             timeFmtMode = it; SakinaAdvancedPrefs.setTimeFormatMode(ctx, it)
                         }
                         Spacer(Modifier.height(8.dp))
-                        Text(if (isArOrUr) "التوقيت الصيفي (DST)" else "Daylight Saving", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "التوقيت الصيفي (DST)", "Daylight Saving", "Heure d'été (DST)", "Yaz Saati (DST)", "Waktu Musim Panas", "ڈے لائٹ سیونگ"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(4.dp))
-                        val dstLabels = if (isArOrUr) listOf("تلقائي", "On", "Off") else listOf("Auto", "On", "Off")
+                        val dstLabels = listOf(sakinaTr(lang, "تلقائي", "Auto", "Auto", "Oto", "Oto", "خودکار"), sakinaTr(lang, "مفعّل", "On", "Activé", "Açık", "Aktif", "آن"), sakinaTr(lang, "معطّل", "Off", "Désactivé", "Kapalı", "Mati", "آف"))
                         SettingSegmentedRow(labels = dstLabels, selectedIdx = dstMode) {
                             dstMode = it; SakinaAdvancedPrefs.setDstMode(ctx, it)
                         }
@@ -464,9 +468,9 @@ fun SakinaSettingsScreen(
                     }
 
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Text(if (isArOrUr) "المذهب الفقهي لحساب العصر" else "Asr Juristic Method", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "المذهب الفقهي لحساب العصر", "Asr Juristic Method", "Méthode juridique (Asr)", "İkindi Mezhep Hesabı", "Mazhab Waktu Ashar", "عصر کا فقہی مسلک"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright)
                         Spacer(Modifier.height(6.dp))
-                        val madhhabLabels = if (isArOrUr) listOf("الجمهور (مالكي / شافعي / حنبلي)", "المذهب الحنفي") else listOf("Standard (Maliki/Shafi'i)", "Hanafi")
+                        val madhhabLabels = listOf(sakinaTr(lang, "الجمهور (مالكي / شافعي)", "Standard (Maliki/Shafi'i)", "Standard (Malikite/Chafiite)", "Standart (Şafii/Maliki)", "Standar (Syafi'i/Maliki)", "جمہور (مالکی/شافعی)"), sakinaTr(lang, "المذهب الحنفي", "Hanafi", "Hanafite", "Hanefi", "Hanafi", "حنفی"))
                         SettingSegmentedRow(labels = madhhabLabels, selectedIdx = if (isHanafi) 1 else 0) {
                             isHanafi = it == 1
                             Prefs.setHanafi(ctx, isHanafi)
@@ -475,9 +479,9 @@ fun SakinaSettingsScreen(
                     }
 
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Text(if (isArOrUr) "تعديل خطوط العرض العليا" else "High Latitude Adjustment", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "تعديل خطوط العرض العليا", "High Latitude Adjustment", "Ajustement hautes latitudes", "Yüksek Enlem Ayarı", "Penyesuaian Lintang Tinggi", "بلند عرض البلد ایڈجسٹمنٹ"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright)
                         Spacer(Modifier.height(6.dp))
-                        val hlOptions = if (isArOrUr) listOf("بدون تعديل", "منتصف الليل", "سُبع الليل", "القائمة على الزاوية") else listOf("None", "Midnight", "1/7 Night", "Angle-Based")
+                        val hlOptions = listOf(sakinaTr(lang, "بدون تعديل", "None", "Aucun", "Yok", "Tidak Ada", "کوئی نہیں"), sakinaTr(lang, "منتصف الليل", "Midnight", "Milieu de la nuit", "Gece Yarısı", "Tengah Malam", "نصف شب"), sakinaTr(lang, "سُبع الليل", "1/7 Night", "Septième de la nuit", "Gecenin 1/7'si", "Sepertujuh Malam", "رات کا ساتواں حصہ"), sakinaTr(lang, "القائمة على الزاوية", "Angle-Based", "Basé sur l'angle", "Açı Tabanlı", "Berbasis Sudut", "زاویہ کی بنیاد پر"))
                         hlOptions.forEachIndexed { idx, opt ->
                             val sel = highLatRule == idx
                             Row(
@@ -502,8 +506,8 @@ fun SakinaSettingsScreen(
 
                     SakinaSettingsPill(
                         iconRes = R.drawable.ic_mosque,
-                        title = if (isArOrUr) "تعديل أوقات الصلاة يدوياً" else "Manual Prayer Time Offsets",
-                        valueText = if (isArOrUr) "±120 دقيقة" else "±120 min"
+                        title = sakinaTr(lang, "تعديل أوقات الصلاة يدوياً", "Manual Prayer Offsets", "Ajustement manuel des horaires", "Manuel Vakit Ayarı", "Penyesuaian Waktu Manual", "اوقات کی دستی تبدیلی"),
+                        valueText = sakinaTr(lang, "±120 دقيقة", "±120 min", "±120 min", "±120 dk", "±120 mnt", "±120 منٹ")
                     ) { showManualOffsets = true }
                 }
 
@@ -516,21 +520,21 @@ fun SakinaSettingsScreen(
                     }
                     SakinaSettingsPill(
                         R.drawable.ic_mosque,
-                        if (isArOrUr) "تخصيص مؤذن لكل صلاة" else "Muezzin per Prayer",
-                        if (isArOrUr) "الصلوات الخمس" else "5 Prayers"
+                        sakinaTr(lang, "تخصيص مؤذن لكل صلاة", "Muezzin per Prayer", "Muezzin par prière", "Namaza Göre Müezzin", "Muadzin per Sholat", "ہر نماز کے لیے مؤذن"),
+                        sakinaTr(lang, "الصلوات الخمس", "5 Prayers", "5 prières", "5 Vakit", "5 Sholat", "5 نمازیں")
                     ) {
                         showPerPrayerMuezzin = true
                     }
 
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
                         SettingSwitchRow(
-                            title = if (isArOrUr) "أذان على المذهب المالكي (تكبيرتان)" else "Maliki Adhan (2 Takbirs)",
+                            title = sakinaTr(lang, "أذان على المذهب المالكي (تكبيرتان)", "Maliki Adhan (2 Takbirs)", "Adhan malikite (2 Takbirs)", "Maliki Ezanı (2 Tekbir)", "Adzan Maliki (2 Takbir)", "مالکی اذان (2 تکبیریں)"),
                             checked = malikiAdhan,
                             onCheckedChange = { malikiAdhan = it; SakinaAdvancedPrefs.setMalikiAdhan(ctx, it) }
                         )
                         HorizontalDivider(color = Color(0x22FFFFFF), modifier = Modifier.padding(vertical = 6.dp))
                         SettingSwitchRow(
-                            title = if (isArOrUr) "الإشعار المستمر في شريط الإشعارات" else "Persistent Notification",
+                            title = sakinaTr(lang, "الإشعار المستمر في شريط الإشعارات", "Persistent Notification", "Notification permanente", "Kalıcı Bildirim", "Notifikasi Permanen", "مستقل نوٹیفکیشن"),
                             checked = persistentOn,
                             onCheckedChange = {
                                 persistentOn = it
@@ -540,7 +544,7 @@ fun SakinaSettingsScreen(
                         )
                         if (persistentOn) {
                             Spacer(Modifier.height(5.dp))
-                            val winLabels = if (isArOrUr) listOf("دائم", "30د قبل/بعد", "45د قبل/بعد") else listOf("Always", "30m ±", "45m ±")
+                            val winLabels = listOf(sakinaTr(lang, "دائم", "Always", "Toujours", "Daima", "Selalu", "ہمیشہ"), "30m ±", "45m ±")
                             SettingSegmentedRow(labels = winLabels, selectedIdx = persistentWin) {
                                 persistentWin = it
                                 SakinaAdvancedPrefs.setPersistentNotifWindow(ctx, it)
@@ -550,51 +554,51 @@ fun SakinaSettingsScreen(
                     }
 
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Text(if (isArOrUr) "مصدر مستوى صوت الأذان" else "Adhan Volume Source", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "مصدر مستوى صوت الأذان", "Adhan Volume Source", "Source du volume de l'Adhan", "Ezan Ses Kaynağı", "Sumber Volume Adzan", "اذان کی آواز کا ذریعہ"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(4.dp))
-                        val volLabels = if (isArOrUr) listOf("صوت الرنين", "صوت الميديا", "مخصص") else listOf("Ringtone", "Media", "Custom")
+                        val volLabels = listOf(sakinaTr(lang, "صوت الرنين", "Ringtone", "Sonnerie", "Zil Sesi", "Nada Dering", "رنگ ٹون"), sakinaTr(lang, "صوت الميديا", "Media", "Média", "Medya", "Media", "میڈیا"), sakinaTr(lang, "مخصص", "Custom", "Personnalisé", "Özel", "Kustom", "مخصوص"))
                         SettingSegmentedRow(labels = volLabels, selectedIdx = volMode) {
                             volMode = it; SakinaAdvancedPrefs.setVolumeControlMode(ctx, it)
                         }
                         Spacer(Modifier.height(7.dp))
-                        Text(if (isArOrUr) "نوع الاهتزاز" else "Vibration Pattern", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "نوع الاهتزاز", "Vibration Pattern", "Type de vibration", "Titreşim Deseni", "Pola Getaran", "وائبریشن انداز"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(4.dp))
-                        val vibLabels = if (isArOrUr) listOf("قصير", "متوسط", "طويل", "طويل جداً") else listOf("Short", "Medium", "Long", "V. Long")
+                        val vibLabels = listOf(sakinaTr(lang, "قصير", "Short", "Court", "Kısa", "Pendek", "مختصر"), sakinaTr(lang, "متوسط", "Medium", "Moyen", "Orta", "Sedang", "درمیانہ"), sakinaTr(lang, "طويل", "Long", "Long", "Uzun", "Panjang", "طویل"), sakinaTr(lang, "طويل جداً", "V. Long", "Très long", "Çok Uzun", "Sangat Lama", "بہت طویل"))
                         SettingSegmentedRow(labels = vibLabels, selectedIdx = vibType) {
                             vibType = it; SakinaAdvancedPrefs.setVibrationType(ctx, it)
                         }
                         Spacer(Modifier.height(6.dp))
-                        SettingSwitchRow(if (isArOrUr) "اهتزاز مصاحب للأذان" else "Vibrate with Adhan", vibWithAdhan) {
+                        SettingSwitchRow(sakinaTr(lang, "اهتزاز مصاحب للأذان", "Vibrate with Adhan", "Vibrer avec l'Adhan", "Ezanla Titreşim", "Getar Saat Adzan", "اذان کے ساتھ وائبریشن"), vibWithAdhan) {
                             vibWithAdhan = it; SakinaAdvancedPrefs.setVibrateWithAdhan(ctx, it)
                         }
                         Spacer(Modifier.height(5.dp))
-                        SettingSwitchRow(if (isArOrUr) "تشغيل الشاشة أثناء الأذان" else "Wake Screen During Adhan", wakeScreen) {
+                        SettingSwitchRow(sakinaTr(lang, "تشغيل الشاشة أثناء الأذان", "Wake Screen During Adhan", "Allumer l'écran pendant l'Adhan", "Ezan Sırasında Ekranı Aç", "Nyalakan Layar Saat Adzan", "اذان کے دوران اسکرین آن کریں"), wakeScreen) {
                             wakeScreen = it; SakinaAdvancedPrefs.setWakeScreenOnAdhan(ctx, it)
                         }
                         Spacer(Modifier.height(5.dp))
-                        SettingSwitchRow(if (isArOrUr) "إيقاف الأذان عند قلب الجهاز" else "Flip Phone to Silence Adhan", flipSilence) {
+                        SettingSwitchRow(sakinaTr(lang, "إيقاف الأذان عند قلب الجهاز", "Flip Phone to Silence Adhan", "Retourner pour couper l'Adhan", "Ezanı Susturmak İçin Çevir", "Balik HP untuk Hentikan Adzan", "فون الٹ کر اذان بند کریں"), flipSilence) {
                             flipSilence = it; SakinaAdvancedPrefs.setFlipToSilence(ctx, it)
                         }
                     }
 
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-                        SettingSwitchRow(if (isArOrUr) "تفعيل الوضع الصامت أثناء الصلاة" else "Auto Silent Mode During Prayer", autoSilent) {
+                        SettingSwitchRow(sakinaTr(lang, "تفعيل الوضع الصامت أثناء الصلاة", "Auto Silent Mode During Prayer", "Mode silencieux auto en prière", "Namazda Otomatik Sessiz Mod", "Mode Senyap Otomatis Saat Sholat", "نماز کے دوران خودکار سائلنٹ"), autoSilent) {
                             autoSilent = it; SakinaAdvancedPrefs.setAutoSilentEnabled(ctx, it)
                         }
                         if (autoSilent) {
                             Spacer(Modifier.height(5.dp))
-                            SettingSwitchRow(if (isArOrUr) "اهتزاز أثناء الوضع الصامت" else "Vibrate in Silent Mode", autoSilentVib) {
+                            SettingSwitchRow(sakinaTr(lang, "اهتزاز أثناء الوضع الصامت", "Vibrate in Silent Mode", "Vibrer en mode silencieux", "Sessiz Modda Titreşim", "Getar di Mode Senyap", "سائلنٹ موڈ میں وائبریشن"), autoSilentVib) {
                                 autoSilentVib = it; SakinaAdvancedPrefs.setAutoSilentVibrate(ctx, it)
                             }
                             Spacer(Modifier.height(6.dp))
-                            Text(if (isArOrUr) "التنبيه عند التحويل للوضع الصامت" else "Alert on Silent Transition", fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = theme.accentBright)
+                            Text(sakinaTr(lang, "التنبيه عند التحويل للوضع الصامت", "Alert on Silent Transition", "Alerte au passage en silencieux", "Sessize Geçiş Uyarısı", "Peringatan Mode Senyap", "سائلنٹ تبدیلی پر اطلاع"), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = theme.accentBright)
                             Spacer(Modifier.height(4.dp))
-                            val trLabels = if (isArOrUr) listOf("بدون", "اهتزاز", "نغمة", "نغمة+اهتزاز") else listOf("None", "Vibrate", "Tone", "Both")
+                            val trLabels = listOf(sakinaTr(lang, "بدون", "None", "Aucun", "Yok", "Tidak", "کوئی نہیں"), sakinaTr(lang, "اهتزاز", "Vibrate", "Vibreur", "Titreşim", "Getar", "وائبریٹ"), sakinaTr(lang, "نغمة", "Tone", "Son", "Ton", "Nada", "ٹون"), sakinaTr(lang, "نغمة+اهتزاز", "Both", "Les deux", "İkisi", "Keduanya", "دونوں"))
                             SettingSegmentedRow(labels = trLabels, selectedIdx = silentAlertMode) {
                                 silentAlertMode = it; SakinaAdvancedPrefs.setAutoSilentTransitionAlert(ctx, it)
                             }
                             Spacer(Modifier.height(6.dp))
-                            Text(if (isArOrUr) "مدة الصامت (الأيام العادية / الجمعة)" else "Silent Duration (Regular / Friday)", fontFamily = SakinaBodyFont, fontSize = 11.sp, color = theme.accentBright)
+                            Text(sakinaTr(lang, "مدة الصامت (الأيام العادية / الجمعة)", "Silent Duration (Regular / Friday)", "Durée silencieuse (Normale / Vendredi)", "Sessiz Süresi (Normal / Cuma)", "Durasi Senyap (Biasa / Jumat)", "سائلنٹ مدت (عام / جمعہ)"), fontFamily = SakinaBodyFont, fontSize = 11.sp, color = theme.accentBright)
                             Spacer(Modifier.height(4.dp))
                             val durOpts = listOf(15, 20, 30, 45)
                             SettingSegmentedRow(
@@ -606,7 +610,7 @@ fun SakinaSettingsScreen(
                             Spacer(Modifier.height(4.dp))
                             val friOpts = listOf(30, 45, 60)
                             SettingSegmentedRow(
-                                labels = friOpts.map { "${if (isArOrUr) "الجمعة" else "Fri"} $it${s.minuteShort}".toWesternDigits() },
+                                labels = friOpts.map { "${sakinaTr(lang, "الجمعة", "Fri", "Ven", "Cuma", "Jum", "جمعہ")} $it${s.minuteShort}".toWesternDigits() },
                                 selectedIdx = friOpts.indexOf(fridaySilentMin).coerceAtLeast(1)
                             ) {
                                 fridaySilentMin = friOpts[it]; SakinaAdvancedPrefs.setFridaySilentDurationMin(ctx, fridaySilentMin)
@@ -615,7 +619,7 @@ fun SakinaSettingsScreen(
                     }
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
                         SettingSwitchRow(
-                            title = if (isArOrUr) "تذكير أذكار ما بعد الصلاة (بعد الأذان بـ 12د)" else "Post-Prayer Adhkar Reminder (+12m)",
+                            title = sakinaTr(lang, "تذكير أذكار ما بعد الصلاة (بعد الأذان بـ 12د)", "Post-Prayer Adhkar Reminder (+12m)", "Rappel Adhkar après la prière (+12m)", "Namaz Sonrası Zikir (+12 dk)", "Pengingat Dzikir (+12 mnt)", "نماز کے بعد اذکار (+12 منٹ)"),
                             checked = postPrayerNotif,
                             onCheckedChange = { postPrayerNotif = it; SakinaAdvancedPrefs.setPostPrayerAdhkarNotif(ctx, it) }
                         )
@@ -623,7 +627,7 @@ fun SakinaSettingsScreen(
 
                     // Custom Prayer Reminders
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Text(if (isArOrUr) "تنبيهات مخصصة (التحضر / الإقامة / التهجد)" else "Custom Prayer Reminders", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "تنبيهات مخصصة (التحضر / الإقامة / التهجد)", "Custom Prayer Reminders", "Rappels de prière personnalisés", "Özel Namaz Hatırlatıcıları", "Pengingat Sholat Kustom", "مخصوص نماز یاد دہانیاں"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(5.dp))
                         customReminders.forEachIndexed { idx, rem ->
                             SettingSwitchRow("${rem.title} (${if (rem.offsetMinutes > 0) "+${rem.offsetMinutes}" else "${rem.offsetMinutes}"} د)".toWesternDigits(), rem.enabled) { checked ->
@@ -642,23 +646,23 @@ fun SakinaSettingsScreen(
                 // =========================================================
                 3 -> {
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth(), glowGold = true) {
-                        Text(if (isArOrUr) "حفظ أوقات الصلاة على تقويم جوجل" else "Save Prayer Times to Google Calendar", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "حفظ أوقات الصلاة على تقويم جوجل", "Save Prayer Times to Google Calendar", "Enregistrer dans Google Agenda", "Google Takvim'e Kaydet", "Simpan ke Google Kalender", "گوگل کیلنڈر میں محفوظ کریں"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(6.dp))
-                        Text("${if (isArOrUr) "عدد الأيام" else "Days to Sync"}: $calDays".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.LuminousIvory)
+                        Text("${sakinaTr(lang, "عدد الأيام", "Days to Sync", "Jours à synchroniser", "Senkronize Gün", "Jumlah Hari", "دنوں کی تعداد")}: $calDays".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.LuminousIvory)
                         Spacer(Modifier.height(4.dp))
                         val dayOpts = listOf(7, 14, 30)
                         SettingSegmentedRow(
-                            labels = dayOpts.map { "$it ${if (isArOrUr) "أيام" else "days"}".toWesternDigits() },
+                            labels = dayOpts.map { "$it ${sakinaTr(lang, "أيام", "days", "jours", "gün", "hari", "دن")}".toWesternDigits() },
                             selectedIdx = dayOpts.indexOf(calDays).coerceAtLeast(0)
                         ) {
                             calDays = dayOpts[it]; SakinaAdvancedPrefs.setCalendarSyncDays(ctx, calDays)
                         }
                         Spacer(Modifier.height(6.dp))
-                        SettingSwitchRow(if (isArOrUr) "عرض الحالة (مشغول) أثناء الصلاة" else "Show Status as Busy", calBusy) {
+                        SettingSwitchRow(sakinaTr(lang, "عرض الحالة (مشغول) أثناء الصلاة", "Show Status as Busy", "Afficher le statut « Occupé »", "Meşgul Olarak Göster", "Tampilkan Status Sibuk", "مصروف اسٹیٹس دکھائیں"), calBusy) {
                             calBusy = it; SakinaAdvancedPrefs.setCalendarSyncBusy(ctx, it)
                         }
                         Spacer(Modifier.height(4.dp))
-                        SettingSwitchRow(if (isArOrUr) "تفعيل تذكير التقويم" else "Enable Calendar Reminders", calRem) {
+                        SettingSwitchRow(sakinaTr(lang, "تفعيل تذكير التقويم", "Enable Calendar Reminders", "Activer les rappels d'agenda", "Takvim Hatırlatıcıları", "Aktifkan Pengingat Kalender", "کیلنڈر یاد دہانی فعال کریں"), calRem) {
                             calRem = it; SakinaAdvancedPrefs.setCalendarSyncReminder(ctx, it)
                         }
                         Spacer(Modifier.height(8.dp))
@@ -669,15 +673,15 @@ fun SakinaSettingsScreen(
                             },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(if (isArOrUr) "حفظ الصلاة القادمة في التقويم" else "Save Next Prayer to Calendar", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = theme.bgDeep)
+                            Text(sakinaTr(lang, "حفظ الصلاة القادمة في التقويم", "Save Next Prayer to Calendar", "Ajouter la prochaine prière à l'agenda", "Sonraki Namazı Takvime Ekle", "Simpan Sholat Berikutnya", "اگلی نماز کیلنڈر میں محفوظ کریں"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = theme.bgDeep)
                         }
                     }
 
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Text(if (isArOrUr) "المشاركة الاجتماعية" else "Social Sharing", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "المشاركة الاجتماعية", "Social Sharing", "Partage social", "Sosyal Paylaşım", "Berbagi Sosial", "سوشل شیئرنگ"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = if (isArOrUr) "شارك وقت الصلاة مع الأصدقاء بتعليق مخصص لموقعك الحالي ($placeName)." else "Share prayer time with your current city ($placeName).",
+                            text = sakinaTr(lang, "شارك وقت الصلاة مع الأصدقاء لموقعك الحالي ($placeName).", "Share prayer time with your current city ($placeName).", "Partagez l'horaire de prière pour votre ville ($placeName).", "Bulunduğunuz şehir ($placeName) için vakti paylaşın.", "Bagikan waktu sholat untuk kota Anda ($placeName).", "اپنے شہر ($placeName) کا نماز وقت شیئر کریں۔"),
                             fontFamily = SakinaBodyFont,
                             fontSize = 11.5.sp,
                             color = SakinaBrandColors.SoftSilver
@@ -690,7 +694,7 @@ fun SakinaSettingsScreen(
                             },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(if (isArOrUr) "شارك وقت الصلاة الآن" else "Share Prayer Time Now", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = theme.accentBright)
+                            Text(sakinaTr(lang, "شارك وقت الصلاة الآن", "Share Prayer Time Now", "Partager l'horaire maintenant", "Namaz Vaktini Paylaş", "Bagikan Waktu Sholat", "نماز کا وقت شیئر کریں"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = theme.accentBright)
                         }
                     }
 
@@ -702,27 +706,27 @@ fun SakinaSettingsScreen(
                         var flipOff by remember { mutableStateOf(SakinaAdvancedPrefs.flipToSilence(ctx)) }
                         var readTheme by remember { mutableIntStateOf(SakinaAdvancedPrefs.mushafReadTheme(ctx)) }
 
-                        Text(if (isArOrUr) "القراءة والراحة والنسخ الاحتياطي" else "Reading, Comfort & Backup", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "القراءة والراحة والنسخ الاحتياطي", "Reading, Comfort & Backup", "Lecture, confort et sauvegarde", "Okuma, Konfor ve Yedekleme", "Bacaan, Kenyamanan & Cadangan", "مطالعہ، آرام اور بیک اپ"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(6.dp))
-                        SettingSwitchRow(if (isArOrUr) "إبقاء الشاشة مضاءة أثناء القراءة" else "Keep Screen On While Reading", keepOn) {
+                        SettingSwitchRow(sakinaTr(lang, "إبقاء الشاشة مضاءة أثناء القراءة", "Keep Screen On While Reading", "Garder l'écran allumé en lecture", "Okurken Ekranı Açık Tut", "Layar Tetap Menyala Saat Membaca", "مطالعہ کے دوران اسکرین آن رکھیں"), keepOn) {
                             keepOn = it; SakinaAdvancedPrefs.setKeepScreenOn(ctx, it)
                         }
                         Spacer(Modifier.height(4.dp))
-                        SettingSwitchRow(if (isArOrUr) "قلب الهاتف لإيقاف صوت الأذان" else "Flip Phone to Silence Adhan", flipOff) {
+                        SettingSwitchRow(sakinaTr(lang, "قلب الهاتف لإيقاف صوت الأذان", "Flip Phone to Silence Adhan", "Retourner pour couper l'Adhan", "Ezanı Susturmak İçin Çevir", "Balik HP untuk Hentikan Adzan", "فون الٹ کر اذان بند کریں"), flipOff) {
                             flipOff = it; SakinaAdvancedPrefs.setFlipToSilence(ctx, it)
                         }
                         Spacer(Modifier.height(4.dp))
-                        SettingSwitchRow(if (isArOrUr) "تذكير ليلي بصيام التطوع والأيام البيض" else "Voluntary Fasting Reminder", fastNotif) {
+                        SettingSwitchRow(sakinaTr(lang, "تذكير ليلي بصيام التطوع والأيام البيض", "Voluntary Fasting Reminder", "Rappel du jeûne surérogatoire", "Nafile Oruç Hatırlatıcısı", "Pengingat Puasa Sunnah", "نفلی روزوں کی یاد دہانی"), fastNotif) {
                             fastNotif = it; SakinaAdvancedPrefs.setVoluntaryFastingNotif(ctx, it); try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {}
                         }
                         Spacer(Modifier.height(6.dp))
-                        Text(if (isArOrUr) "نمط قراءة المصحف الليلي الدافئ" else "Mushaf Reading Theme", fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver)
+                        Text(sakinaTr(lang, "نمط قراءة المصحف الليلي الدافئ", "Mushaf Reading Theme", "Thème de lecture du Coran", "Mushaf Okuma Teması", "Tema Baca Mushaf", "مصحف مطالعہ تھیم"), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver)
                         Spacer(Modifier.height(4.dp))
                         SettingSegmentedRow(listOf("عادي", "ورقي دافئ", "ليلي داكن"), readTheme) {
                             readTheme = it; SakinaAdvancedPrefs.setMushafReadTheme(ctx, it)
                         }
                         Spacer(Modifier.height(6.dp))
-                        Text((if (isArOrUr) "حجم خط القراءة والأذكار: ${(fontSc * 100).toInt()}%" else "Reading Font Scale: ${(fontSc * 100).toInt()}%").toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver)
+                        Text("${sakinaTr(lang, "حجم خط القراءة والأذكار", "Reading Font Scale", "Taille du texte de lecture", "Okuma Yazı Boyutu", "Ukuran Font Bacaan", "مطالعہ فونٹ سائز")}: ${(fontSc * 100).toInt()}%".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver)
                         Slider(
                             value = fontSc,
                             onValueChange = { fontSc = it; SakinaAdvancedPrefs.setReadingFontScale(ctx, it) },
@@ -754,9 +758,9 @@ fun SakinaSettingsScreen(
                     }
 
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-                        Text(if (isArOrUr) "تواصل معنا وحول التطبيق" else "Contact & About Sakina", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
+                        Text(sakinaTr(lang, "تواصل معنا وحول التطبيق", "Contact & About Sakina", "Contact et à propos de Sakina", "İletişim ve Hakkında", "Kontak & Tentang Sakina", "رابطہ اور سکینہ کے بارے میں"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(6.dp))
-                        SakinaSettingsPill(R.drawable.ic_duas, if (isArOrUr) "شارك تطبيق سَكِينة" else "Share Sakina App", "") {
+                        SakinaSettingsPill(R.drawable.ic_duas, sakinaTr(lang, "شارك تطبيق سَكِينة", "Share Sakina App", "Partager l'application Sakina", "Sakina Uygulamasını Paylaş", "Bagikan Aplikasi Sakina", "سکینہ ایپ شیئر کریں"), "") {
                             try {
                                 val sendIntent = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
@@ -767,7 +771,7 @@ fun SakinaSettingsScreen(
                             } catch (_: Exception) {}
                         }
                         Spacer(Modifier.height(6.dp))
-                        SakinaSettingsPill(R.drawable.ic_star_ornament, if (isArOrUr) "اقترح ميزة أو بلّغ عن خطأ" else "Feedback & Bug Report", "Email") {
+                        SakinaSettingsPill(R.drawable.ic_star_ornament, sakinaTr(lang, "اقترح ميزة أو بلّغ عن خطأ", "Feedback & Bug Report", "Suggérer ou signaler un bug", "Geri Bildirim ve Hata Bildir", "Saran & Lapor Bug", "تجویز یا خرابی رپورٹ کریں"), "Email") {
                             try {
                                 val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
                                     data = Uri.parse("mailto:islam.app.dev@gmail.com")
@@ -780,14 +784,14 @@ fun SakinaSettingsScreen(
                             }
                         }
                         Spacer(Modifier.height(6.dp))
-                        SakinaSettingsPill(R.drawable.ic_settings, if (isArOrUr) "سياسة الخصوصية" else "Privacy Policy", "HTTPS") {
+                        SakinaSettingsPill(R.drawable.ic_settings, sakinaTr(lang, "سياسة الخصوصية", "Privacy Policy", "Politique de confidentialité", "Gizlilik Politikası", "Kebijakan Privasi", "پرائیویسی پالیسی"), "HTTPS") {
                             try {
                                 ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://mothmane977-cmd.github.io/Sakinawaqt/")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                             } catch (_: Exception) {}
                         }
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            text = if (isArOrUr) "الإصدار الحالي: 2.0 · سَكِينة (أوفلاين وبدون إعلانات)" else "Version 2.0 · Sakina (Offline & Ad-Free)",
+                            text = sakinaTr(lang, "الإصدار الحالي: 2.0 · سَكِينة (أوفلاين وبدون إعلانات)", "Version 2.0 · Sakina (Offline & Ad-Free)", "Version 2.0 · Sakina (Hors ligne et sans pub)", "Sürüm 2.0 · Sakina (Çevrimdışı ve Reklamsız)", "Versi 2.0 · Sakina (Offline & Bebas Iklan)", "ورژن 2.0 · سکینہ (آف لائن، بلا اشتہار)"),
                             fontFamily = SakinaBodyFont,
                             fontSize = 11.sp,
                             color = SakinaBrandColors.SoftSilver,
@@ -809,7 +813,7 @@ fun SakinaSettingsScreen(
             containerColor = theme.bgCard,
             title = {
                 Text(
-                    text = if (isArOrUr) "تخصيص مؤذن لكل صلاة" else "Muezzin per Prayer",
+                    text = sakinaTr(lang, "تخصيص مؤذن لكل صلاة", "Muezzin per Prayer", "Muezzin par prière", "Namaza Göre Müezzin", "Muadzin per Sholat", "ہر نماز کے لیے مؤذن"),
                     fontFamily = SakinaHeadingFont,
                     color = theme.accentBright
                 )
@@ -848,7 +852,7 @@ fun SakinaSettingsScreen(
         AlertDialog(
             onDismissRequest = { showManualOffsets = false },
             containerColor = theme.bgCard,
-            title = { Text(if (isArOrUr) "تعديل أوقات الصلاة يدوياً" else "Manual Prayer Offsets", fontFamily = SakinaHeadingFont, color = theme.accentBright) },
+            title = { Text(sakinaTr(lang, "تعديل أوقات الصلاة يدوياً", "Manual Prayer Offsets", "Ajustement manuel des horaires", "Manuel Vakit Ayarı", "Penyesuaian Manual", "دستی اوقات تبدیلی"), fontFamily = SakinaHeadingFont, color = theme.accentBright) },
             text = {
                 Column(modifier = Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     PRAYER_NAMES.forEachIndexed { idx, pKey ->
@@ -878,7 +882,7 @@ fun SakinaSettingsScreen(
                         showManualOffsets = false
                     }.padding(horizontal = 14.dp, vertical = 7.dp)
                 ) {
-                    Text(if (isArOrUr) "حفظ" else "Save", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, color = theme.bgDeep)
+                    Text(sakinaTr(lang, "حفظ", "Save", "Enregistrer", "Kaydet", "Simpan", "محفوظ کریں"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, color = theme.bgDeep)
                 }
             }
         )

@@ -289,7 +289,7 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
         SimpleDateFormat("MMMM yyyy", lang.locale).format(baseCal.time).toWesternDigits()
     }
     val hijriMonthName = s.hijriMonths.getOrElse(hijriCal.get(IslamicCalendar.MONTH).coerceIn(0, 11)) { "" }
-    val hijriSuffix = if (lang == SakinaLang.AR || lang == SakinaLang.UR) "هـ" else "AH"
+    val hijriSuffix = sakinaTr(lang, "هـ", "AH", "H", "H", "H", "ھ")
     val hijriSubtitle = "${hijriCal.get(IslamicCalendar.DAY_OF_MONTH)} $hijriMonthName ${hijriCal.get(IslamicCalendar.YEAR)} $hijriSuffix".toWesternDigits()
 
     val dayOffsetFromToday = ((selectedCal.timeInMillis - Calendar.getInstance().timeInMillis) / 86_400_000L).toInt()
@@ -579,9 +579,29 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(6.dp))
 
         // 3. Verified Hadith of the Day Card with Isnad & Grade
-        val occasionText = if (isArabicOrUrdu) dailyHadith.occasionAr else dailyHadith.occasionEn
-        val matnText = if (isArabicOrUrdu) dailyHadith.matnAr else dailyHadith.matnEn
-        val isnadText = if (isArabicOrUrdu) dailyHadith.isnadAr else dailyHadith.isnadEn
+        val frMap = mapOf(
+            "Deeds Most Beloved to Allah" to Triple("Les œuvres les plus aimées d'Allah", "On demanda au Prophète ﷺ : « Quelle est l'œuvre la plus aimée d'Allah ? » Il répondit : « La prière accomplie à son heure, puis la bienfaisance envers les parents, puis l'effort dans le sentier d'Allah. »", "Ibn Mas'oud | Boukhari (527) & Mouslim (85) | Sahih"),
+            "Virtue of Friday" to Triple("Mérite du vendredi", "Le meilleur jour sur lequel le soleil s'est levé est le vendredi : c'est en ce jour qu'Adam fut créé.", "Abou Hourayra | Sahih Mouslim (854)"),
+            "Monday & Thursday Fasting" to Triple("Jeûne du lundi et jeudi", "Les œuvres sont présentées le lundi et le jeudi, et j'aime que mes œuvres soient présentées alors que je jeûne.", "Abou Hourayra | Tirmidhi (747) | Sahih"),
+            "The White Days" to Triple("Les jours blancs", "Jeûner trois jours chaque mois équivaut au jeûne de toute l'année.", "Abou Dharr | Boukhari (1979) & Mouslim (1159)")
+        )
+        val frHit = if (lang == SakinaLang.FR) frMap[dailyHadith.occasionEn] else null
+        val occasionText = when {
+            isArabicOrUrdu -> dailyHadith.occasionAr
+            frHit != null -> frHit.first
+            lang == SakinaLang.FR -> "Parole prophétique"
+            else -> dailyHadith.occasionEn
+        }
+        val matnText = when {
+            isArabicOrUrdu -> dailyHadith.matnAr
+            frHit != null -> frHit.second
+            else -> dailyHadith.matnEn
+        }
+        val isnadText = when {
+            isArabicOrUrdu -> dailyHadith.isnadAr
+            frHit != null -> frHit.third
+            else -> dailyHadith.isnadEn
+        }
         val matnFontSize = if (matnText.length > 145) 10.2.sp else 11.2.sp
 
         SakinaParchmentPanel(

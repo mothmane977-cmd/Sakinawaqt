@@ -429,7 +429,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                                 • البعدية: ركعتان مؤكدتان بعدها، ثم صلاة الوتر.
                                                 """.trimIndent().toWesternDigits()
                                             } else {
-                                                "1. Fajr: 2 before\n2. Dhuhr: 4 before + 2 after\n3. Asr: 4 recommended before\n4. Maghrib: 2 after\n5. Isha: 2 after + Witr (Sahih Muslim 728)."
+                                                if (currentLang == SakinaLang.FR) "1. Fajr : 2 avant\n2. Dhuhr : 4 avant + 2 après\n3. Asr : 4 recommandées avant\n4. Maghrib : 2 après\n5. Isha : 2 après + Witr (Sahih Mouslim 728)." else "1. Fajr: 2 before\n2. Dhuhr: 4 before + 2 after\n3. Asr: 4 recommended before\n4. Maghrib: 2 after\n5. Isha: 2 after + Witr (Sahih Muslim 728)."
                                             }
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_dhuhr, s.duhaTitle) {
@@ -442,7 +442,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             hadithBody = if (isArOrUr) {
                                                 "وقت صلاة الضحى اليوم: $duhaStart – $duhaEnd\n• أقلها: ركعتان (صحيح مسلم 720).\n• أوسطها: 4 ركعات (صحيح مسلم 719).\n• أفضلها: 8 ركعات مثنى مثنى (متفق عليه).".toWesternDigits()
                                             } else {
-                                                "Today's Duha Window: $duhaStart – $duhaEnd\n• Minimum: 2 Rak'ahs (Muslim 720)\n• Regular: 4 Rak'ahs (Muslim 719)\n• Best: 8 Rak'ahs (Bukhari 1176 & Muslim 336)."
+                                                if (currentLang == SakinaLang.FR) "Horaire de Duha aujourd'hui : $duhaStart – $duhaEnd\n• Minimum : 2 Rak'ahs (Mouslim 720)\n• Habituel : 4 Rak'ahs (Mouslim 719)\n• Meilleur : 8 Rak'ahs (Boukhari 1176 & Mouslim 336)." else "Today's Duha Window: $duhaStart – $duhaEnd\n• Minimum: 2 Rak'ahs (Muslim 720)\n• Regular: 4 Rak'ahs (Muslim 719)\n• Best: 8 Rak'ahs (Bukhari 1176 & Muslim 336)."
                                             }
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_isha, s.qiyamTitle) {
@@ -451,7 +451,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             hadithBody = if (isArOrUr) {
                                                 "• هدي النبي ﷺ: 11 أو 13 ركعة (متفق عليه: البخاري 1147 ومسلم 736).\n• تصلى مثنى مثنى ويُوتر بواحدة أو ثلاث (البخاري 990).\n• ينزل ربنا في الثلث الأخير من الليل فيستجيب للداعين (متفق عليه).".toWesternDigits()
                                             } else {
-                                                "• Prophetic practice: 11 or 13 Rak'ahs (Bukhari 1147 & Muslim 736), prayed two by two + odd Witr (Bukhari 990)."
+                                                if (currentLang == SakinaLang.FR) "• Pratique prophétique : 11 ou 13 Rak'ahs (Boukhari 1147 & Mouslim 736), priées deux par deux + le Witr impair (Boukhari 990)." else "• Prophetic practice: 11 or 13 Rak'ahs (Bukhari 1147 & Muslim 736), prayed two by two + odd Witr (Bukhari 990)."
                                             }
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_calendar, s.fastingTitle) {
@@ -460,7 +460,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             hadithBody = if (isArOrUr) {
                                                 "• ست من شوال (مسلم 1164)\n• يوم عرفة لغير الحاج (مسلم 1162)\n• عاشوراء وتاسوعاء (مسلم 1162)\n• الأيام البيض 13-14-15 (البخاري 1981)\n• الإثنين والخميس (مسلم 1162)\n• شهر الله المحرم وشعبان (مسلم 1163)".toWesternDigits()
                                             } else {
-                                                "• 6 of Shawwal (Muslim 1164)\n• Day of Arafah (Muslim 1162)\n• Ashura 9-10 Muharram\n• White Days 13-15\n• Mondays & Thursdays"
+                                                if (currentLang == SakinaLang.FR) "• 6 jours de Chawwal (Mouslim 1164)\n• Jour d'Arafat (Mouslim 1162)\n• Achoura 9-10 Mouharram\n• Jours blancs 13-14-15\n• Lundis et jeudis" else "• 6 of Shawwal (Muslim 1164)\n• Day of Arafah (Muslim 1162)\n• Ashura 9-10 Muharram\n• White Days 13-15\n• Mondays & Thursdays"
                                             }
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_star_ornament, s.occasionsTitle) {

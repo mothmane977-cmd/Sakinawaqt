@@ -161,6 +161,45 @@ fun SakinaDuasScreen(onBackToHome: () -> Unit, modifier: Modifier = Modifier) {
     }
 
     val currentList = if (activeSubTab == 0) DUA_CATEGORIES else HISN_MUSLIM_CATEGORIES
+    val lang = LocalSakinaLang.current
+    val hisnCatTitles = remember(lang) {
+        when (lang) {
+            SakinaLang.FR -> listOf(
+                "1. Réveil et habillement",
+                "2. Toilettes, ablutions et Adhan",
+                "3. Ouverture, inclinaison et prosternation",
+                "4. Istikhara et Qunout",
+                "5. Repas, hospitalité et assemblée",
+                "6. Voyage, maladie et détresse"
+            )
+            SakinaLang.EN -> listOf(
+                "1. Waking Up & Getting Dressed",
+                "2. Restroom, Wudu & Adhan",
+                "3. Prayer Opening, Ruku & Sujud",
+                "4. Istikhara & Qunut Duas",
+                "5. Food, Hospitality & Gathering",
+                "6. Travel, Illness & Distress"
+            )
+            SakinaLang.TR -> listOf(
+                "1. Uyanma ve Giyinme Duaları",
+                "2. Abdest ve Ezan Duaları",
+                "3. Namaz İftitah, Rükû ve Secde",
+                "4. İstihare ve Kunut Duaları",
+                "5. Yemek ve Meclis Duaları",
+                "6. Yolculuk, Hastalık ve Sıkıntı"
+            )
+            SakinaLang.ID -> listOf(
+                "1. Doa Bangun Tidur & Berpakaian",
+                "2. Doa Wudhu & Adzan",
+                "3. Doa Iftitah, Ruku & Sujud",
+                "4. Doa Istikharah & Qunut",
+                "5. Doa Makan & Majelis",
+                "6. Doa Safar, Sakit & Kesulitan"
+            )
+            else -> HISN_MUSLIM_CATEGORIES.map { it.title }
+        }
+    }
+
 
     Column(
         modifier = modifier
@@ -181,7 +220,7 @@ fun SakinaDuasScreen(onBackToHome: () -> Unit, modifier: Modifier = Modifier) {
             ) {
                 val titleText = selectedIdx?.let { idx ->
                     if (activeSubTab == 0) s.duaCatTitles.getOrElse(idx) { currentList[idx].title }
-                    else currentList[idx].title
+                    else hisnCatTitles.getOrElse(idx) { currentList[idx].title }
                 } ?: s.duasTitle
                 Text(
                     text = titleText,
@@ -249,7 +288,7 @@ fun SakinaDuasScreen(onBackToHome: () -> Unit, modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 itemsIndexed(currentList) { idx, cat ->
-                    val title = if (activeSubTab == 0) s.duaCatTitles.getOrElse(idx) { cat.title } else cat.title
+                    val title = if (activeSubTab == 0) s.duaCatTitles.getOrElse(idx) { cat.title } else hisnCatTitles.getOrElse(idx) { cat.title }
                     val sub = if (activeSubTab == 0) s.duaCatSubs.getOrElse(idx) { cat.subtitle } else cat.subtitle
                     SakinaGlassCard(
                         modifier = Modifier

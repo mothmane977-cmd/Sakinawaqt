@@ -78,17 +78,17 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SakinaBackIconButton(
                 onClick = {
                     SakinaAdhanAudio.stop()
                     onBackClick()
-                },
-                modifier = Modifier.align(Alignment.CenterStart)
+                }
             )
+            Spacer(Modifier.width(8.dp))
             SakinaOrnamentCartouche(
-                modifier = Modifier.align(Alignment.Center),
-                contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp)
             ) {
                 Text(
                     text = if (alarmTab == 1) sakinaTr(lang, "التنبيهات الهادئة", "Quiet Notifications", "Notifications discrètes", "Sessiz Bildirimler", "Notifikasi Tenang", "خاموش اطلاعات") else sakinaTr(lang, "المنبهات الصوتية", "Sound Alarms", "Alarmes sonores", "Sesli Alarmlar", "Alarm Suara", "صوتی الارم"),

@@ -551,6 +551,12 @@ class MainActivity : ComponentActivity() {
         return super.onKeyDown(keyCode, event)
     }
 
+    override fun onResume() {
+        super.onResume()
+        try { SakinaLiveNotifier.update(this) } catch (_: Exception) {}
+        try { SakinaWidgetUpdater.updateAll(this) } catch (_: Exception) {}
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.getBooleanExtra("open_after_prayer", false)) {
