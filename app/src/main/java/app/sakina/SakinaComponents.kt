@@ -619,7 +619,7 @@ fun SakinaStarPolygonBadge(
         Image(
             painter = painterResource(id = iconRes),
             contentDescription = null,
-            modifier = Modifier.size(size * 0.68f)
+            modifier = Modifier.size(size * 0.78f)
         )
     }
 }
@@ -785,7 +785,7 @@ fun SakinaDrawerPillItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp)
+            .height(48.dp)
             .clip(pillShape)
             .background(Brush.verticalGradient(listOf(theme.bgCard, theme.bgDeep)))
             .border(0.9.dp, Sakina3DGoldBevelBrush, pillShape)
@@ -793,7 +793,7 @@ fun SakinaDrawerPillItem(
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(26.dp))
+        Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(32.dp))
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = title,
@@ -821,7 +821,7 @@ fun SakinaBottomPillBar(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
             .navigationBarsPadding()
-            .height(62.dp)
+            .height(70.dp)
             .clip(barShape)
             .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.96f), theme.bgDeep)))
             .border(1.dp, Sakina3DGoldBevelBrush, barShape)
@@ -847,7 +847,7 @@ fun SakinaBottomPillBar(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Image(painter = painterResource(id = tab.iconRes), contentDescription = tab.label(s), modifier = Modifier.size(23.dp))
+                Image(painter = painterResource(id = tab.iconRes), contentDescription = tab.label(s), modifier = Modifier.size(31.dp))
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = tab.label(s),

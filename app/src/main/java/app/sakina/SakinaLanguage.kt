@@ -161,7 +161,7 @@ val SURAH_NAMES_LATIN = listOf(
 fun stringsFor(lang: SakinaLang): SakinaStrings = when (lang) {
     SakinaLang.AR -> SakinaStrings(
         appName = "سَكِينة",
-        tabHome = "الرئيسية", tabQibla = "القبلة", tabQuran = "القرآن", tabAdhkar = "الأذكار", tabCalendar = "التقويم",
+        tabHome = "الرئيسية", tabQibla = "القبلة", tabQuran = "القرآن الكريم", tabAdhkar = "الأذكار", tabCalendar = "التقويم",
         nextPrayer = "الصلاة القادمة", midnight = "منتصف الليل", lastThird = "الثلث الأخير", todayLabel = "اليوم",
         qiblaTitle = "اتِّجَاهُ القِبْلَة", qiblaTargetLabel = "القبلة", yourHeadingLabel = "اتجاهك",
         onQibla = "أنت باتجاه القبلة تماماً", turnPhone = "أدر الهاتف", rightDir = "يميناً", leftDir = "يساراً",

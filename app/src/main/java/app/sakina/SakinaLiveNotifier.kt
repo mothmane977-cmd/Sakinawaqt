@@ -162,7 +162,8 @@ object SakinaLiveNotifier {
             }.toWesternDigits()
 
             val nextTimeFmt = SakinaAdvancedPrefs.formatPrayerTime(ctx, nextDate).toWesternDigits()
-            val gregStr = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(Date(now)).toWesternDigits()
+            // Line 3: Gregorian date with full month name in active language
+            val gregWords = SimpleDateFormat("EEEE، d MMMM yyyy", lang.locale).format(Date(now)).toWesternDigits()
             val ic = IslamicCalendar().apply {
                 timeInMillis = now
                 add(IslamicCalendar.DAY_OF_MONTH, Prefs.hijriOffset(ctx))
@@ -172,21 +173,13 @@ object SakinaLiveNotifier {
             val hijriStr = "${ic.get(IslamicCalendar.DAY_OF_MONTH)} $hijriMonth ${ic.get(IslamicCalendar.YEAR)} $hijriSuffix".toWesternDigits()
             val place = localizeCityName(Place.name(ctx), lang)
 
-            val imminentBadge = if (remMinTotal in 1..15) {
-                " · " + sakinaTr(lang, "اقترب الوقت", "Soon", "Bientôt", "Yaklaştı", "Segera", "قریب ہے")
-            } else ""
-            val silentBadge = if (SakinaAdvancedPrefs.autoSilentEnabled(ctx)) " · 🔇" else ""
-
-            // Collapsed header & concise next-prayer line
-            val collapsedTitle = "$nextDisplayName ($nextTimeFmt) · ${sakinaTr(lang, "بقي", "In", "Dans", "Kalan", "Dalam", "باقی")} $remStr$imminentBadge$silentBadge".toWesternDigits()
-            val collapsedSub = "$place · $hijriStr · $gregStr".toWesternDigits()
-
-            // Expanded view: full 5-prayer daily schedule + elapsed since previous prayer
-            val allFiveLine = today.take(5).mapIndexed { idx, (_, dt) ->
-                val pName = s.prayers.getOrElse(idx) { "" }
-                "$pName ${SakinaAdvancedPrefs.formatPrayerTime(ctx, dt)}"
-            }.joinToString(" · ").toWesternDigits()
-            val prevLine = "${sakinaTr(lang, "مضى على", "Since", "Depuis", "Geçen", "Sejak", "گزرے")} $prevDisplayName: $elapStr".toWesternDigits()
+            // Exact 4-Line Layout:
+            // Line 1: Prayer (HH:mm) · Countdown
+            val line1Title = "$nextDisplayName ($nextTimeFmt) · ${sakinaTr(lang, "بقي", "In", "Dans", "Kalan", "Dalam", "باقی")} $remStr".toWesternDigits()
+            // Line 2 (Expanded): Location · Hijri Date
+            val line2PlaceHijri = "$place · $hijriStr".toWesternDigits()
+            // Line 3 (Expanded): Gregorian Date with Month Name
+            val line3Greg = gregWords
 
             val openIntent = Intent(ctx, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -204,12 +197,12 @@ object SakinaLiveNotifier {
 
             val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_stat_sakina)
-                .setContentTitle(collapsedTitle)
-                .setContentText(collapsedSub)
+                .setContentTitle(line1Title)
+                .setContentText(line2PlaceHijri)
                 .setStyle(
                     NotificationCompat.BigTextStyle()
-                        .setBigContentTitle(collapsedTitle)
-                        .bigText("$collapsedSub\n$allFiveLine\n$prevLine")
+                        .setBigContentTitle(line1Title)
+                        .bigText("$line2PlaceHijri\n$line3Greg")
                 )
                 .setOngoing(true)
                 .setAutoCancel(false)
@@ -223,8 +216,8 @@ object SakinaLiveNotifier {
                 .setColor(0xFFC5A059.toInt())
                 .setContentIntent(openPi)
                 .setDeleteIntent(refreshPi)
-                .addAction(0, sakinaTr(lang, "تحديث الآن ↻", "Refresh ↻", "Actualiser ↻", "Yenile ↻", "Segarkan ↻", "تازہ کریں ↻"), refreshPi)
                 .addAction(0, sakinaTr(lang, "افتح سَكِينة", "Open Sakina", "Ouvrir Sakina", "Sakina'yı Aç", "Buka Sakina", "سکینہ کھولیں"), openPi)
+                .addAction(0, sakinaTr(lang, "تحديث الوقت ↻", "Refresh Time ↻", "Actualiser l'heure ↻", "Saati Yenile ↻", "Perbarui Waktu ↻", "وقت تازہ کریں ↻"), refreshPi)
 
             val notification = builder.build()
             notification.flags = notification.flags or

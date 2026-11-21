@@ -339,7 +339,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_kaaba),
                     contentDescription = "Kaaba",
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(44.dp)
                 )
             }
         }
@@ -436,7 +436,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(painter = painterResource(id = R.drawable.ic_location), contentDescription = null, modifier = Modifier.size(16.dp))
+                Image(painter = painterResource(id = R.drawable.ic_location), contentDescription = null, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
                     text = sakinaTr(lang, "تحديث الموقع ($placeName)", "Update Location ($placeName)", "Mettre à jour ($placeName)", "Konumu Güncelle ($placeName)", "Perbarui Lokasi ($placeName)", "مقام اپ ڈیٹ ($placeName)"),

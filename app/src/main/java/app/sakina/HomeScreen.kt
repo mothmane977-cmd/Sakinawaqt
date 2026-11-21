@@ -926,7 +926,7 @@ private fun SakinaHomeContent(ctx: Context) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 14.dp, end = 14.dp, top = 46.dp, bottom = 72.dp),
+            .padding(start = 14.dp, end = 14.dp, top = 46.dp, bottom = 80.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -954,7 +954,7 @@ private fun SakinaHomeContent(ctx: Context) {
                         .padding(horizontal = 10.dp, vertical = 3.5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null, modifier = Modifier.size(16.dp))
+                    Image(painter = painterResource(id = R.drawable.ic_calendar), contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(5.dp))
                     Text(datePillText, fontFamily = SakinaEditorialFont, fontSize = 10.5.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -983,7 +983,7 @@ private fun SakinaHomeContent(ctx: Context) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_location),
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(24.dp)
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
@@ -1141,7 +1141,7 @@ private fun SakinaFeaturedNextPrayerCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(70.dp)
             .shadow(10.dp, shape, ambientColor = theme.accentGold, spotColor = theme.accentGold)
             .clip(shape)
             .border(1.5.dp, Sakina3DGoldBevelBrush, shape)
@@ -1172,31 +1172,34 @@ private fun SakinaFeaturedNextPrayerCard(
                     imageVector = modeIcon,
                     contentDescription = null,
                     tint = if (prayer.mode == 3) SakinaBrandColors.SoftSilver else theme.accentBright,
-                    modifier = Modifier.size(21.dp).clickable { onCycleMode() }
+                    modifier = Modifier.size(24.dp).clickable { onCycleMode() }
                 )
                 Spacer(modifier = Modifier.width(9.dp))
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = prayer.displayTitle,
                         fontFamily = SakinaEditorialFont,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
-                        lineHeight = 22.sp,
+                        lineHeight = 19.sp,
                         color = theme.accentBright,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = nextLabel,
                         fontFamily = SakinaBodyFont,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 11.sp,
-                        lineHeight = 15.sp,
+                        fontSize = 11.5.sp,
+                        lineHeight = 14.sp,
                         color = LocalSakinaTextColor.current,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                     )
                 }
             }
@@ -1213,7 +1216,7 @@ private fun SakinaFeaturedNextPrayerCard(
                     )
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 38.dp)
+                SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 44.dp)
             }
         }
     }
@@ -1231,7 +1234,7 @@ private fun SakinaStandalonePrayerButton(prayer: BrandPrayerRow, onCycleMode: ()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(42.dp)
+            .height(46.dp)
             .shadow(4.dp, btnShape)
             .clip(btnShape)
             .background(Brush.verticalGradient(listOf(theme.parchmentTop, theme.parchmentBottom)))
@@ -1246,7 +1249,7 @@ private fun SakinaStandalonePrayerButton(prayer: BrandPrayerRow, onCycleMode: ()
                 imageVector = modeIcon,
                 contentDescription = null,
                 tint = if (prayer.mode == 3) Color(0xFF9E8C6C) else Color(0xFFC5A059),
-                modifier = Modifier.size(18.dp).clickable { onCycleMode() }
+                modifier = Modifier.size(22.dp).clickable { onCycleMode() }
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
@@ -1273,7 +1276,7 @@ private fun SakinaStandalonePrayerButton(prayer: BrandPrayerRow, onCycleMode: ()
                 )
             )
             Spacer(modifier = Modifier.width(8.dp))
-            SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 32.dp)
+            SakinaStarPolygonBadge(iconRes = prayer.iconRes, size = 36.dp)
         }
     }
 }

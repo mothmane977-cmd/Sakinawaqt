@@ -668,10 +668,16 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                     var pageBitmap by remember(pNum) { mutableStateOf<ImageBitmap?>(null) }
                     var isLoading by remember(pNum) { mutableStateOf(true) }
 
-                    LaunchedEffect(pNum) {
-                        isLoading = true
-                        pageBitmap = loadMushafPageBitmap(ctx, pNum)
-                        isLoading = false
+                    LaunchedEffect(pNum, riwaya) {
+                        if (riwaya == QuranRiwaya.WARSH) {
+                            // Never show Hafs page images when Warsh narration is selected — render authentic bundled Warsh text!
+                            pageBitmap = null
+                            isLoading = false
+                        } else {
+                            isLoading = true
+                            pageBitmap = loadMushafPageBitmap(ctx, pNum)
+                            isLoading = false
+                        }
                     }
 
                     SakinaParchmentPanel(

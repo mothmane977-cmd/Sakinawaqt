@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -610,8 +612,11 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp)
         ) {
             Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -638,8 +643,8 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
                 Text(
                     text = isnadText.toWesternDigits(),
                     fontFamily = SakinaBodyFont,
-                    fontSize = 9.sp,
-                    lineHeight = 12.5.sp,
+                    fontSize = 10.5.sp,
+                    lineHeight = 14.5.sp,
                     color = Color(0xFF6B5224),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()

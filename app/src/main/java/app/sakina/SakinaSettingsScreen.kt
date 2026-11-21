@@ -1044,7 +1044,7 @@ private fun SakinaSettingsPill(@DrawableRes iconRes: Int, title: String, valueTe
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f).padding(end = 6.dp)) {
-            Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(22.dp))
+            Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text(title, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
