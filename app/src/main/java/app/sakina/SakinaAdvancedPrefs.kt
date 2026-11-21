@@ -258,7 +258,7 @@ object SakinaAdvancedPrefs {
                 Place.set(c, lat, lon, city)
             }
         }
-        if (obj.has("method")) Prefs.setMethod(c, obj.getInt("method").coerceIn(0, Prefs.METHODS.lastIndex))
+        if (obj.has("method")) sp(c).edit().putInt("method", obj.getInt("method").coerceIn(0, Prefs.METHODS.lastIndex)).apply()
         if (obj.has("hanafi")) Prefs.setHanafi(c, obj.getBoolean("hanafi"))
         if (obj.has("hijri")) Prefs.setHijriOffset(c, obj.getInt("hijri").coerceIn(-2, 2))
         if (obj.has("timeFormat")) setTimeFormatMode(c, obj.getInt("timeFormat"))
