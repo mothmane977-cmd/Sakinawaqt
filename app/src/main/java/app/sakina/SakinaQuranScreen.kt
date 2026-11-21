@@ -373,20 +373,15 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                 .padding(start = 16.dp, end = 16.dp, top = 50.dp, bottom = 74.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)) {
-                Text(
-                    text = s.quranTitle,
-                    style = TextStyle(
-                        fontFamily = SakinaEditorialFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.5.sp,
-                        brush = SakinaCalligraphyBrush()
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
-                )
-            }
+            // v27 Point 3: 3D Gold "القُرآنُ الكَرِيم" Ornate Cartouche Banner
+            Image(
+                painter = painterResource(id = R.drawable.ic_quran_title_banner),
+                contentDescription = s.quranTitle,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth(0.72f)
+                    .height(66.dp)
+            )
 
             Spacer(modifier = Modifier.height(6.dp))
 

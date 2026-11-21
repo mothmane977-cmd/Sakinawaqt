@@ -267,32 +267,63 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
     val theme = LocalSakinaTheme.current
     val s = LocalSakinaStrings.current
     val lang = LocalSakinaLang.current
+    // v27 Point 2: Hijri Calendar is the FIXED default; user can toggle to Gregorian Calendar anytime
+    var isHijriMode by remember { mutableStateOf(true) }
     var monthOffset by remember { mutableIntStateOf(0) }
-    val todayDayNum = remember { Calendar.getInstance().get(Calendar.DAY_OF_MONTH) }
-    var selectedDay by remember { mutableIntStateOf(todayDayNum) }
+    val hijriOffsetDays = remember { Prefs.hijriOffset(ctx) }
 
-    val baseCal = remember(monthOffset) {
-        Calendar.getInstance().apply { add(Calendar.MONTH, monthOffset); set(Calendar.DAY_OF_MONTH, 1) }
+    val todayHijriDay = remember(hijriOffsetDays) {
+        IslamicCalendar().apply { add(IslamicCalendar.DAY_OF_MONTH, hijriOffsetDays) }.get(IslamicCalendar.DAY_OF_MONTH)
     }
-    val daysInMonth = baseCal.getActualMaximum(Calendar.DAY_OF_MONTH)
-    val firstDayOfWeek = (baseCal.get(Calendar.DAY_OF_WEEK) - Calendar.SATURDAY + 7) % 7
-    val clampedSelected = selectedDay.coerceIn(1, daysInMonth)
+    val todayGregDay = remember { Calendar.getInstance().get(Calendar.DAY_OF_MONTH) }
+    var selectedDay by remember(isHijriMode) { mutableIntStateOf(if (isHijriMode) todayHijriDay else todayGregDay) }
 
-    val selectedCal = remember(monthOffset, clampedSelected) {
-        (baseCal.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, clampedSelected) }
-    }
-    val hijriCal = remember(selectedCal) {
+    // Compute month start, length, and selected Calendar accurately for BOTH Hijri & Gregorian modes
+    val baseHijri = remember(monthOffset, hijriOffsetDays) {
         IslamicCalendar().apply {
-            timeInMillis = selectedCal.timeInMillis
-            add(IslamicCalendar.DAY_OF_MONTH, Prefs.hijriOffset(ctx))
+            add(IslamicCalendar.DAY_OF_MONTH, hijriOffsetDays)
+            set(IslamicCalendar.DAY_OF_MONTH, 1)
+            add(IslamicCalendar.MONTH, monthOffset)
         }
     }
-    val gregTitle = remember(baseCal, lang) {
-        SimpleDateFormat("MMMM yyyy", lang.locale).format(baseCal.time).toWesternDigits()
+    val baseGreg = remember(monthOffset) {
+        Calendar.getInstance().apply { add(Calendar.MONTH, monthOffset); set(Calendar.DAY_OF_MONTH, 1) }
+    }
+
+    val daysInMonth = if (isHijriMode) baseHijri.getActualMaximum(IslamicCalendar.DAY_OF_MONTH) else baseGreg.getActualMaximum(Calendar.DAY_OF_MONTH)
+    val firstDayOfWeek = if (isHijriMode) {
+        val gStart = Calendar.getInstance().apply { timeInMillis = baseHijri.timeInMillis; add(Calendar.DAY_OF_YEAR, -hijriOffsetDays) }
+        (gStart.get(Calendar.DAY_OF_WEEK) - Calendar.SATURDAY + 7) % 7
+    } else {
+        (baseGreg.get(Calendar.DAY_OF_WEEK) - Calendar.SATURDAY + 7) % 7
+    }
+    val clampedSelected = selectedDay.coerceIn(1, daysInMonth)
+
+    val selectedCal = remember(isHijriMode, monthOffset, clampedSelected, hijriOffsetDays) {
+        if (isHijriMode) {
+            val icSel = (baseHijri.clone() as IslamicCalendar).apply { set(IslamicCalendar.DAY_OF_MONTH, clampedSelected) }
+            Calendar.getInstance().apply { timeInMillis = icSel.timeInMillis; add(Calendar.DAY_OF_YEAR, -hijriOffsetDays) }
+        } else {
+            (baseGreg.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, clampedSelected) }
+        }
+    }
+    val hijriCal = remember(selectedCal, hijriOffsetDays) {
+        IslamicCalendar().apply {
+            timeInMillis = selectedCal.timeInMillis
+            add(IslamicCalendar.DAY_OF_MONTH, hijriOffsetDays)
+        }
+    }
+    val gregTitle = remember(selectedCal, lang) {
+        SimpleDateFormat("d MMMM yyyy", lang.locale).format(selectedCal.time).toWesternDigits()
     }
     val hijriMonthName = s.hijriMonths.getOrElse(hijriCal.get(IslamicCalendar.MONTH).coerceIn(0, 11)) { "" }
     val hijriSuffix = sakinaTr(lang, "هـ", "AH", "H", "H", "H", "ھ")
     val hijriSubtitle = "${hijriCal.get(IslamicCalendar.DAY_OF_MONTH)} $hijriMonthName ${hijriCal.get(IslamicCalendar.YEAR)} $hijriSuffix".toWesternDigits()
+    val dynamicCalTitle = if (isHijriMode) {
+        sakinaTr(lang, "التقويم الهجري", "Hijri Calendar", "Calendrier Hégirien", "Hicri Takvim", "Kalender Hijriah", "ہجری کیلنڈر")
+    } else {
+        sakinaTr(lang, "التقويم الميلادي", "Gregorian Calendar", "Calendrier Grégorien", "Miladi Takvim", "Kalender Masehi", "عیسوی کیلنڈر")
+    }
 
     val dayOffsetFromToday = ((selectedCal.timeInMillis - Calendar.getInstance().timeInMillis) / 86_400_000L).toInt()
     val dayPrayers = remember(dayOffsetFromToday) { PrayerEngine.day(ctx, dayOffsetFromToday) }
@@ -307,12 +338,12 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 14.dp, end = 14.dp, top = 56.dp, bottom = 72.dp),
+            .padding(start = 14.dp, end = 14.dp, top = 54.dp, bottom = 78.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 36.dp, vertical = 6.dp)) {
+        SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 28.dp, vertical = 6.dp)) {
             Text(
-                text = s.calendarTitle,
+                text = dynamicCalTitle,
                 fontFamily = SakinaEditorialFont,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.5.sp,
@@ -323,8 +354,50 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             )
         }
 
-        // #5: Space moved to the top between the Hijri Calendar cartouche and the Calendar grid!
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Hijri (default) <-> Gregorian toggle pill
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xEE041218))
+                .border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            listOf(
+                true to sakinaTr(lang, "التقويم الهجري", "Hijri", "Hégirien", "Hicri", "Hijriah", "ہجری"),
+                false to sakinaTr(lang, "التقويم الميلادي", "Gregorian", "Grégorien", "Miladi", "Masehi", "عیسوی")
+            ).forEach { (hijriChoice, lbl) ->
+                val sel = isHijriMode == hijriChoice
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(if (sel) Brush.verticalGradient(listOf(theme.accentBright, theme.accentGold)) else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent)))
+                        .clickable {
+                            if (isHijriMode != hijriChoice) {
+                                isHijriMode = hijriChoice
+                                monthOffset = 0
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = lbl,
+                        fontFamily = SakinaHeadingFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.5.sp,
+                        color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
 
         // 1. Luxury Ornate Monthly Calendar Card (#7)
         val calShape = RoundedCornerShape(18.dp)
@@ -398,7 +471,7 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = hijriSubtitle,
+                            text = if (isHijriMode) hijriSubtitle else gregTitle,
                             fontFamily = SakinaEditorialFont,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.5.sp,
@@ -406,7 +479,7 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
                             style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                         )
                         Text(
-                            text = gregTitle,
+                            text = if (isHijriMode) gregTitle else hijriSubtitle,
                             fontFamily = SakinaBodyFont,
                             fontSize = 10.sp,
                             color = SakinaBrandColors.LuminousIvory,

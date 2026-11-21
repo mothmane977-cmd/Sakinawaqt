@@ -595,6 +595,201 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
         }
 
 
+        // v26: Sleek 1-Time First-Launch Setup Card (10-second guided setup, adapts to OEM brand, never repeats)
+        var showOnboarding by remember { mutableStateOf(!sp.getBoolean("onboarding_done_v1", false)) }
+        if (showOnboarding) {
+            val pmOb = remember { ctx.getSystemService(Context.POWER_SERVICE) as PowerManager }
+            val nmOb = remember { ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
+            val exactOkOb = remember(showOnboarding) {
+                if (Build.VERSION.SDK_INT >= 31) ctx.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() ?: true
+                else true
+            }
+            val notifOkOb = remember(showOnboarding) { nmOb.areNotificationsEnabled() }
+            val battOkOb = remember(showOnboarding) { pmOb.isIgnoringBatteryOptimizations(ctx.packageName) }
+            val brandRaw = remember { Build.MANUFACTURER.orEmpty() }
+            val brandLow = remember { brandRaw.lowercase(Locale.US) }
+            val isAggressiveOem = remember {
+                listOf("xiaomi", "redmi", "poco", "huawei", "honor", "oppo", "realme", "oneplus", "vivo", "tecno", "infinix").any { brandLow.contains(it) }
+            }
+
+            AlertDialog(
+                onDismissRequest = {
+                    sp.edit().putBoolean("onboarding_done_v1", true).apply()
+                    showOnboarding = false
+                },
+                containerColor = effectiveTheme.bgCard,
+                title = {
+                    Text(
+                        text = sakinaTr(
+                            currentLang,
+                            "أهلاً بك في سَكِينة 🕌",
+                            "Welcome to Sakina 🕌",
+                            "Bienvenue sur Sakina 🕌",
+                            "Sakina'ya Hoş Geldiniz 🕌",
+                            "Selamat Datang di Sakina 🕌",
+                            "سکینہ میں خوش آمدید 🕌"
+                        ),
+                        fontFamily = SakinaHeadingFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = effectiveTheme.accentBright
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = sakinaTr(
+                                currentLang,
+                                "خطوة سريعة لمرة واحدة (10 ثوانٍ) لضمان انطلاق الأذان في وقته بالثانية حتى عند إغلاق الشاشة:",
+                                "A quick one-time step (10 seconds) so Adhan rings on time even when your screen is locked:",
+                                "Une étape rapide (10 secondes) pour garantir l'Adhan à l'heure même écran verrouillé :",
+                                "Ekran kapalıyken bile ezanın tam vaktinde çalması için 10 saniyelik tek seferlik adım:",
+                                "Langkah cepat (10 detik) agar Adzan berkumandang tepat waktu meski layar terkunci:",
+                                "اسکرین لاک ہونے پر بھی وقت پر اذان کے لیے صرف 10 سیکنڈ کا ایک قدم:"
+                            ),
+                            fontFamily = SakinaBodyFont,
+                            fontSize = 12.5.sp,
+                            color = SakinaBrandColors.LuminousIvory
+                        )
+
+                        if (!notifOkOb || !exactOkOb) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Brush.verticalGradient(listOf(effectiveTheme.accentBright, effectiveTheme.accentGold)))
+                                    .clickable {
+                                        try {
+                                            if (!notifOkOb) {
+                                                ctx.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                                    putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                })
+                                            } else if (Build.VERSION.SDK_INT >= 31) {
+                                                ctx.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                                    data = Uri.parse("package:${ctx.packageName}")
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                })
+                                            }
+                                        } catch (_: Exception) {}
+                                    }
+                                    .padding(vertical = 10.dp, horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = sakinaTr(
+                                        currentLang,
+                                        "1. تفعيل الأذان والتنبيهات الدقيقة",
+                                        "1. Enable Adhan & Exact Alarms",
+                                        "1. Activer l'Adhan et les alarmes exactes",
+                                        "1. Ezan ve Tam Alarmları Etkinleştir",
+                                        "1. Aktifkan Adzan & Alarm Tepat",
+                                        "1. اذان اور درست الارم فعال کریں"
+                                    ),
+                                    fontFamily = SakinaHeadingFont,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.5.sp,
+                                    color = effectiveTheme.bgDeep,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+
+                        if (isAggressiveOem && !battOkOb) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0x28D4AF37))
+                                    .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        val oemIntents = listOf(
+                                            android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+                                            android.content.ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+                                            android.content.ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+                                            android.content.ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")
+                                        )
+                                        var ok = false
+                                        for (cn in oemIntents) {
+                                            try {
+                                                ctx.startActivity(Intent().setComponent(cn).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                                ok = true; break
+                                            } catch (_: Exception) {}
+                                        }
+                                        if (!ok) {
+                                            try {
+                                                ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                    data = Uri.parse("package:${ctx.packageName}")
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                })
+                                            } catch (_: Exception) {}
+                                        }
+                                    }
+                                    .padding(vertical = 9.dp, horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = sakinaTr(
+                                        currentLang,
+                                        "لهواتف $brandRaw: اضغط هنا واختر «بلا قيود» للبطارية",
+                                        "For $brandRaw phones: tap here & set Battery to Unrestricted",
+                                        "Pour $brandRaw : touchez ici et choisissez « Aucune restriction »",
+                                        "$brandRaw telefonlar: pil kısıtlamasını kaldırın",
+                                        "Untuk HP $brandRaw: atur baterai Tanpa Batasan",
+                                        "$brandRaw فون کے لیے: بیٹری کو بلا پابندی سیٹ کریں"
+                                    ),
+                                    fontFamily = SakinaHeadingFont,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.5.sp,
+                                    color = effectiveTheme.accentBright,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+
+                        if (notifOkOb && exactOkOb && (!isAggressiveOem || battOkOb)) {
+                            Text(
+                                text = sakinaTr(
+                                    currentLang,
+                                    "✓ جهازك جاهز تماماً! الأذان سيعمل بدقة بإذن الله.",
+                                    "✓ Your device is all set! Adhan will ring accurately.",
+                                    "✓ Votre appareil est prêt ! L'Adhan sonnera à l'heure.",
+                                    "✓ Cihazınız hazır! Ezan tam vaktinde çalacaktır.",
+                                    "✓ Perangkat Anda siap! Adzan akan berbunyi tepat waktu.",
+                                    "✓ آپ کا فون بالکل تیار ہے! اذان وقت پر چلے گی۔"
+                                ),
+                                fontFamily = SakinaHeadingFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.5.sp,
+                                color = SakinaBrandColors.StableEmerald
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Brush.verticalGradient(listOf(effectiveTheme.accentBright, effectiveTheme.accentGold)))
+                            .clickable {
+                                sp.edit().putBoolean("onboarding_done_v1", true).apply()
+                                try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {}
+                                showOnboarding = false
+                            }
+                            .padding(horizontal = 18.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = sakinaTr(currentLang, "ابدأ الاستخدام", "Get Started", "Commencer", "Başla", "Mulai", "شروع کریں"),
+                            fontFamily = SakinaHeadingFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.5.sp,
+                            color = effectiveTheme.bgDeep
+                        )
+                    }
+                }
+            )
+        }
+
         if (showDiagnostics) {
             val pm = remember { ctx.getSystemService(Context.POWER_SERVICE) as PowerManager }
             val batteryExempt = remember(showDiagnostics) { pm.isIgnoringBatteryOptimizations(ctx.packageName) }
@@ -1183,7 +1378,7 @@ private fun SakinaFeaturedNextPrayerCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(70.dp)
+            .defaultMinSize(minHeight = 74.dp)
             .shadow(10.dp, shape, ambientColor = theme.accentGold, spotColor = theme.accentGold)
             .clip(shape)
             .border(1.5.dp, Sakina3DGoldBevelBrush, shape)
@@ -1192,17 +1387,17 @@ private fun SakinaFeaturedNextPrayerCard(
             painter = painterResource(id = prayer.bgRes),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.matchParentSize()
         )
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.horizontalGradient(listOf(Color(0xD8071422), Color(0x99071422), Color(0xD8071422))))
+                .matchParentSize()
+                .background(Brush.horizontalGradient(listOf(Color(0xDD071422), Color(0xA6071422), Color(0xDD071422))))
         )
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1225,23 +1420,21 @@ private fun SakinaFeaturedNextPrayerCard(
                         fontFamily = SakinaEditorialFont,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
-                        lineHeight = 19.sp,
+                        lineHeight = 22.sp,
                         color = theme.accentBright,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = nextLabel,
                         fontFamily = SakinaBodyFont,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 11.5.sp,
-                        lineHeight = 14.sp,
+                        lineHeight = 19.sp,
                         color = LocalSakinaTextColor.current,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        modifier = Modifier.padding(bottom = 2.dp)
                     )
                 }
             }
