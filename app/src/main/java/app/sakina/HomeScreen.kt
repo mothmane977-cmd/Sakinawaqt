@@ -323,32 +323,37 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     .padding(horizontal = 16.dp, vertical = 20.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                    SakinaTitle3D(text = if (isArOrUr) "الإعدادات العامة" else "General Settings", fontSize = 17.sp)
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    SakinaTitle3D(
+                                        text = sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres", "Genel Ayarlar", "Pengaturan", "عمومی ترتیبات"),
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
                                     SakinaBackIconButton(onClick = { scope.launch { rightDrawerState.close() } })
                                 }
                                 Text(
-                                    text = if (isArOrUr) "التنبيهات والمنبهات والضبط" else "Alarms, Notifications & Settings",
+                                    text = sakinaTr(currentLang, "التنبيهات والمنبهات والضبط", "Alarms, Notifications & Settings", "Alarmes, notifications et réglages", "Alarmlar, Bildirimler ve Ayarlar", "Alarm, Notifikasi & Pengaturan", "الارم، اطلاعات اور ترتیبات"),
                                     fontFamily = SakinaBodyFont,
                                     fontSize = 11.sp,
                                     color = effectiveTheme.accentGold,
                                     modifier = Modifier.padding(horizontal = 4.dp)
                                 )
-                                SakinaDrawerPillItem(R.drawable.ic_alarm, if (isArOrUr) "المنبهات الصوتية" else "Sound Alarms") {
+                                SakinaDrawerPillItem(R.drawable.ic_alarm, sakinaTr(currentLang, "المنبهات الصوتية", "Sound Alarms", "Alarmes sonores", "Sesli Alarmlar", "Alarm Suara", "صوتی الارم")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.ALARM
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_after_prayer, if (isArOrUr) "التنبيهات الهادئة" else "Quiet Notifications") {
+                                SakinaDrawerPillItem(R.drawable.ic_after_prayer, sakinaTr(currentLang, "التنبيهات الهادئة", "Quiet Notifications", "Notifications discrètes", "Sessiz Bildirimler", "Notifikasi Tenang", "خاموش اطلاعات")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.NOTIFICATIONS
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_star_ornament, if (isArOrUr) "المظهر والخطوط" else "Appearance & Fonts") {
+                                SakinaDrawerPillItem(R.drawable.ic_star_ornament, sakinaTr(currentLang, "المظهر والخطوط", "Appearance & Fonts", "Apparence et polices", "Görünüm ve Yazı Tipi", "Tampilan & Font", "ظاہری شکل اور فونٹس")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.APPEARANCE
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_settings, if (isArOrUr) "الإعدادات العامة" else s.settingsTitle) {
+                                SakinaDrawerPillItem(R.drawable.ic_settings, sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres généraux", "Genel Ayarlar", "Pengaturan Umum", "عمومی ترتیبات")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.SETTINGS
                                 }
                                 SakinaDrawerPillItem(
                                     R.drawable.ic_star_ornament,
-                                    if (isArOrUr) "تشخيص البطارية والصلاحيات" else "Battery & Alarm Diagnostics"
+                                    sakinaTr(currentLang, "تشخيص البطارية والصلاحيات", "Battery & Alarm Diagnostics", "Diagnostic batterie et alarmes", "Pil ve Alarm Tanılama", "Diagnostik Baterai & Alarm", "بیٹری اور الارم تشخیص")
                                 ) {
                                     scope.launch { rightDrawerState.close() }
                                     showDiagnostics = true
@@ -373,8 +378,13 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             .padding(horizontal = 16.dp, vertical = 20.dp),
                                         verticalArrangement = Arrangement.spacedBy(7.dp)
                                     ) {
-                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                            SakinaTitle3D(text = if (isArOrUr) "الأذكار والعبادات" else "Adhkar & Worship", fontSize = 17.sp)
+                                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                            SakinaTitle3D(
+                                                text = sakinaTr(currentLang, "الأذكار والعبادات", "Adhkar & Worship", "Invocations & Culte", "Zikir ve İbadetler", "Dzikir & Ibadah", "اذکار اور عبادات"),
+                                                fontSize = 14.sp,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Spacer(Modifier.width(8.dp))
                                             SakinaBackIconButton(onClick = { scope.launch { leftDrawerState.close() } })
                                         }
                                         Spacer(Modifier.height(2.dp))
@@ -382,13 +392,13 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         SakinaDrawerPillItem(R.drawable.ic_tasbih, s.adhkarTitle) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; adhkarInitCat = null; extraSection = ExtraSection.ADHKAR
                                         }
-                                        SakinaDrawerPillItem(R.drawable.ic_duas, if (isArOrUr) "أدعية من القرآن والسنة" else s.duasTitle) {
+                                        SakinaDrawerPillItem(R.drawable.ic_duas, sakinaTr(currentLang, "أدعية من القرآن والسنة", "Duas from Quran & Sunnah", "Invocations du Coran et de la Sunna", "Kur'an ve Sünnetten Dualar", "Doa Al-Qur'an & Sunnah", "قرآن و سنت کی دعائیں")) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.DUAS
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_ruqyah, s.ruqyahTitle) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.RUQYAH
                                         }
-                                        SakinaDrawerPillItem(R.drawable.ic_sunan, if (isArOrUr) "تذكير بالعبادات وصالح الأعمال" else "Worship & Good Deeds") {
+                                        SakinaDrawerPillItem(R.drawable.ic_sunan, sakinaTr(currentLang, "تذكير بالعبادات وصالح الأعمال", "Worship & Good Deeds", "Rappel d'adorations et bonnes œuvres", "İbadet ve Salih Amel Hatırlatıcısı", "Pengingat Ibadah & Amal Saleh", "عبادات اور نیک اعمال کی یاد دہانی")) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.SUNNAH
                                         }
                                         SakinaDrawerPillItem(R.drawable.ic_sunan, s.sunanTitle) {
@@ -600,7 +610,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                 containerColor = effectiveTheme.bgCard,
                 title = {
                     Text(
-                        text = if (isArOrUr) "تشخيص الموثوقية والبطارية" else "Battery & Alarm Diagnostics",
+                        text = sakinaTr(currentLang, "تشخيص الموثوقية والبطارية", "Battery & Alarm Diagnostics", "Diagnostic batterie et alarmes", "Pil ve Alarm Tanılama", "Diagnostik Baterai & Alarm", "بیٹری اور الارم تشخیص"),
                         fontFamily = SakinaHeadingFont,
                         fontWeight = FontWeight.Bold,
                         color = effectiveTheme.accentBright
@@ -704,7 +714,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (isArOrUr) "فتح إعدادات التشغيل التلقائي والبطارية (Autostart)" else "Open Vendor Autostart & Battery Settings",
+                                text = sakinaTr(currentLang, "فتح إعدادات التشغيل التلقائي والبطارية (Autostart)", "Open Autostart & Battery Settings", "Ouvrir démarrage auto et batterie", "Otomatik Başlatma ve Pil Ayarları", "Buka Pengaturan Autostart & Baterai", "آٹو اسٹارٹ اور بیٹری ترتیبات کھولیں"),
                                 fontFamily = SakinaHeadingFont,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
@@ -723,7 +733,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                 verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 Text(
-                                    text = if (isArOrUr) "سجل آخر التنبيهات (DiagLog):" else "Recent Alarm Log:",
+                                    text = sakinaTr(currentLang, "سجل آخر التنبيهات (DiagLog):", "Recent Alarm Log:", "Journal des dernières alarmes :", "Son Alarm Kayıtları:", "Log Alarm Terbaru:", "حالیہ الارم لاگ:"),
                                     fontFamily = SakinaHeadingFont,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.5.sp,
@@ -962,20 +972,25 @@ private fun SakinaHomeContent(ctx: Context) {
             }
             Spacer(Modifier.height(3.dp))
             Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xDE041118))
+                    .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 12.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_location),
                     contentDescription = null,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
                     text = localizedCity,
                     fontFamily = SakinaEditorialFont,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
+                    fontSize = 17.sp,
                     color = theme.accentBright
                 )
                 if (dayOffset != 0) {
@@ -996,16 +1011,24 @@ private fun SakinaHomeContent(ctx: Context) {
 
         // #8: User chooses either Luxury Digital Countdown Cartouche OR Luxury Analog Clock with a single tap!
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "❖ ${s.nextPrayer}: $nextDisplayName ❖",
-                fontFamily = SakinaEditorialFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.5.sp,
-                color = theme.accentBright,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xDE041118))
+                    .border(0.7.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 3.dp)
+            ) {
+                Text(
+                    text = "❖ ${s.nextPrayer}: $nextDisplayName ❖",
+                    fontFamily = SakinaEditorialFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.5.sp,
+                    color = theme.accentBright,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             Spacer(Modifier.height(4.dp))
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Box(
@@ -1032,7 +1055,7 @@ private fun SakinaHomeContent(ctx: Context) {
                                     )
                                 )
                                 Text(
-                                    text = if (showCurrentTimeInCartouche) (if (lang.isRtl) "الوقت الحالي" else "Current Time") else (if (lang.isRtl) "المتبقي للصلاة" else "Remaining"),
+                                    text = if (showCurrentTimeInCartouche) sakinaTr(lang, "الوقت الحالي", "Current Time", "Heure actuelle", "Şu Anki Saat", "Waktu Saat Ini", "موجودہ وقت") else sakinaTr(lang, "المتبقي للصلاة", "Remaining", "Temps restant", "Kalan Süre", "Tersisa", "باقی وقت"),
                                     fontFamily = SakinaBodyFont,
                                     fontSize = 9.5.sp,
                                     color = SakinaBrandColors.SoftSilver,
@@ -1118,7 +1141,7 @@ private fun SakinaFeaturedNextPrayerCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 66.dp)
+            .height(64.dp)
             .shadow(10.dp, shape, ambientColor = theme.accentGold, spotColor = theme.accentGold)
             .clip(shape)
             .border(1.5.dp, Sakina3DGoldBevelBrush, shape)

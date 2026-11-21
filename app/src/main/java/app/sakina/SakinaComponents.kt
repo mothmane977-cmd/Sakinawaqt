@@ -500,7 +500,7 @@ fun SakinaBackIconButton(
     modifier: Modifier = Modifier
 ) {
     val theme = LocalSakinaTheme.current
-    val isRtl = LocalSakinaLang.current.isRtl
+    val lang = LocalSakinaLang.current
     val pill = RoundedCornerShape(20.dp)
     Row(
         modifier = modifier
@@ -520,7 +520,7 @@ fun SakinaBackIconButton(
             modifier = Modifier.size(17.dp)
         )
         Text(
-            text = if (isRtl) "رجوع" else "Back",
+            text = sakinaTr(lang, "رجوع", "Back", "Retour", "Geri", "Kembali", "واپس"),
             fontFamily = SakinaBodyFont,
             fontWeight = FontWeight.Bold,
             fontSize = 12.sp,
@@ -647,8 +647,8 @@ fun SakinaBackgroundLayer(
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
-                        0.0f to deep.copy(alpha = 0.35f),
-                        0.55f to deep.copy(alpha = 0.25f),
+                        0.0f to deep.copy(alpha = 0.58f),
+                        0.55f to deep.copy(alpha = 0.48f),
                         0.88f to deep.copy(alpha = 0.90f),
                         1.0f to deep
                     )

@@ -91,7 +91,7 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                 contentPadding = PaddingValues(horizontal = 36.dp, vertical = 7.dp)
             ) {
                 Text(
-                    text = if (alarmTab == 1) (if (lang.isRtl) "التنبيهات الهادئة" else "Quiet Notifications") else (if (lang.isRtl) "المنبهات الصوتية" else "Sound Alarms"),
+                    text = if (alarmTab == 1) sakinaTr(lang, "التنبيهات الهادئة", "Quiet Notifications", "Notifications discrètes", "Sessiz Bildirimler", "Notifikasi Tenang", "خاموش اطلاعات") else sakinaTr(lang, "المنبهات الصوتية", "Sound Alarms", "Alarmes sonores", "Sesli Alarmlar", "Alarm Suara", "صوتی الارم"),
                     style = TextStyle(
                         fontFamily = SakinaEditorialFont,
                         fontWeight = FontWeight.Bold,
@@ -115,7 +115,7 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            listOf("المنبهات الصوتية", "التنبيهات الهادئة").forEachIndexed { idx, label ->
+            listOf(sakinaTr(lang, "المنبهات الصوتية", "Sound Alarms", "Alarmes sonores", "Sesli Alarmlar", "Alarm Suara", "صوتی الارم"), sakinaTr(lang, "التنبيهات الهادئة", "Quiet Notifications", "Notifications", "Bildirimler", "Notifikasi", "اطلاعات")).forEachIndexed { idx, label ->
                 val sel = alarmTab == idx
                 Box(
                     modifier = Modifier
@@ -147,7 +147,7 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                     .padding(3.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                listOf("أنواع المنبهات", "المؤذنون والصوت").forEachIndexed { idx, label ->
+                listOf(sakinaTr(lang, "أنواع المنبهات", "Alarm Modes", "Types d'alarmes", "Alarm Türleri", "Jenis Alarm", "الارم اقسام"), sakinaTr(lang, "المؤذنون والصوت", "Muezzins & Audio", "Muezzins & Audio", "Müezzinler & Ses", "Muadzin & Suara", "مؤذن اور آواز")).forEachIndexed { idx, label ->
                     val sel = alarmSubTab == idx
                     Box(
                         modifier = Modifier
@@ -172,31 +172,31 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
 
         if (alarmTab == 1) {
             SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-                Text("التنبيهات والإشعارات الهادئة", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = theme.accentBright)
+                Text(sakinaTr(lang, "التنبيهات والإشعارات الهادئة", "Quiet Notifications & Alerts", "Notifications et alertes discrètes", "Sessiz Bildirimler", "Notifikasi Tenang", "خاموش اطلاعات"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = theme.accentBright)
                 Spacer(Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("الإشعار الحي الدائم لمواقيت الصلاة", fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    Text(sakinaTr(lang, "الإشعار الحي الدائم لمواقيت الصلاة", "Persistent Live Prayer Bar", "Barre de prière permanente", "Kalıcı Namaz Bildirimi", "Notifikasi Jadwal Sholat Aktif", "مستقل لائیو نماز نوٹیفکیشن"), fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
                     SakinaGoldSwitch(checked = liveNotifOn, onCheckedChange = {
                         liveNotifOn = it; SakinaAdvancedPrefs.setPersistentNotifEnabled(ctx, it); SakinaLiveNotifier.update(ctx)
                     })
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("تذكير أذكار ما بعد الصلاة (بعد 12 د)", fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    Text(sakinaTr(lang, "تذكير أذكار ما بعد الصلاة (بعد 12 د)", "Post-Prayer Adhkar Reminder (12m)", "Rappel Adhkar après la prière (12 min)", "Namaz Sonrası Zikir Hatırlatıcı (12 dk)", "Pengingat Dzikir Setelah Sholat (12 mnt)", "نماز کے بعد اذکار یاد دہانی (12 منٹ)"), fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
                     SakinaGoldSwitch(checked = postAdhkarOn, onCheckedChange = {
                         postAdhkarOn = it; SakinaAdvancedPrefs.setPostPrayerAdhkarNotif(ctx, it)
                     })
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("تذكير ليلي بصيام التطوع والأيام البيض", fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    Text(sakinaTr(lang, "تذكير ليلي بصيام التطوع والأيام البيض", "Evening Voluntary Fasting Reminder", "Rappel du jeûne surérogatoire", "Nafile Oruç Akşam Hatırlatıcısı", "Pengingat Puasa Sunnah", "نفلی روزوں کی یاد دہانی"), fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
                     SakinaGoldSwitch(checked = fastingOn, onCheckedChange = {
                         fastingOn = it; SakinaAdvancedPrefs.setVoluntaryFastingNotif(ctx, it); try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {}
                     })
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("تذكير سورة الكهف صباح الجمعة", fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    Text(sakinaTr(lang, "تذكير سورة الكهف صباح الجمعة", "Friday Surah Al-Kahf Reminder", "Rappel Sourate Al-Kahf (vendredi)", "Cuma Kehf Suresi Hatırlatıcısı", "Pengingat Surah Al-Kahf Jumat", "جمعہ سورۃ الکہف یاد دہانی"), fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
                     SakinaGoldSwitch(checked = kahfOn, onCheckedChange = {
                         kahfOn = it; SakinaAdvancedPrefs.setFridayKahfNotif(ctx, it)
                     })
@@ -205,17 +205,17 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
         } else if (alarmSubTab == 0) {
             // 13-1, 13-3, 13-4 Categorized Alarm Modes Card
             SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
-                Text("تصنيف المنبهات حسب الوظيفة", fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
+                Text(sakinaTr(lang, "تصنيف المنبهات حسب الوظيفة", "Alarms by Function", "Alarmes par fonction", "İşleve Göre Alarmlar", "Alarm Berdasarkan Fungsi", "الارم کی اقسام"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
                 Spacer(Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("1. منبه الفجر المشدّد (تدرّج صوتي + غفوة)", fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    Text(sakinaTr(lang, "1. منبه الفجر المشدّد (تدرّج صوتي + غفوة)", "1. Fajr Wake-Up Alarm (Fade + Snooze)", "1. Alarme Fajr (fondu + rappel)", "1. Sabah Namazı Alarmı (Kademeli)", "1. Alarm Subuh (Halus + Tunda)", "1. فجر الارم (تدریجی آواز)"), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
                     SakinaGoldSwitch(checked = fajrSnooze, onCheckedChange = {
                         fajrSnooze = it; SakinaAdvancedPrefs.setFajrSnoozeEnabled(ctx, it); Prefs.setFajrFade(ctx, it)
                     })
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("3. منبه قيام الليل والسحور (قبل الفجر بـ $qiyamMin د)".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    Text(sakinaTr(lang, "3. منبه قيام الليل والسحور (قبل الفجر بـ $qiyamMin د)", "3. Qiyam & Suhoor ($qiyamMin min before Fajr)", "3. Qiyam & Suhoor ($qiyamMin min avant Fajr)", "3. Teheccüd & Sahur (Fecrden $qiyamMin dk önce)", "3. Tahajud & Sahur ($qiyamMin mnt sebelum Subuh)", "3. قیام اللیل اور سحری (فجر سے $qiyamMin منٹ پہلے)").toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
                     SakinaGoldSwitch(checked = qiyamOn, onCheckedChange = {
                         qiyamOn = it; SakinaAdvancedPrefs.setQiyamAlarmEnabled(ctx, it); try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {}
                     })
@@ -235,7 +235,7 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("4. منبه الإقامة (بعد الأذان بـ $iqamaMin د)".toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                    Text(sakinaTr(lang, "4. منبه الإقامة (بعد الأذان بـ $iqamaMin د)", "4. Iqama Alarm ($iqamaMin min after Adhan)", "4. Alarme Iqama ($iqamaMin min après l'Adhan)", "4. Kamet Alarmı (Ezandan $iqamaMin dk sonra)", "4. Alarm Iqamah ($iqamaMin mnt setelah Adzan)", "4. اقامت الارم (اذان کے $iqamaMin منٹ بعد)").toWesternDigits(), fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
                     SakinaGoldSwitch(checked = iqamaOn, onCheckedChange = {
                         iqamaOn = it; SakinaAdvancedPrefs.setIqamaAlarmEnabled(ctx, it)
                     })

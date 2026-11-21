@@ -142,7 +142,7 @@ fun SakinaSettingsScreen(
                 contentPadding = PaddingValues(horizontal = 36.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = if (appearanceOnly) (if (isArOrUr) "المظهر والخطوط" else "Appearance & Fonts") else (if (isArOrUr) "الإعدادات العامة" else s.settingsTitle),
+                    text = if (appearanceOnly) sakinaTr(lang, "المظهر والخطوط", "Appearance & Fonts", "Apparence et polices", "Görünüm ve Yazı Tipi", "Tampilan & Font", "ظاہری شکل اور فونٹس") else sakinaTr(lang, "الإعدادات العامة", "General Settings", "Paramètres généraux", "Genel Ayarlar", "Pengaturan Umum", "عمومی ترتیبات"),
                     style = TextStyle(
                         fontFamily = SakinaEditorialFont,
                         fontWeight = FontWeight.Bold,
@@ -215,7 +215,7 @@ fun SakinaSettingsScreen(
                         // v19 Point 8: Dedicated Font Style, Font Size, Text Color & Mushaf Theme Studio
                         SakinaGlassCard(modifier = Modifier.fillMaxWidth(), glowGold = true) {
                             Text(
-                                text = if (isArOrUr) "تخصيص الخط وحجمه ولونه" else "Typography, Size & Color",
+                                text = sakinaTr(lang, "تخصيص الخط وحجمه ولونه", "Typography, Size & Color", "Police, taille et couleur", "Yazı Tipi, Boyut ve Renk", "Font, Ukuran & Warna", "فونٹ، سائز اور رنگ"),
                                 fontFamily = SakinaHeadingFont,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.5.sp,
@@ -223,14 +223,14 @@ fun SakinaSettingsScreen(
                             )
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = if (isArOrUr) "نوع الخط" else "Font Family",
+                                text = sakinaTr(lang, "نوع الخط", "Font Family", "Style de police", "Yazı Tipi", "Jenis Font", "فونٹ کی قسم"),
                                 fontFamily = SakinaBodyFont,
                                 fontSize = 11.5.sp,
                                 color = SakinaBrandColors.SoftSilver
                             )
                             Spacer(Modifier.height(4.dp))
                             SettingSegmentedRow(
-                                labels = if (isArOrUr) listOf("الأميري النسخ", "رقعة مزخرف", "خط حديث") else listOf("Amiri", "Ornate", "Modern"),
+                                labels = listOf(sakinaTr(lang, "الأميري النسخ", "Amiri", "Amiri", "Amiri", "Amiri", "امیری"), sakinaTr(lang, "رقعة مزخرف", "Ornate", "Calligraphie", "Hat", "Kaligrafi", "رقعہ"), sakinaTr(lang, "خط حديث", "Modern", "Moderne", "Modern", "Modern", "جدید")),
                                 selectedIdx = appFontStyle,
                                 onSelect = { idx ->
                                     appFontStyle = idx
@@ -245,7 +245,7 @@ fun SakinaSettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (isArOrUr) "حجم الخط العام" else "App Font Size",
+                                    text = sakinaTr(lang, "حجم الخط العام", "App Font Size", "Taille de la police", "Yazı Boyutu", "Ukuran Font", "فونٹ سائز"),
                                     fontFamily = SakinaBodyFont,
                                     fontSize = 11.5.sp,
                                     color = SakinaBrandColors.SoftSilver
@@ -274,7 +274,7 @@ fun SakinaSettingsScreen(
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                text = if (isArOrUr) "لون النصوص" else "Text Color",
+                                text = sakinaTr(lang, "لون النصوص", "Text Color", "Couleur du texte", "Metin Rengi", "Warna Teks", "متن کا رنگ"),
                                 fontFamily = SakinaBodyFont,
                                 fontSize = 11.5.sp,
                                 color = SakinaBrandColors.SoftSilver
@@ -321,14 +321,14 @@ fun SakinaSettingsScreen(
                             }
                             Spacer(Modifier.height(10.dp))
                             Text(
-                                text = if (isArOrUr) "ثيم قراءة المصحف" else "Mushaf Reading Theme",
+                                text = sakinaTr(lang, "ثيم قراءة المصحف", "Mushaf Reading Theme", "Thème de lecture du Coran", "Mushaf Okuma Teması", "Tema Baca Mushaf", "مصحف مطالعہ تھیم"),
                                 fontFamily = SakinaBodyFont,
                                 fontSize = 11.5.sp,
                                 color = SakinaBrandColors.SoftSilver
                             )
                             Spacer(Modifier.height(4.dp))
                             SettingSegmentedRow(
-                                labels = if (isArOrUr) listOf("ورقي دافئ", "عادي", "ليلي") else listOf("Warm", "Normal", "Dark"),
+                                labels = listOf(sakinaTr(lang, "ورقي دافئ", "Warm", "Papier", "Sıcak", "Hangat", "کاغذی"), sakinaTr(lang, "عادي", "White", "Clair", "Beyaz", "Terang", "سفید"), sakinaTr(lang, "ليلي", "Dark", "Sombre", "Gece", "Gelap", "تاریک")),
                                 selectedIdx = mushafThemeIdx,
                                 onSelect = { idx ->
                                     mushafThemeIdx = idx

@@ -412,3 +412,21 @@ fun stringsFor(lang: SakinaLang): SakinaStrings = when (lang) {
         prayers = listOf("فجر", "ظہر", "عصر", "مغرب", "عشاء")
     )
 }
+
+
+fun sakinaTr(
+    lang: SakinaLang,
+    ar: String,
+    en: String,
+    fr: String,
+    tr: String = en,
+    id: String = en,
+    ur: String = ar
+): String = when (lang) {
+    SakinaLang.AR -> ar
+    SakinaLang.EN -> en
+    SakinaLang.FR -> fr
+    SakinaLang.TR -> tr
+    SakinaLang.ID -> id
+    SakinaLang.UR -> ur
+}

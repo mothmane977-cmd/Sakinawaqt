@@ -409,7 +409,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (sensorMode == 0) "وضع البوصلة: المغناطيسي المباشر (أعلى دقة)" else "وضع البوصلة: المدمج (جيروسكوب + مغناطيس)",
+                    text = if (sensorMode == 0) sakinaTr(lang, "وضع البوصلة: المغناطيسي المباشر (أعلى دقة)", "Compass: Direct Magnetic (High Accuracy)", "Boussole : Magnétique direct (Précis)", "Pusula: Doğrudan Manyetik", "Kompas: Magnetik Langsung", "قبلہ: براہ راست مقناطیسی") else sakinaTr(lang, "وضع البوصلة: المدمج (جيروسكوب + مغناطيس)", "Compass: Fused (Gyro + Magnetic)", "Boussole : Fusionnée (Gyro + Mag)", "Pusula: Birleşik (Jiroskop)", "Kompas: Gabungan (Giro)", "قبلہ: مربوط سینسر"),
                     fontFamily = SakinaBodyFont,
                     fontSize = 10.5.sp,
                     color = theme.accentBright,
@@ -417,7 +417,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "تبديل ↻",
+                    text = sakinaTr(lang, "تبديل ↻", "Switch ↻", "Changer ↻", "Değiştir ↻", "Ganti ↻", "تبدیل ↻"),
                     fontFamily = SakinaHeadingFont,
                     fontWeight = FontWeight.Bold,
                     fontSize = 10.5.sp,
@@ -439,7 +439,7 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 Image(painter = painterResource(id = R.drawable.ic_location), contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = if (lang == SakinaLang.AR || lang == SakinaLang.UR) "تحديث الموقع ($placeName)" else "Update Location ($placeName)",
+                    text = sakinaTr(lang, "تحديث الموقع ($placeName)", "Update Location ($placeName)", "Mettre à jour ($placeName)", "Konumu Güncelle ($placeName)", "Perbarui Lokasi ($placeName)", "مقام اپ ڈیٹ ($placeName)"),
                     fontFamily = SakinaBodyFont,
                     fontWeight = FontWeight.Bold,
                     fontSize = 11.sp,

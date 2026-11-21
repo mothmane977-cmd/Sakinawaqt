@@ -1,6 +1,7 @@
 package app.sakina
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,28 +23,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.BackHandler
 
 private data class SunnahItem(
     val id: String,
-    val categoryAr: String,
-    val titleAr: String,
-    val subtitleAr: String
+    val titleAr: String, val titleEn: String, val titleFr: String,
+    val subAr: String, val subEn: String, val subFr: String
 )
 
 private val SAKINA_SUNNAH_LIST = listOf(
-    SunnahItem("fajr_sunnah", "صلوات التطوع", "ركعتا سنة الفجر", "خيرٌ من الدنيا وما فيها (رواه مسلم)"),
-    SunnahItem("duha", "صلوات التطوع", "صلاة الضحى", "من ركعتين إلى ثمان ركعات بعد الشروق بـ 15 دقيقة"),
-    SunnahItem("rawatib", "صلوات التطوع", "السنن الرواتب (12 ركعة)", "من صلاها بُني له بيت في الجنة"),
-    SunnahItem("qiyam_witr", "صلوات التطوع", "قيام الليل وصلاة الوتر", "أقرب ما يكون العبد من ربه في جوف الليل الأخير"),
-    SunnahItem("daily_wird", "القرآن والذكر", "الورد اليومي من القرآن", "تلاوة حزب أو جزء أو ما تيسر بتدبّر"),
-    SunnahItem("mulk_sleep", "القرآن والذكر", "سورة الملك قبل النوم", "تنجّي صاحبها وتشفع له بإذن الله"),
-    SunnahItem("friday_kahf", "القرآن والذكر", "سورة الكهف والصلاة على النبي ﷺ", "نور ما بين الجمعتين يوم الجمعة"),
-    SunnahItem("fast_mon_thu", "الصيام والبر", "صيام التطوع (الإثنين والخميس)", "تُعرض الأعمال فيهما على الله"),
-    SunnahItem("fast_white", "الصيام والبر", "صيام الأيام البيض (13–14–15)", "كصيام الدهر كله في الأجر"),
-    SunnahItem("sadaqah", "الصيام والبر", "الصدقة اليومية", "ما نقص مال من صدقة ولو بالقليل"),
-    SunnahItem("silat_rahim", "الصيام والبر", "صلة الرحم", "اتصال أو زيارة أو رسالة طيبة للأهل والأقارب"),
-    SunnahItem("birr_parents", "الصيام والبر", "برّ الوالدين والدعاء لهما", "ربّ ارحمهما كما ربياني صغيراً")
+    SunnahItem("fajr_sunnah", "ركعتا سنة الفجر", "2 Rak'ahs Sunnah of Fajr", "2 Rak'ahs Sunna du Fajr", "خيرٌ من الدنيا وما فيها (رواه مسلم)", "Better than the world and all it contains (Muslim)", "Meilleures que ce bas monde et ce qu'il contient (Mouslim)"),
+    SunnahItem("duha", "صلاة الضحى", "Duha Prayer", "Prière de Duha", "من ركعتين إلى ثمان ركعات بعد الشروق بـ 15 د", "2 to 8 Rak'ahs, 15 min after sunrise", "2 à 8 Rak'ahs, 15 min après le lever du soleil"),
+    SunnahItem("rawatib", "السنن الرواتب (12 ركعة)", "12 Daily Sunnah Rak'ahs", "12 Rak'ahs Sunna quotidiennes", "من صلاها بُني له بيت في الجنة", "A house in Paradise is built for the one who prays them", "Une demeure au Paradis est bâtie pour qui les accomplit"),
+    SunnahItem("qiyam_witr", "قيام الليل وصلاة الوتر", "Night Prayer & Witr", "Prière de nuit (Qiyam) & Witr", "في الثلث الأخير من الليل", "Best performed in the last third of the night", "Recommandée dans le dernier tiers de la nuit"),
+    SunnahItem("daily_wird", "الورد اليومي من القرآن", "Daily Quran Recitation", "Lecture quotidienne du Coran", "تلاوة حزب أو جزء أو ما تيسر بتدبّر", "Recite a daily portion with reflection", "Lire une portion quotidienne avec méditation"),
+    SunnahItem("mulk_sleep", "سورة الملك قبل النوم", "Surah Al-Mulk Before Sleep", "Sourate Al-Mulk avant de dormir", "تنجّي صاحبها وتشفع له بإذن الله", "Protects and intercedes for its reciter", "Protège et intercède pour son lecteur"),
+    SunnahItem("friday_kahf", "سورة الكهف يوم الجمعة", "Surah Al-Kahf on Friday", "Sourate Al-Kahf le vendredi", "نور ما بين الجمعتين والصلاة على النبي ﷺ", "Light between the two Fridays & Salawat", "Lumière entre deux vendredis et prières sur le Prophète ﷺ"),
+    SunnahItem("fast_mon_thu", "صيام الإثنين والخميس", "Monday & Thursday Fasting", "Jeûne du lundi et jeudi", "تُعرض الأعمال فيهما على الله", "Deeds are presented to Allah on these days", "Les œuvres sont présentées à Allah ces jours-là"),
+    SunnahItem("fast_white", "صيام الأيام البيض (13–14–15)", "White Days Fasting (13-14-15)", "Jeûne des jours blancs (13-14-15)", "كصيام الدهر كله في الأجر", "Reward like fasting the entire year", "Récompense équivalente au jeûne de toute l'année"),
+    SunnahItem("sadaqah", "الصدقة اليومية", "Daily Charity (Sadaqah)", "Aumône quotidienne (Sadaqah)", "ما نقص مال من صدقة ولو بالقليل", "Charity never decreases wealth", "L'aumône ne diminue jamais la richesse"),
+    SunnahItem("silat_rahim", "صلة الرحم", "Maintaining Family Ties", "Liens de parenté", "اتصال أو زيارة أو رسالة طيبة للأهل", "A kind call, visit, or message to family", "Un appel, une visite ou un message bienveillant"),
+    SunnahItem("birr_parents", "برّ الوالدين والدعاء لهما", "Honoring & Praying for Parents", "Bienfaisance envers les parents", "ربّ ارحمهما كما ربياني صغيراً", "My Lord, have mercy upon them both", "Seigneur, fais-leur miséricorde à tous deux")
 )
 
 @Composable
@@ -54,6 +53,8 @@ fun SakinaSunnahScreen(
 ) {
     BackHandler { onBackClick() }
     val theme = LocalSakinaTheme.current
+    val lang = LocalSakinaLang.current
+    val textColor = LocalSakinaTextColor.current
     var tick by remember { mutableIntStateOf(0) }
     var fastingNotif by remember { mutableStateOf(SakinaAdvancedPrefs.voluntaryFastingNotif(ctx)) }
     var kahfNotif by remember { mutableStateOf(SakinaAdvancedPrefs.fridayKahfNotif(ctx)) }
@@ -65,101 +66,102 @@ fun SakinaSunnahScreen(
             .fillMaxSize()
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 78.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 54.dp, bottom = 78.dp)
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            SakinaBackIconButton(onClick = onBackClick, modifier = Modifier.align(Alignment.CenterStart))
-            SakinaTitle3D(text = "تذكير بالعبادات وصالح الأعمال", fontSize = 20.sp, modifier = Modifier.align(Alignment.Center))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SakinaBackIconButton(onClick = onBackClick)
+            Spacer(Modifier.width(8.dp))
+            SakinaTitle3D(
+                text = sakinaTr(lang, "تذكير بالعبادات وصالح الأعمال", "Worship & Good Deeds", "Adorations & bonnes œuvres", "İbadet ve Salih Ameller", "Ibadah & Amal Saleh", "عبادات اور نیک اعمال"),
+                fontSize = 14.5.sp,
+                modifier = Modifier.weight(1f)
+            )
         }
 
-        // Calm daily progress summary
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.92f), theme.bgDeep.copy(alpha = 0.92f))))
-                .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
-                .padding(horizontal = 14.dp, vertical = 10.dp)
-        ) {
+        SakinaGlassCard(modifier = Modifier.fillMaxWidth(), glowGold = true) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = sakinaTr(lang, "إنجازك اليومي", "Daily Progress", "Progrès quotidien", "Günlük İlerleme", "Capaian Harian", "روزانہ پیش رفت"),
+                    fontFamily = SakinaHeadingFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.5.sp,
+                    color = theme.accentBright
+                )
+                Text(
+                    text = "$doneCount / ${SAKINA_SUNNAH_LIST.size}".toWesternDigits(),
+                    fontFamily = SakinaNumeralFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = SakinaBrandColors.StableEmerald
+                )
+            }
+            Spacer(Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("إنجاز اليوم الهادئ", fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = theme.accentBright)
-                Text("$doneCount / ${SAKINA_SUNNAH_LIST.size}".toWesternDigits(), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaBrandColors.StableEmerald)
+                Text(
+                    text = sakinaTr(lang, "تذكير صيام التطوع والأيام البيض", "Voluntary Fasting Reminder", "Rappel du jeûne surérogatoire", "Nafile Oruç Hatırlatıcı", "Pengingat Puasa Sunnah", "نفلی روزوں کی یاد دہانی"),
+                    fontFamily = SakinaBodyFont, fontSize = 12.sp, color = textColor, modifier = Modifier.weight(1f)
+                )
+                SakinaGoldSwitch(checked = fastingNotif, onCheckedChange = {
+                    fastingNotif = it; SakinaAdvancedPrefs.setVoluntaryFastingNotif(ctx, it)
+                })
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = sakinaTr(lang, "تذكير سورة الكهف يوم الجمعة", "Friday Surah Al-Kahf Reminder", "Rappel Sourate Al-Kahf (vendredi)", "Cuma Kehf Suresi Hatırlatıcı", "Pengingat Al-Kahf Jumat", "جمعہ سورۃ الکہف یاد دہانی"),
+                    fontFamily = SakinaBodyFont, fontSize = 12.sp, color = textColor, modifier = Modifier.weight(1f)
+                )
+                SakinaGoldSwitch(checked = kahfNotif, onCheckedChange = {
+                    kahfNotif = it; SakinaAdvancedPrefs.setFridayKahfNotif(ctx, it)
+                })
             }
         }
 
-        // Quick reminder switches
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(theme.bgCard.copy(alpha = 0.85f))
-                .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("تذكير ليلي بصيام التطوع والأيام البيض", fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
-            SakinaGoldSwitch(checked = fastingNotif, onCheckedChange = {
-                fastingNotif = it
-                SakinaAdvancedPrefs.setVoluntaryFastingNotif(ctx, it)
-                try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {}
-            })
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(theme.bgCard.copy(alpha = 0.85f))
-                .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("تذكير سورة الكهف يوم الجمعة", fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
-            SakinaGoldSwitch(checked = kahfNotif, onCheckedChange = {
-                kahfNotif = it
-                SakinaAdvancedPrefs.setFridayKahfNotif(ctx, it)
-            })
-        }
-
-        val grouped = SAKINA_SUNNAH_LIST.groupBy { it.categoryAr }
-        grouped.forEach { (catTitle, items) ->
-            Text(
-                text = "❖ $catTitle ❖",
-                fontFamily = SakinaEditorialFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.5.sp,
-                color = theme.accentGold,
-                modifier = Modifier.padding(top = 6.dp, start = 4.dp)
-            )
-            items.forEach { item ->
-                val checked = remember(tick) { SakinaAdvancedPrefs.isSunnahDoneToday(ctx, item.id) }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (checked) Color(0xFF0E3B2E).copy(alpha = 0.88f) else theme.bgCard.copy(alpha = 0.86f))
-                        .border(0.9.dp, if (checked) SakinaBrandColors.StableEmerald else theme.accentGold.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
-                        .clickable {
-                            SakinaAdvancedPrefs.toggleSunnahToday(ctx, item.id)
-                            tick++
-                        }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
-                        Text(item.titleAr, fontFamily = SakinaEditorialFont, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = SakinaBrandColors.LuminousIvory)
-                        Text(item.subtitleAr, fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver)
+        SAKINA_SUNNAH_LIST.forEach { item ->
+            val done = remember(tick) { SakinaAdvancedPrefs.isSunnahDoneToday(ctx, item.id) }
+            val shape = RoundedCornerShape(14.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.94f), theme.bgDeep.copy(alpha = 0.97f))))
+                    .border(1.dp, if (done) Brush.linearGradient(listOf(SakinaBrandColors.StableEmerald, theme.accentBright)) else Sakina3DGoldBevelBrush, shape)
+                    .clickable {
+                        SakinaAdvancedPrefs.toggleSunnahToday(ctx, item.id)
+                        tick++
                     }
-                    Icon(
-                        imageVector = if (checked) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
-                        contentDescription = null,
-                        tint = if (checked) SakinaBrandColors.StableEmerald else theme.accentGold,
-                        modifier = Modifier.size(22.dp)
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (done) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+                    contentDescription = null,
+                    tint = if (done) SakinaBrandColors.StableEmerald else theme.accentGold,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = sakinaTr(lang, item.titleAr, item.titleEn, item.titleFr),
+                        fontFamily = SakinaHeadingFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = if (done) SakinaBrandColors.StableEmerald else theme.accentBright
+                    )
+                    Text(
+                        text = sakinaTr(lang, item.subAr, item.subEn, item.subFr),
+                        fontFamily = SakinaBodyFont,
+                        fontSize = 11.sp,
+                        color = SakinaBrandColors.SoftSilver
                     )
                 }
             }
