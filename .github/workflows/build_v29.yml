@@ -1,4 +1,4 @@
-name: Build Release AAB & APK (v30)
+name: Build Release AAB & APK (v31)
 on:
   push:
     branches: [main]
@@ -25,6 +25,64 @@ jobs:
             unzip -o "$ICON_ZIP" "mipmap-*" -d app/src/main/res/
             echo "Applied new app icons from $ICON_ZIP"
           fi
+
+      # 0.5. إضافة تبعيات Jetpack Media3 وتسجيل خدمة التلاوة تلقائياً في Gradle وManifest
+      - name: Configure Jetpack Media3 in Gradle & AndroidManifest
+        run: |
+          python3 - << 'EOF'
+          import os, re
+
+          # 1) Patch app/build.gradle.kts (or app/build.gradle)
+          for gpath in ["app/build.gradle.kts", "app/build.gradle"]:
+              if os.path.exists(gpath):
+                  txt = open(gpath, "r", encoding="utf-8").read()
+                  if "media3-exoplayer" not in txt:
+                      is_kts = gpath.endswith(".kts")
+                      deps_block = (
+                          '\n    // v31: Jetpack Media3 (ExoPlayer + MediaSessionService)\n'
+                          '    implementation("androidx.media3:media3-exoplayer:1.5.1")\n'
+                          '    implementation("androidx.media3:media3-session:1.5.1")\n'
+                          '    implementation("androidx.media3:media3-common:1.5.1")\n'
+                      ) if is_kts else (
+                          "\n    // v31: Jetpack Media3 (ExoPlayer + MediaSessionService)\n"
+                          "    implementation 'androidx.media3:media3-exoplayer:1.5.1'\n"
+                          "    implementation 'androidx.media3:media3-session:1.5.1'\n"
+                          "    implementation 'androidx.media3:media3-common:1.5.1'\n"
+                      )
+                      m = re.search(r"dependencies\s*\{", txt)
+                      if m:
+                          idx = m.end()
+                          txt = txt[:idx] + deps_block + txt[idx:]
+                          open(gpath, "w", encoding="utf-8").write(txt)
+                          print(f"Added Media3 1.5.1 dependencies to {gpath}")
+                  else:
+                      print(f"Media3 already present in {gpath}")
+                  break
+
+          # 2) Patch app/src/main/AndroidManifest.xml
+          mpath = "app/src/main/AndroidManifest.xml"
+          if os.path.exists(mpath):
+              mtxt = open(mpath, "r", encoding="utf-8").read()
+              if "SakinaQuranPlaybackService" not in mtxt:
+                  svc = (
+                      '        <service\n'
+                      '            android:name=".SakinaQuranPlaybackService"\n'
+                      '            android:exported="true"\n'
+                      '            android:foregroundServiceType="mediaPlayback">\n'
+                      '            <intent-filter>\n'
+                      '                <action android:name="androidx.media3.session.MediaSessionService"/>\n'
+                      '            </intent-filter>\n'
+                      '        </service>\n\n'
+                      '    </application>'
+                  )
+                  mtxt = mtxt.replace("    </application>", svc, 1)
+                  if "</application>" in mtxt and "SakinaQuranPlaybackService" not in mtxt:
+                      mtxt = mtxt.replace("</application>", svc.replace("    </application>", "</application>"), 1)
+                  open(mpath, "w", encoding="utf-8").write(mtxt)
+                  print("Registered SakinaQuranPlaybackService in AndroidManifest.xml")
+              else:
+                  print("SakinaQuranPlaybackService already registered")
+          EOF
 
       # 1. الخطوط + المصحف النصي العثماني أوفلاين (حفص وورش)
       - name: Bundle Fonts & Offline Quran Text (Hafs & Warsh)
@@ -100,7 +158,7 @@ jobs:
           EOF
           rm -rf /tmp/athan-mp3
 
-      # 3. تضمين صوتيات أذكار الصباح والمساء والنوم أوفلاين (مشاري العفاسي — OGG مضغوط نقي ~7MB إجمالاً)
+      # 3. تضمين صوتيات أذكار الصباح والمساء والنوم أوفلاين (مشاري العفاسي — OGG مضغوط)
       - name: Bundle Offline Adhkar Audio (Morning, Evening & Sleep)
         run: |
           mkdir -p app/src/main/res/raw /tmp/adhkar_dl
@@ -121,14 +179,36 @@ jobs:
           download_and_compress "athkar_11.ogg" "adhkar_nawm"
           rm -rf /tmp/adhkar_dl
 
-      # 4. فك تشفير مفتاح التوقيع الرسمي من GitHub Secrets
+      # 4. تضمين الفاتحة وقصار السور (الضحى–الناس، 23 سورة) أوفلاين (مشاري العفاسي — ~2.8MB OGG)
+      - name: Bundle Offline Short Quran Surahs (Al-Fatiha & Ad-Duha to An-Nas)
+        run: |
+          mkdir -p app/src/main/res/raw /tmp/quran_dl
+          PRIMARY="https://server8.mp3quran.net/afs"
+          FALLBACK="https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee"
+          for NUM in 001 $(seq -f "%03g" 93 114); do
+            OUT="app/src/main/res/raw/quran_s${NUM}.ogg"
+            TMP="/tmp/quran_dl/${NUM}.mp3"
+            curl -L --retry 2 --connect-timeout 15 -s "$PRIMARY/${NUM}.mp3" -o "$TMP" || true
+            if [ ! -s "$TMP" ] || [ $(wc -c < "$TMP") -lt 10000 ]; then
+              curl -L --retry 2 --connect-timeout 15 -s "$FALLBACK/${NUM}.mp3" -o "$TMP" || true
+            fi
+            if [ -s "$TMP" ] && [ $(wc -c < "$TMP") -gt 10000 ]; then
+              ffmpeg -y -loglevel error -i "$TMP" -vn -ac 1 -ar 22050 -c:a libvorbis -q:a 0 "$OUT"
+            else
+              echo "Warning: skipped surah $NUM"
+            fi
+          done
+          du -sh app/src/main/res/raw/quran_s*.ogg || true
+          rm -rf /tmp/quran_dl
+
+      # 5. فك تشفير مفتاح التوقيع الرسمي من GitHub Secrets
       - name: Decode Release Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > /tmp/sakina-upload.jks
 
-      # 5. بناء نسخة Google Play الموقّعة (.aab) + نسخة التجربة (.apk)
+      # 6. بناء نسخة Google Play الموقّعة (.aab) + نسخة التجربة (.apk)
       - name: Build Signed AAB & APK
         env:
           KEYSTORE_PATH: /tmp/sakina-upload.jks
