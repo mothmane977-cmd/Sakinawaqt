@@ -171,7 +171,9 @@ fun SakinaNamesOfAllahScreen(ctx: Context, onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 76.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

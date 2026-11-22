@@ -526,15 +526,26 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     }
 
                                     if (extraSection == ExtraSection.NONE) {
-                                        // Top-Right Menu Button (11ب): Graduated 3 gold lines -> General Settings Drawer
-                                        SakinaGraduatedMenuIcon(
-                                            mirror = false,
-                                            onClick = { scope.launch { rightDrawerState.open() } },
+                                        // v29 #5: Top-Right Dedicated Golden Settings Gear Icon -> General Settings Drawer
+                                        Box(
                                             modifier = Modifier
                                                 .align(AbsoluteAlignment.TopRight)
                                                 .statusBarsPadding()
                                                 .padding(end = 16.dp, top = 14.dp)
-                                        )
+                                                .size(38.dp)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(effectiveTheme.bgDeep.copy(alpha = 0.88f))
+                                                .border(1.1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                                                .clickable { scope.launch { rightDrawerState.open() } },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Settings,
+                                                contentDescription = sakinaTr(currentLang, "الإعدادات", "Settings", "Paramètres", "Ayarlar", "Pengaturan", "ترتیبات"),
+                                                tint = effectiveTheme.accentBright,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
 
                                         // Top-Left Group pinned in LTR so Language Switcher NEVER jumps across AR/UR/EN/FR (Point 5)
                                         Box(
@@ -1257,27 +1268,8 @@ private fun SakinaHomeContent(ctx: Context) {
             }
         }
 
-        // #8: User chooses either Luxury Digital Countdown Cartouche OR Luxury Analog Clock with a single tap!
+        // v29 #2: Streamlined Clock Cartouche (Next Prayer merged directly under countdown to reduce clutter)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xDE041118))
-                    .border(0.7.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 12.dp, vertical = 3.dp)
-            ) {
-                Text(
-                    text = "❖ ${s.nextPrayer}: $nextDisplayName ❖",
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.5.sp,
-                    color = theme.accentBright,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Spacer(Modifier.height(4.dp))
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -1303,7 +1295,7 @@ private fun SakinaHomeContent(ctx: Context) {
                                     )
                                 )
                                 Text(
-                                    text = if (showCurrentTimeInCartouche) sakinaTr(lang, "الوقت الحالي", "Current Time", "Heure actuelle", "Şu Anki Saat", "Waktu Saat Ini", "موجودہ وقت") else sakinaTr(lang, "المتبقي للصلاة", "Remaining", "Temps restant", "Kalan Süre", "Tersisa", "باقی وقت"),
+                                    text = if (showCurrentTimeInCartouche) sakinaTr(lang, "الوقت الحالي", "Current Time", "Heure actuelle", "Şu Anki Saat", "Waktu Saat Ini", "موجودہ وقت") else sakinaTr(lang, "المتبقي لصلاة $nextDisplayName", "Until $nextDisplayName", "Avant $nextDisplayName", "$nextDisplayName vaktine", "Menuju $nextDisplayName", "$nextDisplayName میں باقی"),
                                     fontFamily = SakinaBodyFont,
                                     fontSize = 9.5.sp,
                                     color = SakinaBrandColors.SoftSilver,
@@ -1345,56 +1337,97 @@ private fun SakinaHomeContent(ctx: Context) {
             }
         }
 
-        // v28 #08 & #05: Compact 7-Day Weekly Strip + Monthly Tracker Summary Pill
+        // v29 #1: Clear Weekly Day Preview Strip + Helper Hint for Tracker Circles (○ -> ✓)
         val activeDateKey = remember(dayOffset, minuteBucket) { SakinaAdvancedPrefs.dateKeyOffset(dayOffset) }
         val dayLoggedCount = remember(activeDateKey, trackerTick) { SakinaAdvancedPrefs.loggedCountForDay(ctx, activeDateKey) }
         val (mLogged, mTotal, mPerfect) = remember(trackerTick) { SakinaAdvancedPrefs.monthlyPrayerStats(ctx) }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            (-1..4).forEach { dOff ->
-                val dCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dOff) }
-                val dayShort = SimpleDateFormat("EE", lang.locale).format(dCal.time).take(3)
-                val dayNumStr = SakinaAdvancedPrefs.formatDigits(ctx, "${dCal.get(Calendar.DAY_OF_MONTH)}")
-                val sel = dayOffset == dOff
+        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = sakinaTr(
+                        lang,
+                        "اختر يوماً لمعاينة مواقيته · اضغط ○ لتسجيل صلاتك",
+                        "Tap a day to preview · Tap ○ to log prayer",
+                        "Choisir un jour · Toucher ○ pour cocher la prière",
+                        "Gün seçin · Namazı işaretlemek için ○ dokunun",
+                        "Pilih hari · Ketuk ○ untuk catat sholat",
+                        "دن منتخب کریں · نماز ریکارڈ کے لیے ○ دبائیں"
+                    ),
+                    fontFamily = SakinaBodyFont,
+                    fontSize = 9.5.sp,
+                    color = SakinaBrandColors.SoftSilver,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(6.dp))
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (sel) theme.accentGold else Color(0xBB041218))
-                        .border(0.7.dp, if (sel) theme.accentBright else Color(0x44C5A059), RoundedCornerShape(10.dp))
-                        .clickable { dayOffset = dOff }
-                        .padding(vertical = 3.dp),
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xCC0A3D30))
+                        .border(0.8.dp, SakinaBrandColors.StableEmerald, RoundedCornerShape(8.dp))
+                        .clickable { showMonthlyStats = true }
+                        .padding(horizontal = 7.dp, vertical = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "$dayShort $dayNumStr",
-                        fontFamily = SakinaBodyFont,
-                        fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                        text = SakinaAdvancedPrefs.formatDigits(ctx, "✓ $dayLoggedCount/5"),
+                        fontFamily = SakinaNumeralFont,
+                        fontWeight = FontWeight.Bold,
                         fontSize = 9.5.sp,
-                        color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory,
-                        maxLines = 1
+                        color = SakinaBrandColors.StableEmerald
                     )
                 }
             }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xCC0A3D30))
-                    .border(0.8.dp, SakinaBrandColors.StableEmerald, RoundedCornerShape(10.dp))
-                    .clickable { showMonthlyStats = true }
-                    .padding(horizontal = 7.dp, vertical = 3.dp),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = SakinaAdvancedPrefs.formatDigits(ctx, "✓ $dayLoggedCount/5"),
-                    fontFamily = SakinaNumeralFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                    color = SakinaBrandColors.StableEmerald
-                )
+                val arWeekdays = listOf("", "أحد", "إثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت")
+                (-1..4).forEach { dOff ->
+                    val dCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dOff) }
+                    val dow = dCal.get(Calendar.DAY_OF_WEEK)
+                    val dayNameClean = when (lang) {
+                        SakinaLang.AR -> arWeekdays.getOrElse(dow) { "" }
+                        else -> SimpleDateFormat("EEE", lang.locale).format(dCal.time).replace(".", "").take(3)
+                    }
+                    val dayNumStr = SakinaAdvancedPrefs.formatDigits(ctx, "${dCal.get(Calendar.DAY_OF_MONTH)}")
+                    val sel = dayOffset == dOff
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (sel) theme.accentGold else Color(0xBB041218))
+                            .border(0.7.dp, if (sel) theme.accentBright else Color(0x44C5A059), RoundedCornerShape(9.dp))
+                            .clickable { dayOffset = dOff }
+                            .padding(vertical = 2.5.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = dayNameClean,
+                            fontFamily = SakinaBodyFont,
+                            fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 9.sp,
+                            color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory,
+                            maxLines = 1,
+                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        )
+                        Text(
+                            text = dayNumStr,
+                            fontFamily = SakinaNumeralFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 9.5.sp,
+                            color = if (sel) theme.bgDeep else theme.accentBright,
+                            maxLines = 1,
+                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        )
+                    }
+                }
             }
         }
 
@@ -1509,9 +1542,28 @@ private fun SakinaHomeContent(ctx: Context) {
                     sakinaTr(lang, "منتصف الليل", "Midnight", "Minuit", "Gece Yarısı", "Tengah Malam", "نصف شب") to SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafil.midnight),
                     sakinaTr(lang, "التهجد", "Tahajjud", "Tahajjud", "Teheccüd", "Tahajud", "تہجد") to SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafil.lastThird)
                 ).forEach { (nLbl, nTime) ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                        Text(nLbl, fontFamily = SakinaBodyFont, fontSize = 9.sp, color = SakinaBrandColors.SoftSilver, maxLines = 1)
-                        Text(nTime, fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 10.5.sp, color = theme.accentBright, maxLines = 1)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = nLbl,
+                            fontFamily = SakinaBodyFont,
+                            fontSize = 9.5.sp,
+                            color = SakinaBrandColors.SoftSilver,
+                            maxLines = 1,
+                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        )
+                        Text(
+                            text = nTime,
+                            fontFamily = SakinaNumeralFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = theme.accentBright,
+                            maxLines = 1,
+                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                        )
                     }
                 }
             }

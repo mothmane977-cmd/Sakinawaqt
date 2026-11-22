@@ -740,7 +740,14 @@ fun SakinaSettingsScreen(
                         Text(sakinaTr(lang, "تنبيهات مخصصة (التحضر / الإقامة / التهجد)", "Custom Prayer Reminders", "Rappels de prière personnalisés", "Özel Namaz Hatırlatıcıları", "Pengingat Sholat Kustom", "مخصوص نماز یاد دہانیاں"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(5.dp))
                         customReminders.forEachIndexed { idx, rem ->
-                            SettingSwitchRow("${rem.title} (${if (rem.offsetMinutes > 0) "+${rem.offsetMinutes}" else "${rem.offsetMinutes}"} د)".toWesternDigits(), rem.enabled) { checked ->
+                            val locRemTitle = when (rem.id) {
+                                "prep" -> sakinaTr(lang, "التذكير بالتحضر للصلاة", "Prayer Preparation Reminder", "Rappel de préparation à la prière", "Namaza Hazırlık Hatırlatıcısı", "Pengingat Persiapan Sholat", "نماز کی تیاری کی یاد دہانی")
+                                "iqama" -> sakinaTr(lang, "تذكير إقامة الصلاة", "Iqama Reminder", "Rappel d'Iqama", "Kamet Hatırlatıcısı", "Pengingat Iqamah", "اقامت کی یاد دہانی")
+                                "tahajjud" -> sakinaTr(lang, "تذكير وقت التهجد", "Tahajjud Reminder", "Rappel du Tahajjud", "Teheccüd Hatırlatıcısı", "Pengingat Tahajud", "تہجد کی یاد دہانی")
+                                else -> rem.title
+                            }
+                            val minUnit = sakinaTr(lang, "د", "m", "min", "dk", "mnt", "منٹ")
+                            SettingSwitchRow(SakinaAdvancedPrefs.formatDigits(ctx, "$locRemTitle (${if (rem.offsetMinutes > 0) "+${rem.offsetMinutes}" else "${rem.offsetMinutes}"} $minUnit)"), rem.enabled) { checked ->
                                 val updated = customReminders.toMutableList()
                                 updated[idx] = rem.copy(enabled = checked)
                                 customReminders = updated
@@ -832,7 +839,14 @@ fun SakinaSettingsScreen(
                         Spacer(Modifier.height(6.dp))
                         Text(sakinaTr(lang, "نمط قراءة المصحف الليلي الدافئ", "Mushaf Reading Theme", "Thème de lecture du Coran", "Mushaf Okuma Teması", "Tema Baca Mushaf", "مصحف مطالعہ تھیم"), fontFamily = SakinaBodyFont, fontSize = 11.5.sp, color = SakinaBrandColors.SoftSilver)
                         Spacer(Modifier.height(4.dp))
-                        SettingSegmentedRow(listOf("عادي", "ورقي دافئ", "ليلي داكن"), readTheme) {
+                        SettingSegmentedRow(
+                            listOf(
+                                sakinaTr(lang, "عادي", "Normal", "Normal", "Normal", "Normal", "عام"),
+                                sakinaTr(lang, "ورقي دافئ", "Warm Paper", "Papier chaud", "Sıcak Kağıt", "Kertas Hangat", "گرم کاغذ"),
+                                sakinaTr(lang, "ليلي داكن", "Dark Night", "Nuit sombre", "Karanlık Gece", "Malam Gelap", "تاریک رات")
+                            ),
+                            readTheme
+                        ) {
                             readTheme = it; SakinaAdvancedPrefs.setMushafReadTheme(ctx, it)
                         }
                         Spacer(Modifier.height(6.dp))
@@ -853,7 +867,7 @@ fun SakinaSettingsScreen(
                                         Toast.makeText(ctx, "تم نسخ إعداداتك للحافظة", Toast.LENGTH_SHORT).show()
                                     }.padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
-                            ) { Text("نسخ الإعدادات", fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = theme.accentBright) }
+                            ) { Text(sakinaTr(lang, "نسخ الإعدادات", "Copy Backup", "Copier sauvegarde", "Yedeği Kopyala", "Salin Cadangan", "بیک اپ کاپی"), fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = theme.accentBright) }
                             Box(
                                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(theme.bgCard).border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
                                     .clickable {
@@ -863,7 +877,7 @@ fun SakinaSettingsScreen(
                                         Toast.makeText(ctx, if (ok) "تمت استعادة الإعدادات" else "انسخ نص النسخة أولاً", Toast.LENGTH_SHORT).show()
                                     }.padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
-                            ) { Text("استعادة الإعدادات", fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = theme.accentBright) }
+                            ) { Text(sakinaTr(lang, "استعادة الإعدادات", "Restore Backup", "Restaurer", "Geri Yükle", "Pulihkan", "بحال کریں"), fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = theme.accentBright) }
                         }
                     }
 

@@ -1,4 +1,8 @@
 package app.sakina
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.AnnotatedString
 
 import android.content.Context
 import android.graphics.BitmapFactory
@@ -161,6 +165,49 @@ private fun surahForMushafPage(pageNum: Int): Int {
         if (pageNum >= SURAH_START_PAGES[i]) return i + 1
     }
     return 1
+}
+
+
+// v29 #6: Offline Color-Coded Tajweed Engine (Hafs & Warsh Uthmani Text)
+private fun buildTajweedAnnotatedText(raw: String, darkTheme: Boolean): AnnotatedString {
+    val cMadd = if (darkTheme) Color(0xFFF87171) else Color(0xFFC62828)      // Red: Madd
+    val cGhunnah = if (darkTheme) Color(0xFF4ADE80) else Color(0xFF15803D)   // Green: Ghunnah / Ikhfa
+    val cQalqalah = if (darkTheme) Color(0xFF60A5FA) else Color(0xFF1D4ED8)  // Blue: Qalqalah
+    val cSilent = if (darkTheme) Color(0xFF9CA3AF) else Color(0xFF78716C)    // Gray: Silent / Wasl
+    val qalqalahLetters = setOf('ق', 'ط', 'ب', 'ج', 'د')
+    val sukunChars = setOf('ْ', 'ۡ')
+    val shadda = 'ّ'
+    val maddMark = 'ٓ'
+    val tanweenChars = setOf('ً', 'ٌ', 'ٍ', 'ࣰ', 'ࣱ', 'ࣲ')
+
+    return buildAnnotatedString {
+        var i = 0
+        val n = raw.length
+        while (i < n) {
+            val ch = raw[i]
+            // Collect base char + following Arabic diacritics
+            var j = i + 1
+            while (j < n && raw[j] in 'ً'..'ٟ' || (j < n && raw[j] in 'ۖ'..'ۭ') || (j < n && raw[j] == 'ٰ')) {
+                j++
+            }
+            val cluster = raw.substring(i, j)
+            val color: Color? = when {
+                ch == 'آ' || cluster.any { it == maddMark } -> cMadd
+                (ch == 'ن' || ch == 'م') && cluster.any { it == shadda } -> cGhunnah
+                ch == 'ن' && cluster.any { it in sukunChars } -> cGhunnah
+                cluster.any { it in tanweenChars } -> cGhunnah
+                ch in qalqalahLetters && cluster.any { it in sukunChars } -> cQalqalah
+                ch == 'ٱ' -> cSilent
+                else -> null
+            }
+            if (color != null) {
+                withStyle(SpanStyle(color = color)) { append(cluster) }
+            } else {
+                append(cluster)
+            }
+            i = j
+        }
+    }
 }
 
 private val TRAILING_AYAH_NUM_REGEX = Regex("\\s*(?:\\([0-9٠-٩]+\\)|﴿[0-9٠-٩]+﴾|\\[[0-9٠-٩]+\\])\\s*$")
@@ -358,6 +405,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
     var indexTab by remember { mutableIntStateOf(0) }
     var showPagePicker by remember { mutableStateOf(false) }
     var showAyahPicker by remember { mutableStateOf(false) }
+    var tajweedEnabled by remember { mutableStateOf(sp.getBoolean("v29_tajweed_on", true)) }
 
     BackHandler(enabled = isReaderOpen) { isReaderOpen = false }
 
@@ -390,15 +438,28 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                 .padding(start = 16.dp, end = 16.dp, top = 50.dp, bottom = 74.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // v27 Point 3: 3D Gold "القُرآنُ الكَرِيم" Ornate Cartouche Banner
-            Image(
-                painter = painterResource(id = R.drawable.ic_quran_title_banner),
-                contentDescription = s.quranTitle,
-                contentScale = ContentScale.Fit,
+            // v29 #3: Deep-Emerald & 3D Gold Ornate Cartouche matching Sakina brand palette
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.72f)
-                    .height(66.dp)
-            )
+                    .fillMaxWidth(0.78f)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Brush.horizontalGradient(listOf(Color(0xFF062920), Color(0xFF0E4A3B), Color(0xFF062920))))
+                    .border(1.4.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(22.dp))
+                    .padding(horizontal = 18.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "❖ ${s.quranTitle} ❖",
+                    style = TextStyle(
+                        fontFamily = SakinaEditorialFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        brush = SakinaCalligraphyBrush()
+                    ),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
 
             Spacer(modifier = Modifier.height(6.dp))
 
@@ -845,18 +906,35 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                     val pNum = pageIdx + 1
                     val sNumForPage = surahForMushafPage(pNum)
                     val surahForPage = surahs.firstOrNull { it.number == sNumForPage }
-                    var pageBitmap by remember(pNum) { mutableStateOf<ImageBitmap?>(null) }
-                    var isLoading by remember(pNum) { mutableStateOf(true) }
+                    val mushafMode = remember { SakinaAdvancedPrefs.mushafTheme(ctx) }
+                    val fontScale = remember { SakinaAdvancedPrefs.readingFontScale(ctx) }
+                    val isDarkPage = mushafMode == 2
+                    val pageBg = when (mushafMode) {
+                        2 -> Color(0xFF0E1513)
+                        1 -> Color(0xFFFAF4E6)
+                        else -> Color(0xFFFFFFFF)
+                    }
+                    val pageInk = if (isDarkPage) Color(0xFFF3EFE6) else SakinaInkDark
+                    val readerView = androidx.compose.ui.platform.LocalView.current
+                    DisposableEffect(readerView) {
+                        val prev = readerView.keepScreenOn
+                        if (SakinaAdvancedPrefs.keepScreenOn(ctx)) readerView.keepScreenOn = true
+                        onDispose { readerView.keepScreenOn = prev }
+                    }
 
-                    LaunchedEffect(pNum, riwaya) {
-                        if (riwaya == QuranRiwaya.WARSH) {
-                            // Never show Hafs page images when Warsh narration is selected — render authentic bundled Warsh text!
-                            pageBitmap = null
-                            isLoading = false
-                        } else {
-                            isLoading = true
-                            pageBitmap = loadMushafPageBitmap(ctx, pNum)
-                            isLoading = false
+                    // Slice exact ayahs belonging to page pNum within surahForPage
+                    val pageAyahs = remember(surahForPage, pNum) {
+                        val all = surahForPage?.ayahs.orEmpty()
+                        if (all.isEmpty()) emptyList<Pair<Int, String>>()
+                        else {
+                            val sStart = SURAH_START_PAGES.getOrElse(sNumForPage - 1) { 1 }
+                            val sEnd = if (sNumForPage < 114) (SURAH_START_PAGES[sNumForPage] - 1).coerceAtLeast(sStart) else 604
+                            val totalPages = (sEnd - sStart + 1).coerceAtLeast(1)
+                            val relPage = (pNum - sStart).coerceIn(0, totalPages - 1)
+                            val perPage = kotlin.math.ceil(all.size.toDouble() / totalPages.toDouble()).toInt().coerceAtLeast(1)
+                            val fromIdx = (relPage * perPage).coerceIn(0, all.size)
+                            val toIdx = if (relPage == totalPages - 1) all.size else ((relPage + 1) * perPage).coerceIn(fromIdx, all.size)
+                            (fromIdx until toIdx).map { i -> (i + 1) to all[i] }
                         }
                     }
 
@@ -865,110 +943,117 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                         cornerRadius = 16.dp,
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
                     ) {
-                        if (pageBitmap != null) {
-                            // High-Resolution Illustrated Mushaf Page Image (like 20026.jpg)
-                            Box(
-                                modifier = Modifier.fillMaxWidth().weight(1f),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                val mushafMode = remember { SakinaAdvancedPrefs.mushafTheme(ctx) }
-                                val readerView = androidx.compose.ui.platform.LocalView.current
-                                DisposableEffect(readerView) {
-                                    val prev = readerView.keepScreenOn
-                                    if (SakinaAdvancedPrefs.keepScreenOn(ctx)) readerView.keepScreenOn = true
-                                    onDispose { readerView.keepScreenOn = prev }
-                                }
-                                val darkInvertFilter = remember(mushafMode) {
-                                    if (mushafMode == 2) {
-                                        // Soft dark night-reading inversion matrix (high-contrast cream text on deep charcoal)
-                                        androidx.compose.ui.graphics.ColorFilter.colorMatrix(
-                                            androidx.compose.ui.graphics.ColorMatrix(
-                                                floatArrayOf(
-                                                    -0.90f, 0f, 0f, 0f, 238f,
-                                                    0f, -0.90f, 0f, 0f, 232f,
-                                                    0f, 0f, -0.88f, 0f, 215f,
-                                                    0f, 0f, 0f, 1f, 0f
-                                                )
-                                            )
-                                        )
-                                    } else null
-                                }
-                                Image(
-                                    bitmap = pageBitmap!!,
-                                    contentDescription = "صفحة $pNum",
-                                    contentScale = ContentScale.Fit,
-                                    colorFilter = darkInvertFilter,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            when (mushafMode) {
-                                                2 -> Color(0xFF0E1318)
-                                                1 -> Color(0xFFFFFFFF)
-                                                else -> Color(0xFFFAF4E6)
-                                            }
-                                        )
-                                )
-                            }
-                        } else if (isLoading) {
-                            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    CircularProgressIndicator(color = Color(0xFF0F3D3E), strokeWidth = 2.5.dp)
-                                    Spacer(Modifier.height(10.dp))
-                                    Text(
-                                        text = "جاري تحميل صفحة $pNum من المصحف...".toWesternDigits(),
-                                        fontFamily = SakinaNaskhFontFamily,
-                                        fontSize = 14.sp,
-                                        color = SakinaInkDark
-                                    )
-                                }
-                            }
-                        } else {
-                            // Offline Naskh fallback if device has no internet & page isn't cached yet
-                            Column(
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(pageBg)
+                                .border(1.2.dp, Color(0x99C5A059), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            // Ornate Deep-Emerald Surah Header + Tajweed Toggle
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .weight(1f)
-                                    .border(1.dp, Color(0x88C5A059), RoundedCornerShape(10.dp))
-                                    .padding(10.dp)
-                                    .verticalScroll(rememberScrollState())
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF0A3B2E))
+                                    .border(0.8.dp, Color(0x99C5A059), RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Text(
+                                    text = SakinaAdvancedPrefs.formatDigits(ctx, "❖ سورة ${SURAH_NAMES_AR[sNumForPage - 1]} · ص $pNum ❖"),
+                                    fontFamily = SakinaNaskhFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.5.sp,
+                                    color = theme.accentBright
+                                )
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFF0F3D3E))
-                                        .padding(vertical = 4.dp),
-                                    contentAlignment = Alignment.Center
+                                        .background(if (tajweedEnabled) theme.accentGold else Color(0x33FFFFFF))
+                                        .clickable {
+                                            tajweedEnabled = !tajweedEnabled
+                                            sp.edit().putBoolean("v29_tajweed_on", tajweedEnabled).apply()
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
                                 ) {
                                     Text(
-                                        text = "❖ سورة ${SURAH_NAMES_AR[sNumForPage - 1]} · صفحة $pNum ❖".toWesternDigits(),
-                                        fontFamily = SakinaNaskhFontFamily,
+                                        text = if (tajweedEnabled) sakinaTr(lang, "التجويد ✓", "Tajweed ✓", "Tajwid ✓", "Tecvid ✓", "Tajwid ✓", "تجوید ✓")
+                                        else sakinaTr(lang, "التجويد", "Tajweed", "Tajwid", "Tecvid", "Tajwid", "تجوید"),
+                                        fontFamily = SakinaBodyFont,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = theme.accentBright
+                                        fontSize = 10.sp,
+                                        color = if (tajweedEnabled) theme.bgDeep else Color.White
                                     )
                                 }
-                                Spacer(Modifier.height(8.dp))
-                                val ayahs = surahForPage?.ayahs.orEmpty()
-                                if (ayahs.isNotEmpty()) {
-                                    val txt = ayahs.mapIndexed { i, a -> "$a ﴿${i + 1}﴾" }.joinToString(" ").toWesternDigits()
+                            }
+
+                            Spacer(Modifier.height(10.dp))
+
+                            if (pageAyahs.isNotEmpty()) {
+                                val fullText = remember(pageAyahs, pNum) {
+                                    pageAyahs.joinToString(" ") { (num, body) ->
+                                        "$body ﴿${SakinaAdvancedPrefs.formatDigits(ctx, num.toString())}﴾"
+                                    }
+                                }
+                                if (tajweedEnabled) {
+                                    val styled = remember(fullText, isDarkPage) { buildTajweedAnnotatedText(fullText, isDarkPage) }
                                     Text(
-                                        text = txt,
+                                        text = styled,
                                         fontFamily = SakinaNaskhFontFamily,
-                                        fontSize = 19.sp,
-                                        lineHeight = 35.sp,
-                                        color = SakinaInkDark,
+                                        fontSize = (21f * fontScale).sp,
+                                        lineHeight = (39f * fontScale).sp,
+                                        color = pageInk,
                                         textAlign = TextAlign.Justify
                                     )
                                 } else {
                                     Text(
-                                        text = "تأكد من الاتصال بالإنترنت لمرة واحدة لتنزيل صفحة $pNum وحفظها أوفلاين للأبد.".toWesternDigits(),
+                                        text = fullText,
                                         fontFamily = SakinaNaskhFontFamily,
-                                        fontSize = 15.sp,
-                                        color = SakinaInkDark,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp)
+                                        fontSize = (21f * fontScale).sp,
+                                        lineHeight = (39f * fontScale).sp,
+                                        color = pageInk,
+                                        textAlign = TextAlign.Justify
                                     )
+                                }
+                            } else {
+                                Text(
+                                    text = sakinaTr(lang, "جاري تحميل نص الصفحة...", "Loading page text...", "Chargement...", "Yükleniyor...", "Memuat...", "لوڈ ہو رہا ہے..."),
+                                    fontFamily = SakinaNaskhFontFamily,
+                                    fontSize = 16.sp,
+                                    color = pageInk,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(top = 28.dp)
+                                )
+                            }
+                        }
+
+                        // v29 #6: Tajweed Color Legend Bar below Page Frame
+                        if (tajweedEnabled) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0x160A3B2E))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                listOf(
+                                    Color(0xFFC62828) to sakinaTr(lang, "مدّ", "Madd", "Madd", "Med", "Mad", "مد"),
+                                    Color(0xFF15803D) to sakinaTr(lang, "غنة وإخفاء", "Ghunnah", "Ghunna", "Gunne", "Ghunnah", "غنہ"),
+                                    Color(0xFF1D4ED8) to sakinaTr(lang, "قلقلة", "Qalqalah", "Qalqala", "Kalkale", "Qalqalah", "قلقلہ"),
+                                    Color(0xFF78716C) to sakinaTr(lang, "صامت/وصل", "Silent", "Muet", "Sessiz", "Senyap", "ساکن")
+                                ).forEach { (dotCol, lbl) ->
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(dotCol))
+                                        Text(lbl, fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = SakinaInkDark)
+                                    }
                                 }
                             }
                         }
@@ -1030,8 +1115,9 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        showSurahPicker = false
                                         val p = (sr.startPage - 1).coerceIn(0, 603)
+                                        targetPageZeroIdx = p
+                                        showSurahPicker = false
                                         scope.launch { pagerState.scrollToPage(p) }
                                     }
                                     .padding(vertical = 8.dp, horizontal = 6.dp),
@@ -1058,7 +1144,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         BasicTextField(
                             value = pageInput,
-                            onValueChange = { if (it.length <= 3 && it.all { ch -> ch.isDigit() }) pageInput = it },
+                            onValueChange = { if (it.length <= 3 && it.all { ch -> ch.isDigit() }) pageInput = it.toWesternDigits() },
                             textStyle = TextStyle(fontFamily = SakinaNumeralFont, fontSize = 18.sp, color = theme.accentBright, textAlign = TextAlign.Center),
                             cursorBrush = SolidColor(theme.accentBright),
                             modifier = Modifier
@@ -1076,8 +1162,10 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(Color(0x22FFFFFF))
                                         .clickable {
+                                            val t = (pNum - 1).coerceIn(0, 603)
+                                            targetPageZeroIdx = t
                                             showPagePicker = false
-                                            scope.launch { pagerState.scrollToPage((pNum - 1).coerceIn(0, 603)) }
+                                            scope.launch { pagerState.scrollToPage(t) }
                                         }
                                         .padding(vertical = 6.dp),
                                     contentAlignment = Alignment.Center
@@ -1094,7 +1182,9 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                             .clip(RoundedCornerShape(10.dp))
                             .background(theme.accentGold)
                             .clickable {
-                                val target = (pageInput.toIntOrNull() ?: 1).coerceIn(1, 604) - 1
+                                val parsed = pageInput.toWesternDigits().trim().toIntOrNull() ?: currentPageNum
+                                val target = parsed.coerceIn(1, 604) - 1
+                                targetPageZeroIdx = target
                                 showPagePicker = false
                                 scope.launch { pagerState.scrollToPage(target) }
                             }
@@ -1116,7 +1206,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                 text = {
                     BasicTextField(
                         value = ayahInput,
-                        onValueChange = { if (it.length <= 3 && it.all { ch -> ch.isDigit() }) ayahInput = it },
+                        onValueChange = { if (it.length <= 3 && it.all { ch -> ch.isDigit() }) ayahInput = it.toWesternDigits() },
                         textStyle = TextStyle(fontFamily = SakinaNumeralFont, fontSize = 18.sp, color = theme.accentBright, textAlign = TextAlign.Center),
                         cursorBrush = SolidColor(theme.accentBright),
                         modifier = Modifier
@@ -1133,11 +1223,13 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                             .clip(RoundedCornerShape(10.dp))
                             .background(theme.accentGold)
                             .clickable {
-                                val targetAy = (ayahInput.toIntOrNull() ?: 1).coerceIn(1, totalAyahs)
+                                val targetAy = (ayahInput.toWesternDigits().trim().toIntOrNull() ?: 1).coerceIn(1, totalAyahs)
                                 val sStart = SURAH_START_PAGES.getOrElse(currentSurahNum - 1) { 1 }
-                                val sEnd = if (currentSurahNum < 114) SURAH_START_PAGES[currentSurahNum] else 604
+                                val sEnd = if (currentSurahNum < 114) (SURAH_START_PAGES[currentSurahNum] - 1).coerceAtLeast(sStart) else 604
+                                val totalP = (sEnd - sStart + 1).coerceAtLeast(1)
                                 val ratio = (targetAy - 1).toFloat() / totalAyahs.coerceAtLeast(1)
-                                val estPage = (sStart + ((sEnd - sStart) * ratio).toInt() - 1).coerceIn(0, 603)
+                                val estPage = (sStart + (totalP * ratio).toInt() - 1).coerceIn(sStart - 1, sEnd - 1)
+                                targetPageZeroIdx = estPage
                                 showAyahPicker = false
                                 scope.launch { pagerState.scrollToPage(estPage) }
                             }

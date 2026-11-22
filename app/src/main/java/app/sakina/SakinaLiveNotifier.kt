@@ -313,13 +313,7 @@ object SakinaLiveNotifier {
             val remM = remMinTotal % 60
             val remCompact = SakinaAdvancedPrefs.formatDigits(
                 ctx,
-                when (lang) {
-                    SakinaLang.AR, SakinaLang.UR -> if (remH > 0) "${remH}س ${remM}د" else "${remM}د"
-                    SakinaLang.FR -> if (remH > 0) "${remH}h ${remM}m" else "${remM}m"
-                    SakinaLang.TR -> if (remH > 0) "${remH}s ${remM}d" else "${remM}d"
-                    SakinaLang.ID -> if (remH > 0) "${remH}j ${remM}m" else "${remM}m"
-                    else -> if (remH > 0) "${remH}h ${remM}m" else "${remM}m"
-                }
+                String.format(Locale.US, "-%02d:%02d", remH, remM)
             )
 
             val nextTimeFmt = SakinaAdvancedPrefs.formatPrayerTime(ctx, nextDate)
@@ -335,7 +329,7 @@ object SakinaLiveNotifier {
 
             // Compact collapsed lines — zero truncation on Xiaomi/HyperOS
             val inWord = sakinaTr(lang, "بعد", "In", "Dans", "Kalan", "Dalam", "بعد")
-            val collapsedTitle = "$nextDisplayName $nextTimeFmt · $inWord $remCompact"
+            val collapsedTitle = "$nextDisplayName $nextTimeFmt · $remCompact"
             val collapsedSub = "$place · $hijriShort"
 
             // Solar arc day progress between Fajr and Isha
@@ -346,8 +340,17 @@ object SakinaLiveNotifier {
             val fractions = today.map { ((it.second.time - fajrMs).toFloat() / span).coerceIn(0f, 1f) }
 
             val nextBadge = sakinaTr(lang, "التالي", "Next", "Suivant", "Sonraki", "Berikutnya", "اگلی")
-            val afterWord = sakinaTr(lang, "ثم", "Then", "Puis", "Sonra", "Lalu", "پھر")
-            val afterLabel = "$afterWord $afterDisplayName $afterTimeFmt"
+                        val afterWord = sakinaTr(lang, "يليها:", "Next:", "Ensuite :", "Sonrası:", "Berikutnya:", "اس کے بعد:")
+            val afterLabel = if (resolvedNextIdx == 0) {
+                val calSun = Calendar.getInstance().apply { if (isTomorrow) add(Calendar.DAY_OF_YEAR, 1) }
+                val ptSun = try { com.batoulapps.adhan.PrayerTimes(Place.coords(ctx), com.batoulapps.adhan.data.DateComponents.from(calSun.time), Prefs.params(ctx)) } catch (_: Exception) { null }
+                if (ptSun != null) {
+                    val sunWord = sakinaTr(lang, "الشروق", "Sunrise", "Lever", "Güneş", "Syuruq", "طلوع")
+                    "$afterWord $sunWord ${SakinaAdvancedPrefs.formatPrayerTime(ctx, ptSun.sunrise)}"
+                } else "$afterWord $afterDisplayName $afterTimeFmt"
+            } else {
+                "$afterWord $afterDisplayName $afterTimeFmt"
+            }
 
             val solarBmp = renderSolarArcCard(
                 ctx = ctx,
@@ -355,7 +358,7 @@ object SakinaLiveNotifier {
                 nextBadge = nextBadge,
                 nextName = nextDisplayName,
                 nextTime = nextTimeFmt,
-                remStr = "$inWord $remCompact",
+                remStr = remCompact,
                 place = place,
                 hijriStr = hijriShort,
                 afterNextLabel = afterLabel,
