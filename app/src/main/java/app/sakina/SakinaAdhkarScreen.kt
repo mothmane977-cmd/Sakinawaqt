@@ -550,7 +550,23 @@ fun SakinaAdhkarScreen(ctx: Context, initialCategoryIndex: Int? = null, modifier
                 }
             }
         } else {
-            val category = ADHKAR_CATEGORIES[selectedCategoryIndex!!]
+            val catIdx = selectedCategoryIndex!!
+            val category = ADHKAR_CATEGORIES[catIdx]
+            val audioRawName = when (catIdx) {
+                0 -> "adhkar_sabah"
+                1 -> "adhkar_masaa"
+                3 -> "adhkar_nawm"
+                else -> null
+            }
+            if (audioRawName != null) {
+                SakinaAdhkarAudioPlayerBar(
+                    ctx = ctx,
+                    rawName = audioRawName,
+                    title = s.adhkarCatTitles.getOrElse(catIdx) { category.title },
+                    lang = lang
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+            }
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(top = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)

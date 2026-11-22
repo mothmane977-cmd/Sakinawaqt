@@ -77,6 +77,7 @@ class SakinaAdhanForegroundService : Service() {
             startForeground(779, notif)
         }
 
+        SakinaQuranAudioController.pauseForAdhan()
         SakinaAdhanAudio.playAlarmAdhan(this, prayerName) {
             stopSelf()
         }

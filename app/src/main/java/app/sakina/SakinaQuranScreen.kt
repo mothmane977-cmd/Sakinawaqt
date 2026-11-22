@@ -31,6 +31,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -793,6 +795,13 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
+                                if (SakinaQuranAudioController.isSurahAvailableOffline(ctx, surah.number)) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "🔊",
+                                        fontSize = 11.sp
+                                    )
+                                }
                             }
                             Box(
                                 modifier = Modifier
@@ -1102,6 +1111,21 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            // v31: Offline Jetpack Media3 Quran Mini-Player Bar
+            SakinaQuranMiniPlayerBar(
+                ctx = ctx,
+                lang = lang,
+                currentSurahNum = currentSurahNum,
+                currentSurahNameAr = SURAH_NAMES_AR.getOrElse(currentSurahNum - 1) { "الفاتحة" },
+                onJumpToShortSurah = { targetSurahNum ->
+                    val p = (SURAH_START_PAGES.getOrElse(targetSurahNum - 1) { 1 } - 1).coerceIn(0, 603)
+                    targetPageZeroIdx = p
+                    scope.launch { pagerState.scrollToPage(p) }
+                }
+            )
         }
 
         if (showSurahPicker) {
@@ -1271,5 +1295,293 @@ private fun MushafQuickChip(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+private fun formatQuranAudioTime(ms: Long): String {
+    val totalSec = (ms / 1000L).coerceAtLeast(0L)
+    val m = totalSec / 60L
+    val s = totalSec % 60L
+    return String.format(java.util.Locale.US, "%d:%02d", m, s)
+}
+
+@Composable
+private fun SakinaQuranMiniPlayerBar(
+    ctx: Context,
+    lang: SakinaLang,
+    currentSurahNum: Int,
+    currentSurahNameAr: String,
+    onJumpToShortSurah: (Int) -> Unit
+) {
+    val theme = LocalSakinaTheme.current
+    val isArOrUr = lang == SakinaLang.AR || lang == SakinaLang.UR
+    val audioState by SakinaQuranAudioController.uiState.collectAsState()
+    val canPlayCurrent = remember(currentSurahNum) {
+        SakinaQuranAudioController.isSurahAvailableOffline(ctx, currentSurahNum)
+    }
+
+    LaunchedEffect(Unit) {
+        SakinaQuranAudioController.connect(ctx)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF0A3328))
+            .border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        if (canPlayCurrent || audioState.currentSurahNum > 0) {
+            val activeNum = if (audioState.currentSurahNum > 0 && !canPlayCurrent) audioState.currentSurahNum else currentSurahNum
+            val activeName = if (audioState.currentSurahNum > 0 && (!canPlayCurrent || audioState.isPlaying)) {
+                audioState.currentSurahName.ifBlank { SURAH_NAMES_AR.getOrElse(activeNum - 1) { currentSurahNameAr } }
+            } else {
+                currentSurahNameAr
+            }
+            val showingActiveTrack = audioState.currentSurahNum > 0 && (audioState.isPlaying || audioState.durationMs > 0L)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Play / Pause Circle
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(theme.accentGold)
+                        .clickable {
+                            if (canPlayCurrent && audioState.currentSurahNum != currentSurahNum) {
+                                SakinaQuranAudioController.playSurah(ctx, currentSurahNum, currentSurahNameAr)
+                            } else {
+                                SakinaQuranAudioController.togglePlayPause(ctx, activeNum, activeName)
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (audioState.isPlaying && (audioState.currentSurahNum == currentSurahNum || !canPlayCurrent)) "❚❚" else "▶",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = theme.bgDeep
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (isArOrUr) "سورة $activeName" else "Surah $activeName",
+                        fontFamily = SakinaHeadingFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.5.sp,
+                        color = theme.accentBright,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = sakinaTr(
+                            lang,
+                            "مشاري العفاسي · أوفلاين",
+                            "Al-Afasy · Offline",
+                            "Al-Afasy · Hors-ligne",
+                            "El-Afasi · Çevrimdışı",
+                            "Al-Afasy · Offline",
+                            "مشاري العفاسي · آف لائن"
+                        ),
+                        fontFamily = SakinaBodyFont,
+                        fontSize = 10.sp,
+                        color = Color(0xCCA7F3D0),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Speed Chip
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0x26FFFFFF))
+                        .clickable { SakinaQuranAudioController.cycleSpeed() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                ) {
+                    val spdLabel = when (audioState.playbackSpeed) {
+                        0.75f -> "0.75x"
+                        1.25f -> "1.25x"
+                        1.5f -> "1.5x"
+                        else -> "1.0x"
+                    }
+                    Text(
+                        text = spdLabel,
+                        fontFamily = SakinaNumeralFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        color = Color.White
+                    )
+                }
+
+                // Repeat Surah Toggle
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (audioState.repeatSurah) theme.accentGold else Color(0x26FFFFFF))
+                        .clickable { SakinaQuranAudioController.toggleRepeat() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "↻",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (audioState.repeatSurah) theme.bgDeep else Color.White
+                    )
+                }
+
+                // Sleep Timer Chip
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (audioState.sleepTimerMinutes != 0) theme.accentGold else Color(0x26FFFFFF))
+                        .clickable { SakinaQuranAudioController.cycleSleepTimer() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                ) {
+                    val sleepLbl = when {
+                        audioState.sleepTimerMinutes == -1 -> if (isArOrUr) "نهاية" else "End"
+                        audioState.sleepTimerMinutes > 0 -> {
+                            val minsLeft = ((audioState.sleepRemainingSec + 59) / 60).coerceAtLeast(1)
+                            if (isArOrUr) "${minsLeft}د" else "${minsLeft}m"
+                        }
+                        else -> "🌙"
+                    }
+                    Text(
+                        text = sleepLbl.toWesternDigits(),
+                        fontFamily = SakinaBodyFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        color = if (audioState.sleepTimerMinutes != 0) theme.bgDeep else Color.White
+                    )
+                }
+
+                if (showingActiveTrack) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0x26FFFFFF))
+                            .clickable { SakinaQuranAudioController.stop() }
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "✕",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFCA5A5)
+                        )
+                    }
+                }
+            }
+
+            if (showingActiveTrack) {
+                val dur = audioState.durationMs.coerceAtLeast(1L)
+                val pos = audioState.positionMs.coerceIn(0L, dur)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "-10",
+                        fontFamily = SakinaNumeralFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        color = theme.accentBright,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0x22FFFFFF))
+                            .clickable { SakinaQuranAudioController.seekBy(-10_000L) }
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    )
+                    Text(
+                        text = formatQuranAudioTime(pos),
+                        fontFamily = SakinaNumeralFont,
+                        fontSize = 10.sp,
+                        color = Color(0xFFE5E7EB)
+                    )
+                    Slider(
+                        value = pos.toFloat() / dur.toFloat(),
+                        onValueChange = { frac ->
+                            SakinaQuranAudioController.seekTo((frac * dur).toLong())
+                        },
+                        modifier = Modifier.weight(1f).height(24.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = theme.accentGold,
+                            activeTrackColor = theme.accentGold,
+                            inactiveTrackColor = Color(0x33FFFFFF)
+                        )
+                    )
+                    Text(
+                        text = formatQuranAudioTime(dur),
+                        fontFamily = SakinaNumeralFont,
+                        fontSize = 10.sp,
+                        color = Color(0xFFE5E7EB)
+                    )
+                    Text(
+                        text = "+10",
+                        fontFamily = SakinaNumeralFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        color = theme.accentBright,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0x22FFFFFF))
+                            .clickable { SakinaQuranAudioController.seekBy(10_000L) }
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        } else {
+            // Current Surah is not in the 23 bundled offline Surahs yet (v33 will add on-demand download)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = sakinaTr(
+                        lang,
+                        "🔊 تلاوة أوفلاين متاحة للفاتحة وقصار السور (الضحى–الناس)",
+                        "🔊 Offline audio ready for Al-Fatiha & Ad-Duha–An-Nas",
+                        "🔊 Audio hors-ligne : Al-Fatiha & Ad-Duha–An-Nas",
+                        "🔊 Çevrimdışı: Fatiha ve Duha–Nas sureleri",
+                        "🔊 Audio offline: Al-Fatihah & Ad-Duha–An-Nas",
+                        "🔊 آف لائن تلاوت: الفاتحہ اور الضحیٰ تا الناس"
+                    ),
+                    fontFamily = SakinaBodyFont,
+                    fontSize = 10.5.sp,
+                    color = Color(0xFFE5E7EB),
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(theme.accentGold)
+                        .clickable {
+                            onJumpToShortSurah(1)
+                            SakinaQuranAudioController.playSurah(ctx, 1, "الفاتحة")
+                        }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (isArOrUr) "▶ الفاتحة" else "▶ Al-Fatiha",
+                        fontFamily = SakinaBodyFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        color = theme.bgDeep
+                    )
+                }
+            }
+        }
     }
 }
