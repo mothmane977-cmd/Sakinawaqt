@@ -1,4 +1,10 @@
 package app.sakina
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Slider
+import kotlinx.coroutines.delay
+import android.os.Build
+import android.media.MediaPlayer
+import android.media.AudioAttributes
 
 import android.content.Context
 import android.view.HapticFeedbackConstants
@@ -654,5 +660,258 @@ fun SakinaAdhkarScreen(ctx: Context, initialCategoryIndex: Int? = null, modifier
                 SakinaBackIconButton(onClick = { showAsmaDialog = false })
             }
         )
+    }
+}
+
+
+// v30: Built-in 100% Offline Adhkar Audio Player (Morning, Evening, Sleep — Mishary Al-Afasy OGG)
+@Composable
+private fun SakinaAdhkarAudioPlayerBar(
+    ctx: Context,
+    rawName: String,
+    title: String,
+    lang: SakinaLang
+) {
+    val theme = LocalSakinaTheme.current
+    val rawId = remember(rawName) { ctx.resources.getIdentifier(rawName, "raw", ctx.packageName) }
+    if (rawId == 0) return
+
+    var player by remember(rawId) { mutableStateOf<MediaPlayer?>(null) }
+    var isPlaying by remember(rawId) { mutableStateOf(false) }
+    var isLooping by remember(rawId) { mutableStateOf(false) }
+    var posMs by remember(rawId) { mutableIntStateOf(0) }
+    var durMs by remember(rawId) { mutableIntStateOf(0) }
+    var speedIdx by remember(rawId) { mutableIntStateOf(0) }
+    val speeds = listOf(1.0f, 1.25f, 1.5f)
+
+    fun fmtMs(ms: Int): String {
+        val totalSec = (ms / 1000).coerceAtLeast(0)
+        val m = totalSec / 60
+        val sec = totalSec % 60
+        return SakinaAdvancedPrefs.formatDigits(ctx, String.format(java.util.Locale.US, "%02d:%02d", m, sec))
+    }
+
+    fun ensurePlayer(): MediaPlayer? {
+        player?.let { return it }
+        return try {
+            SakinaAdhanAudio.stop()
+            val mp = MediaPlayer.create(ctx.applicationContext, rawId) ?: return null
+            mp.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            mp.isLooping = isLooping
+            durMs = mp.duration.coerceAtLeast(1)
+            mp.setOnCompletionListener {
+                if (!mp.isLooping) {
+                    isPlaying = false
+                    posMs = 0
+                    try { mp.seekTo(0) } catch (_: Exception) {}
+                }
+            }
+            player = mp
+            mp
+        } catch (_: Exception) { null }
+    }
+
+    LaunchedEffect(isPlaying, player) {
+        while (isPlaying) {
+            val mp = player
+            if (mp != null) {
+                try {
+                    if (mp.isPlaying) {
+                        posMs = mp.currentPosition
+                        if (durMs <= 1) durMs = mp.duration.coerceAtLeast(1)
+                    } else {
+                        isPlaying = false
+                    }
+                } catch (_: Exception) {
+                    isPlaying = false
+                }
+            }
+            delay(400L)
+        }
+    }
+
+    DisposableEffect(rawId) {
+        onDispose {
+            try {
+                player?.let {
+                    if (it.isPlaying) it.stop()
+                    it.release()
+                }
+            } catch (_: Exception) {}
+            player = null
+            isPlaying = false
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 6.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Brush.horizontalGradient(listOf(Color(0xEE062920), Color(0xEE0D4435))))
+            .border(1.1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = sakinaTr(lang, "🎧 استماع أوفلاين · $title", "🎧 Offline Audio · $title", "🎧 Audio hors-ligne · $title", "🎧 Çevrimdışı Ses · $title", "🎧 Audio Offline · $title", "🎧 آف لائن آڈیو · $title"),
+                        fontFamily = SakinaHeadingFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = theme.accentBright,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = sakinaTr(lang, "بصوت الشيخ مشاري العفاسي", "Recited by Mishary Al-Afasy", "Récité par Mishary Al-Afasy", "Mişari El-Afasi", "Qari Mishary Al-Afasy", "قاری مشاری العفاسی"),
+                        fontFamily = SakinaBodyFont,
+                        fontSize = 10.sp,
+                        color = SakinaBrandColors.SoftSilver,
+                        maxLines = 1
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    // Speed toggle
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0x28FFFFFF))
+                            .clickable {
+                                speedIdx = (speedIdx + 1) % speeds.size
+                                val spd = speeds[speedIdx]
+                                if (Build.VERSION.SDK_INT >= 23) {
+                                    try {
+                                        player?.let { mp ->
+                                            val wasPlaying = mp.isPlaying
+                                            mp.playbackParams = mp.playbackParams.setSpeed(spd)
+                                            if (!wasPlaying) mp.pause()
+                                        }
+                                    } catch (_: Exception) {}
+                                }
+                            }
+                            .padding(horizontal = 7.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "${speeds[speedIdx]}x",
+                            fontFamily = SakinaNumeralFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.5.sp,
+                            color = theme.accentBright
+                        )
+                    }
+                    // Loop toggle
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isLooping) theme.accentGold else Color(0x28FFFFFF))
+                            .clickable {
+                                isLooping = !isLooping
+                                try { player?.isLooping = isLooping } catch (_: Exception) {}
+                            }
+                            .padding(horizontal = 7.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "↻",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = if (isLooping) theme.bgDeep else Color.White
+                        )
+                    }
+                    // Play / Pause main button
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(theme.accentGold)
+                            .clickable {
+                                val mp = ensurePlayer()
+                                if (mp != null) {
+                                    if (isPlaying) {
+                                        try { mp.pause() } catch (_: Exception) {}
+                                        isPlaying = false
+                                    } else {
+                                        try {
+                                            if (Build.VERSION.SDK_INT >= 23) {
+                                                mp.playbackParams = mp.playbackParams.setSpeed(speeds[speedIdx])
+                                            }
+                                            mp.start()
+                                            isPlaying = true
+                                        } catch (_: Exception) {}
+                                    }
+                                }
+                            }
+                            .padding(horizontal = 12.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = if (isPlaying) sakinaTr(lang, "إيقاف ❚❚", "Pause ❚❚", "Pause ❚❚", "Duraklat ❚❚", "Jeda ❚❚", "روکیں ❚❚")
+                            else sakinaTr(lang, "استمع ▶", "Play ▶", "Écouter ▶", "Dinle ▶", "Putar ▶", "سنیں ▶"),
+                            fontFamily = SakinaHeadingFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            color = theme.bgDeep
+                        )
+                    }
+                }
+            }
+
+            if (durMs > 1) {
+                Slider(
+                    value = posMs.toFloat().coerceIn(0f, durMs.toFloat()),
+                    onValueChange = { v ->
+                        posMs = v.toInt()
+                        try { player?.seekTo(posMs) } catch (_: Exception) {}
+                    },
+                    valueRange = 0f..durMs.toFloat(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = theme.accentBright,
+                        activeTrackColor = theme.accentGold,
+                        inactiveTrackColor = Color(0x44FFFFFF)
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(26.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(fmtMs(posMs), fontFamily = SakinaNumeralFont, fontSize = 10.sp, color = SakinaBrandColors.SoftSilver)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = "-15s",
+                            fontFamily = SakinaNumeralFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            color = theme.accentBright,
+                            modifier = Modifier.clickable {
+                                val next = (posMs - 15_000).coerceAtLeast(0)
+                                posMs = next
+                                try { player?.seekTo(next) } catch (_: Exception) {}
+                            }
+                        )
+                        Text(
+                            text = "+15s",
+                            fontFamily = SakinaNumeralFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            color = theme.accentBright,
+                            modifier = Modifier.clickable {
+                                val next = (posMs + 15_000).coerceAtMost(durMs)
+                                posMs = next
+                                try { player?.seekTo(next) } catch (_: Exception) {}
+                            }
+                        )
+                    }
+                    Text(fmtMs(durMs), fontFamily = SakinaNumeralFont, fontSize = 10.sp, color = SakinaBrandColors.SoftSilver)
+                }
+            }
+        }
     }
 }
