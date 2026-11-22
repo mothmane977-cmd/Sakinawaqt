@@ -54,7 +54,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-private enum class ExtraSection { NONE, ADHKAR, DUAS, RUQYAH, ALARM, NOTIFICATIONS, APPEARANCE, SETTINGS, SUNNAH }
+private enum class ExtraSection { NONE, ADHKAR, DUAS, RUQYAH, ALARM, NOTIFICATIONS, APPEARANCE, SETTINGS, SUNNAH, NAMES_OF_ALLAH }
 
 private data class BrandPrayerRow(
     val keyNameAr: String,
@@ -230,6 +230,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     }
     var currentTab by remember { mutableStateOf(SakinaNavTab.HOME) }
     var extraSection by remember { mutableStateOf(if (openAfterPrayer) ExtraSection.ADHKAR else ExtraSection.NONE) }
+    var showRatingDialog by remember { mutableStateOf(SakinaAdvancedPrefs.shouldShowRatingPrompt(ctx)) }
     var adhkarInitCat by remember { mutableStateOf<Int?>(if (openAfterPrayer) 2 else null) }
     LaunchedEffect(openAfterPrayer) {
         if (openAfterPrayer) {
@@ -268,7 +269,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     }
 
     val headerImg = when (extraSection) {
-        ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH, ExtraSection.SUNNAH -> R.drawable.bg_header_adhkar
+        ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH, ExtraSection.SUNNAH, ExtraSection.NAMES_OF_ALLAH -> R.drawable.bg_header_adhkar
         ExtraSection.ALARM, ExtraSection.NOTIFICATIONS, ExtraSection.APPEARANCE, ExtraSection.SETTINGS -> R.drawable.bg_header_mosque
         ExtraSection.NONE -> when (currentTab) {
             SakinaNavTab.HOME -> {
@@ -401,6 +402,13 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         SakinaDrawerPillItem(R.drawable.ic_sunan, sakinaTr(currentLang, "تذكير بالعبادات وصالح الأعمال", "Worship & Good Deeds", "Rappel d'adorations et bonnes œuvres", "İbadet ve Salih Amel Hatırlatıcısı", "Pengingat Ibadah & Amal Saleh", "عبادات اور نیک اعمال کی یاد دہانی")) {
                                             scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.SUNNAH
                                         }
+                                        SakinaDrawerPillItem(R.drawable.ic_star_ornament, sakinaTr(currentLang, "أسماء الله الحسنى (99)", "99 Names of Allah", "Les 99 Noms d'Allah", "Esmaül Hüsna (99)", "Asmaul Husna (99)", "اسماء الحسنیٰ (99)")) {
+                                            scope.launch { leftDrawerState.close() }; openedFromLeftDrawer = true; openedFromRightDrawer = false; extraSection = ExtraSection.NAMES_OF_ALLAH
+                                        }
+                                        SakinaDrawerPillItem(R.drawable.ic_mosque, sakinaTr(currentLang, "أقرب المساجد حولي", "Nearby Mosques", "Mosquées à proximité", "Yakındaki Camiler", "Masjid Terdekat", "قریبی مساجد")) {
+                                            scope.launch { leftDrawerState.close() }
+                                            SakinaAdvancedPrefs.openNearbyMosques(ctx, currentLang)
+                                        }
                                         SakinaDrawerPillItem(R.drawable.ic_sunan, s.sunanTitle) {
                                             scope.launch { leftDrawerState.close() }
                                             hadithTitle = s.sunanTitle
@@ -482,6 +490,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         ExtraSection.DUAS -> SakinaDuasScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.RUQYAH -> SakinaRuqyahScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.SUNNAH -> SakinaSunnahScreen(ctx = ctx, onBackClick = { returnFromExtra() })
+                                        ExtraSection.NAMES_OF_ALLAH -> SakinaNamesOfAllahScreen(ctx = ctx, onBack = { returnFromExtra() })
                                         ExtraSection.ALARM -> SakinaAlarmScreen(ctx = ctx, initialSection = 0, onBackClick = { returnFromExtra() })
                                         ExtraSection.NOTIFICATIONS -> SakinaAlarmScreen(ctx = ctx, initialSection = 1, onBackClick = { returnFromExtra() })
                                         ExtraSection.APPEARANCE -> SakinaSettingsScreen(
@@ -1065,6 +1074,8 @@ private fun SakinaHomeContent(ctx: Context) {
 
     val hmFmt = remember { SimpleDateFormat("HH:mm", Locale.US) }
     val minuteBucket = nowMs / 60_000L
+    var trackerTick by remember { mutableIntStateOf(0) }
+    var showMonthlyStats by remember { mutableStateOf(false) }
     val currentDayPrayers = remember(minuteBucket, locRefreshTick) { PrayerEngine.day(ctx, 0) }
     val todayPrayers = remember(minuteBucket, dayOffset, locRefreshTick) {
         if (dayOffset == 0) currentDayPrayers else PrayerEngine.day(ctx, dayOffset)
@@ -1090,7 +1101,7 @@ private fun SakinaHomeContent(ctx: Context) {
         todayPrayers.mapIndexed { idx, (keyAr, date) ->
             BrandPrayerRow(
                 keyNameAr = keyAr,
-                displayTitle = s.prayers.getOrElse(idx) { keyAr },
+                displayTitle = SakinaAdvancedPrefs.displayPrayerName(ctx, lang, idx, Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dayOffset) }.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY),
                 timeText = SakinaAdvancedPrefs.formatPrayerTime(ctx, date),
                 iconRes = iconForPrayer(keyAr),
                 bgRes = bgForPrayer(keyAr),
@@ -1334,28 +1345,174 @@ private fun SakinaHomeContent(ctx: Context) {
             }
         }
 
-        // #9: Every prayer row is its own fixed, standalone, gold-beveled button in natural chronological order!
+        // v28 #08 & #05: Compact 7-Day Weekly Strip + Monthly Tracker Summary Pill
+        val activeDateKey = remember(dayOffset, minuteBucket) { SakinaAdvancedPrefs.dateKeyOffset(dayOffset) }
+        val dayLoggedCount = remember(activeDateKey, trackerTick) { SakinaAdvancedPrefs.loggedCountForDay(ctx, activeDateKey) }
+        val (mLogged, mTotal, mPerfect) = remember(trackerTick) { SakinaAdvancedPrefs.monthlyPrayerStats(ctx) }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            (-1..4).forEach { dOff ->
+                val dCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dOff) }
+                val dayShort = SimpleDateFormat("EE", lang.locale).format(dCal.time).take(3)
+                val dayNumStr = SakinaAdvancedPrefs.formatDigits(ctx, "${dCal.get(Calendar.DAY_OF_MONTH)}")
+                val sel = dayOffset == dOff
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (sel) theme.accentGold else Color(0xBB041218))
+                        .border(0.7.dp, if (sel) theme.accentBright else Color(0x44C5A059), RoundedCornerShape(10.dp))
+                        .clickable { dayOffset = dOff }
+                        .padding(vertical = 3.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "$dayShort $dayNumStr",
+                        fontFamily = SakinaBodyFont,
+                        fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 9.5.sp,
+                        color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory,
+                        maxLines = 1
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xCC0A3D30))
+                    .border(0.8.dp, SakinaBrandColors.StableEmerald, RoundedCornerShape(10.dp))
+                    .clickable { showMonthlyStats = true }
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = SakinaAdvancedPrefs.formatDigits(ctx, "✓ $dayLoggedCount/5"),
+                    fontFamily = SakinaNumeralFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    color = SakinaBrandColors.StableEmerald
+                )
+            }
+        }
+
+        if (showMonthlyStats) {
+            AlertDialog(
+                onDismissRequest = { showMonthlyStats = false },
+                containerColor = theme.bgCard,
+                title = {
+                    Text(
+                        sakinaTr(lang, "إحصائية الصلوات لهذا الشهر", "Monthly Prayer Progress", "Suivi mensuel des prières", "Aylık Namaz Takibi", "Progres Sholat Bulanan", "ماہانہ نماز کی کارکردگی"),
+                        fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = theme.accentBright
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            SakinaAdvancedPrefs.formatDigits(ctx, sakinaTr(lang, "الصلوات المسجّلة هذا الشهر: $mLogged من $mTotal", "Logged this month: $mLogged / $mTotal", "Prières accomplies ce mois : $mLogged / $mTotal", "Bu ay kılınan: $mLogged / $mTotal", "Sholat bulan ini: $mLogged / $mTotal", "اس ماہ کی نمازیں: $mLogged / $mTotal")),
+                            fontFamily = SakinaBodyFont, fontSize = 14.sp, color = SakinaBrandColors.LuminousIvory
+                        )
+                        Text(
+                            SakinaAdvancedPrefs.formatDigits(ctx, sakinaTr(lang, "الأيام المكتملة (5/5 صلوات): $mPerfect يوم", "Complete 5/5 days: $mPerfect days", "Jours complets (5/5) : $mPerfect jours", "Tam gün (5/5): $mPerfect gün", "Hari lengkap (5/5): $mPerfect hari", "مکمل دن (5/5): $mPerfect دن")),
+                            fontFamily = SakinaBodyFont, fontSize = 14.sp, color = SakinaBrandColors.StableEmerald
+                        )
+                        Text(
+                            sakinaTr(lang, "اضغط على الدائرة بجانب أي صلاة في الشاشة الرئيسية لتسجيل أدائها يومياً.", "Tap the circle beside any prayer on the home screen to log it.", "Appuyez sur le cercle à côté de chaque prière pour la cocher.", "Ana ekranda her namazın yanındaki daireye dokunarak işaretleyin.", "Ketuk lingkaran di samping tiap sholat untuk mencatatnya.", "روزانہ ریکارڈ کے لیے ہر نماز کے ساتھ دائرے پر ٹیپ کریں۔"),
+                            fontFamily = SakinaBodyFont, fontSize = 12.sp, color = SakinaBrandColors.SoftSilver
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showMonthlyStats = false }) {
+                        Text(sakinaTr(lang, "حسناً", "OK", "OK", "Tamam", "OK", "ٹھیک ہے"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, color = theme.accentBright)
+                    }
+                }
+            )
+        }
+
+        // #9 + v28 #05: Every prayer row with inline 1-tap Prayer Tracker circle (✓ / ○) + alert mode toggle
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            rows.forEach { prayer ->
+            rows.forEachIndexed { idx, prayer ->
                 val cycleAction: () -> Unit = {
                     val nextMode = when (prayer.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
                     Modes.set(ctx, prayer.keyNameAr, nextMode)
                     AlarmScheduler.scheduleNext(ctx); SakinaLiveNotifier.update(ctx); modeTick++
                 }
-                if (prayer.isNext) {
-                    SakinaFeaturedNextPrayerCard(
-                        prayer = prayer,
-                        nextLabel = s.nextPrayer,
-                        onCycleMode = cycleAction
-                    )
-                } else {
-                    SakinaStandalonePrayerButton(
-                        prayer = prayer,
-                        onCycleMode = cycleAction
-                    )
+                val isLogged = remember(activeDateKey, idx, trackerTick) {
+                    SakinaAdvancedPrefs.isPrayerLogged(ctx, activeDateKey, idx)
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(if (isLogged) SakinaBrandColors.StableEmerald else Color(0x99041218))
+                            .border(1.3.dp, if (isLogged) SakinaBrandColors.StableEmerald else theme.accentGold, CircleShape)
+                            .clickable {
+                                SakinaAdvancedPrefs.togglePrayerLogged(ctx, activeDateKey, idx)
+                                trackerTick++
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (isLogged) "✓" else "",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 13.sp,
+                            color = Color.White
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (prayer.isNext) {
+                            SakinaFeaturedNextPrayerCard(
+                                prayer = prayer,
+                                nextLabel = s.nextPrayer,
+                                onCycleMode = cycleAction
+                            )
+                        } else {
+                            SakinaStandalonePrayerButton(
+                                prayer = prayer,
+                                onCycleMode = cycleAction
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // v28 #11: Compact Imsak & Nawafil (Duha, Midnight, Tahajjud) Bar
+        val showNawafil = remember(minuteBucket) { SakinaAdvancedPrefs.showNawafilCard(ctx) }
+        val nawafil = remember(dayOffset, locRefreshTick, showNawafil) {
+            if (showNawafil) SakinaAdvancedPrefs.computeNawafil(ctx, dayOffset) else null
+        }
+        if (nawafil != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xCC041218))
+                    .border(0.8.dp, Color(0x55C5A059), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 6.dp, vertical = 5.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                listOf(
+                    sakinaTr(lang, "الإمساك", "Imsak", "Imsak", "İmsak", "Imsak", "امساک") to SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafil.imsak),
+                    sakinaTr(lang, "الضحى", "Duha", "Doha", "Kuşluk", "Dhuha", "چاشت") to SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafil.duha),
+                    sakinaTr(lang, "منتصف الليل", "Midnight", "Minuit", "Gece Yarısı", "Tengah Malam", "نصف شب") to SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafil.midnight),
+                    sakinaTr(lang, "التهجد", "Tahajjud", "Tahajjud", "Teheccüd", "Tahajud", "تہجد") to SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafil.lastThird)
+                ).forEach { (nLbl, nTime) ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                        Text(nLbl, fontFamily = SakinaBodyFont, fontSize = 9.sp, color = SakinaBrandColors.SoftSilver, maxLines = 1)
+                        Text(nTime, fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 10.5.sp, color = theme.accentBright, maxLines = 1)
+                    }
                 }
             }
         }

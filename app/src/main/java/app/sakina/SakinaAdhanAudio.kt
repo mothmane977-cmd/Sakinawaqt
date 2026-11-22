@@ -115,6 +115,15 @@ object SakinaAdhanAudio {
         return global
     }
 
+    fun copyVoiceToAllPrayers(ctx: Context, voice: AdhanVoice) {
+        val ed = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE).edit()
+        ed.putString(PREF_VOICE, voice.key)
+        listOf("الفجر", "الظهر", "العصر", "المغرب", "العشاء").forEach { pName ->
+            ed.remove("adhan_voice_$pName")
+        }
+        ed.apply()
+    }
+
     fun setVoiceForPrayer(ctx: Context, prayerNameAr: String, voice: AdhanVoice?) {
         val ed = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE).edit()
         if (voice == null) ed.remove("adhan_voice_$prayerNameAr")
@@ -308,8 +317,10 @@ object SakinaAdhanAudio {
 
             val resId = rawResForPrayer(ctx, prayerNameAr)
             val mp = createSafeMediaPlayer(ctx, resId) ?: run { onComplete(); return }
+            val useAlarm = SakinaAdvancedPrefs.useAlarmStream(ctx) ||
+                (!prayerNameAr.isNullOrBlank() && SakinaAdvancedPrefs.silentBypassFor(ctx, prayerNameAr))
             val attrs = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setUsage(if (useAlarm) AudioAttributes.USAGE_ALARM else AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build()
             mp.setAudioAttributes(attrs)

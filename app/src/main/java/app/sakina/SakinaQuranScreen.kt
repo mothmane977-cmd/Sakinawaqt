@@ -126,6 +126,22 @@ private val MADANI_SET = setOf(
     2, 3, 4, 5, 8, 9, 22, 24, 33, 47, 48, 49, 55, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 76, 98, 99, 110
 )
 
+
+private val JUZ_START_PAGES = intArrayOf(
+    1, 22, 42, 62, 82, 102, 121, 142, 162, 182,
+    201, 222, 242, 262, 282, 302, 322, 342, 362, 382,
+    402, 422, 442, 462, 482, 502, 522, 542, 562, 582
+)
+
+private val HIZB_START_PAGES = intArrayOf(
+    1, 11, 22, 32, 42, 51, 62, 72, 82, 92,
+    102, 111, 121, 132, 142, 151, 162, 173, 182, 192,
+    201, 212, 222, 231, 242, 252, 262, 272, 282, 292,
+    302, 312, 322, 332, 342, 352, 362, 371, 382, 392,
+    402, 413, 422, 431, 442, 451, 462, 472, 482, 491,
+    502, 513, 522, 531, 542, 553, 562, 572, 582, 591
+)
+
 private val quranCache = mutableMapOf<QuranRiwaya, List<SurahEntry>>()
 
 private fun defaultSurahIndex(): List<SurahEntry> = (1..114).map { num ->
@@ -339,6 +355,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
     var lastReadSurahNum by remember { mutableIntStateOf(sp.getInt("quran_last_surah", 1)) }
 
     var showSurahPicker by remember { mutableStateOf(false) }
+    var indexTab by remember { mutableIntStateOf(0) }
     var showPagePicker by remember { mutableStateOf(false) }
     var showAyahPicker by remember { mutableStateOf(false) }
 
@@ -518,14 +535,182 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // 114 Surahs Index
+            // v28 #09: Quick Daily Surahs (Kahf, Yasin, Rahman, Waqi'ah) + Surah/Juz/Hizb Switcher
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                listOf(
+                    18 to sakinaTr(lang, "الكهف", "Kahf", "Al-Kahf", "Kehf", "Al-Kahfi", "الکہف"),
+                    36 to sakinaTr(lang, "يس", "Yasin", "Ya-Sin", "Yasin", "Yasin", "یس"),
+                    55 to sakinaTr(lang, "الرحمن", "Rahman", "Ar-Rahman", "Rahman", "Ar-Rahman", "الرحمٰن"),
+                    56 to sakinaTr(lang, "الواقعة", "Waqi'ah", "Al-Waqi'ah", "Vakıa", "Al-Waqi'ah", "الواقعہ")
+                ).forEach { (sNum, sLbl) ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xEE041218))
+                            .border(0.8.dp, theme.accentGold.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
+                            .clickable { openAtSurah(sNum) }
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = sLbl,
+                            fontFamily = SakinaHeadingFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = theme.accentBright,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(30.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xEE041218))
+                    .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                    .padding(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                listOf(
+                    sakinaTr(lang, "السور (114)", "Surahs (114)", "Sourates", "Sureler", "Surah", "سورتیں"),
+                    sakinaTr(lang, "الأجزاء (30)", "Juz (30)", "Juz (30)", "Cüz (30)", "Juz (30)", "پارے (30)"),
+                    sakinaTr(lang, "الأحزاب (60)", "Hizb (60)", "Hizb (60)", "Hizib (60)", "Hizb (60)", "احزاب (60)")
+                ).forEachIndexed { tIdx, tLbl ->
+                    val sel = indexTab == tIdx
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (sel) theme.accentGold else Color.Transparent)
+                            .clickable { indexTab = tIdx },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = SakinaAdvancedPrefs.formatDigits(ctx, tLbl),
+                            fontFamily = SakinaHeadingFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // 114 Surahs / 30 Juz / 60 Hizb Index
             SakinaParchmentPanel(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 cornerRadius = 18.dp,
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(filteredSurahs, key = { it.number }) { surah ->
+                    if (indexTab == 1) {
+                        items((1..30).toList(), key = { "juz_$it" }) { juzNum ->
+                            val startP = JUZ_START_PAGES[juzNum - 1]
+                            val sNum = surahForMushafPage(startP)
+                            val sTitle = SURAH_NAMES_AR.getOrElse(sNum - 1) { "" }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        targetPageZeroIdx = (startP - 1).coerceIn(0, 603)
+                                        lastReadSurahNum = sNum
+                                        sp.edit().putInt("quran_last_surah", sNum).apply()
+                                        isReaderOpen = true
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    SakinaHexagonNumberBadge(number = juzNum, size = 34.dp)
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = SakinaAdvancedPrefs.formatDigits(ctx, "${sakinaTr(lang, "الجزء", "Juz", "Juz", "Cüz", "Juz", "پارہ")} $juzNum"),
+                                            fontFamily = SakinaEditorialFont,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.5.sp,
+                                            color = SakinaInkDark
+                                        )
+                                        Text(
+                                            text = "${sakinaTr(lang, "يبدأ بسورة", "Starts at", "Débute à", "Başlangıç", "Mulai di", "آغاز")}: $sTitle",
+                                            fontFamily = SakinaBodyFont,
+                                            fontSize = 11.5.sp,
+                                            color = Color(0xFF5D4A2E)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = SakinaAdvancedPrefs.formatDigits(ctx, "${sakinaTr(lang, "ص", "p.", "p.", "s.", "hal.", "ص")} $startP"),
+                                    fontFamily = SakinaNumeralFont,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.5.sp,
+                                    color = Color(0xFF0A4D3C)
+                                )
+                            }
+                            HorizontalDivider(color = Color(0x220A2A20))
+                        }
+                    } else if (indexTab == 2) {
+                        items((1..60).toList(), key = { "hizb_$it" }) { hizbNum ->
+                            val startP = HIZB_START_PAGES[hizbNum - 1]
+                            val sNum = surahForMushafPage(startP)
+                            val sTitle = SURAH_NAMES_AR.getOrElse(sNum - 1) { "" }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        targetPageZeroIdx = (startP - 1).coerceIn(0, 603)
+                                        lastReadSurahNum = sNum
+                                        sp.edit().putInt("quran_last_surah", sNum).apply()
+                                        isReaderOpen = true
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    SakinaHexagonNumberBadge(number = hizbNum, size = 34.dp)
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = SakinaAdvancedPrefs.formatDigits(ctx, "${sakinaTr(lang, "الحزب", "Hizb", "Hizb", "Hizib", "Hizb", "حزب")} $hizbNum"),
+                                            fontFamily = SakinaEditorialFont,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.5.sp,
+                                            color = SakinaInkDark
+                                        )
+                                        Text(
+                                            text = "${sakinaTr(lang, "الجزء", "Juz", "Juz", "Cüz", "Juz", "پارہ")} ${((hizbNum - 1) / 2) + 1} · $sTitle",
+                                            fontFamily = SakinaBodyFont,
+                                            fontSize = 11.5.sp,
+                                            color = Color(0xFF5D4A2E)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = SakinaAdvancedPrefs.formatDigits(ctx, "${sakinaTr(lang, "ص", "p.", "p.", "s.", "hal.", "ص")} $startP"),
+                                    fontFamily = SakinaNumeralFont,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.5.sp,
+                                    color = Color(0xFF0A4D3C)
+                                )
+                            }
+                            HorizontalDivider(color = Color(0x220A2A20))
+                        }
+                    } else items(filteredSurahs, key = { it.number }) { surah ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

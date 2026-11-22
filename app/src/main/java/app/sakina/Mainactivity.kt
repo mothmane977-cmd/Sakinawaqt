@@ -198,10 +198,14 @@ object AlarmScheduler {
                 am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
                 return
             }
-            val show = PendingIntent.getActivity(
-                c, 2, Intent(c, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
-            )
-            am.setAlarmClock(AlarmManager.AlarmClockInfo(at, show), pi)
+            if (SakinaAdvancedPrefs.forceAlarmClock(c)) {
+                val show = PendingIntent.getActivity(
+                    c, 2, Intent(c, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
+                )
+                am.setAlarmClock(AlarmManager.AlarmClockInfo(at, show), pi)
+            } else {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+            }
         } catch (_: SecurityException) {
             try { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi) } catch (_: Exception) {}
         }
@@ -306,6 +310,46 @@ object AlarmScheduler {
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
                     safeExact(amCustom, fireAt, pi)
+                }
+            }
+        } catch (_: Exception) {}
+        // v28 #07: Pre-Prayer & Pre-Sunrise Reminders
+        try {
+            val amPre = c.getSystemService(AlarmManager::class.java)
+            val preMin = SakinaAdvancedPrefs.prePrayerReminderMin(c)
+            if (preMin > 0 && amPre != null) {
+                val nextMatch = (PrayerEngine.day(c, 0) + PrayerEngine.day(c, 1))
+                    .firstOrNull { (_, dt) -> (dt.time - preMin * 60_000L) > after }
+                if (nextMatch != null) {
+                    val fireAt = nextMatch.second.time - preMin * 60_000L
+                    val pi = PendingIntent.getBroadcast(
+                        c, 915,
+                        Intent(c, PostPrayerAdhkarReceiver::class.java)
+                            .putExtra("p", "متبقي $preMin دقيقة على صلاة ${nextMatch.first}")
+                            .putExtra("custom", true),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    safeExact(amPre, fireAt, pi)
+                }
+            }
+            val preSunMin = SakinaAdvancedPrefs.preSunriseReminderMin(c)
+            if (preSunMin > 0 && amPre != null) {
+                var targetSunMs = 0L
+                for (dOff in 0..1) {
+                    val calS = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dOff) }
+                    val ptS = PrayerTimes(Place.coords(c), DateComponents.from(calS.time), Prefs.params(c))
+                    val fireS = ptS.sunrise.time - preSunMin * 60_000L
+                    if (fireS > after) { targetSunMs = fireS; break }
+                }
+                if (targetSunMs > 0L) {
+                    val piS = PendingIntent.getBroadcast(
+                        c, 916,
+                        Intent(c, PostPrayerAdhkarReceiver::class.java)
+                            .putExtra("p", "متبقي $preSunMin دقيقة على الشروق")
+                            .putExtra("custom", true),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    safeExact(amPre, targetSunMs, piS)
                 }
             }
         } catch (_: Exception) {}
@@ -576,6 +620,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
         openAfterPrayerState.value = intent?.getBooleanExtra("open_after_prayer", false) == true
+        SakinaAdvancedPrefs.recordFirstLaunchIfNeeded(this)
         if (SakinaAdvancedPrefs.keepScreenOn(this)) {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }

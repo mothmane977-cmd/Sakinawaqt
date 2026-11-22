@@ -54,6 +54,34 @@ fun calculateGreatCircleQibla(userLat: Double, userLon: Double): Float {
     return ((theta + 360.0) % 360.0).toFloat()
 }
 
+
+// v28 #10: Offline Astronomical Sun Azimuth (degrees clockwise from North, null if sun below horizon)
+fun calculateSunAzimuthDeg(latDeg: Double, lonDeg: Double): Float? {
+    return try {
+        val cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+        val dayOfYear = cal.get(java.util.Calendar.DAY_OF_YEAR)
+        val utcHours = cal.get(java.util.Calendar.HOUR_OF_DAY) +
+            cal.get(java.util.Calendar.MINUTE) / 60.0 +
+            cal.get(java.util.Calendar.SECOND) / 3600.0
+        val gamma = 2.0 * Math.PI / 365.0 * (dayOfYear - 1 + (utcHours - 12.0) / 24.0)
+        val eqTime = 229.18 * (0.000075 + 0.001868 * cos(gamma) - 0.032077 * sin(gamma) -
+            0.014615 * cos(2 * gamma) - 0.040849 * sin(2 * gamma))
+        val decl = 0.006918 - 0.399912 * cos(gamma) + 0.070257 * sin(gamma) -
+            0.006758 * cos(2 * gamma) + 0.000907 * sin(2 * gamma) -
+            0.002697 * cos(3 * gamma) + 0.00148 * sin(3 * gamma)
+        val trueSolarMin = (utcHours * 60.0 + eqTime + 4.0 * lonDeg + 1440.0) % 1440.0
+        val hourAngleRad = Math.toRadians(trueSolarMin / 4.0 - 180.0)
+        val latRad = Math.toRadians(latDeg)
+        val sinAlt = sin(latRad) * sin(decl) + cos(latRad) * cos(decl) * cos(hourAngleRad)
+        val altRad = kotlin.math.asin(sinAlt.coerceIn(-1.0, 1.0))
+        if (Math.toDegrees(altRad) < -2.0) return null
+        val cosAz = ((sin(decl) - sin(latRad) * sinAlt) / (cos(latRad) * cos(altRad))).coerceIn(-1.0, 1.0)
+        var azDeg = Math.toDegrees(kotlin.math.acos(cosAz))
+        if (hourAngleRad > 0.0) azDeg = 360.0 - azDeg
+        ((azDeg + 360.0) % 360.0).toFloat()
+    } catch (_: Exception) { null }
+}
+
 fun calculateHaversineDistanceKm(userLat: Double, userLon: Double): Int {
     val r = 6371.0
     val dLat = Math.toRadians(KAABA_LAT - userLat)
@@ -75,6 +103,9 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
     val lon = co.longitude
     val placeName = remember(lang, locTick) { localizeCityName(Place.name(ctx), lang) }
     val qiblaBearing = remember(lat, lon) { calculateGreatCircleQibla(lat, lon) }
+    val sunAzimuth = remember(lat, lon) { calculateSunAzimuthDeg(lat, lon) }
+    var tiltX by remember { mutableFloatStateOf(0f) }
+    var tiltY by remember { mutableFloatStateOf(0f) }
     val distanceKm = remember(lat, lon) { calculateHaversineDistanceKm(lat, lon) }
 
     var continuousHeading by remember { mutableFloatStateOf(0f) }
@@ -171,10 +202,12 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                         }
                     }
                     Sensor.TYPE_GRAVITY -> {
+                        tiltX = event.values[0]; tiltY = event.values[1]
                         for (i in 0..2) gravity[i] = event.values[i]
                         hasGravity = true
                     }
                     Sensor.TYPE_ACCELEROMETER -> {
+                        tiltX = event.values[0]; tiltY = event.values[1]
                         if (gravitySensor == null) {
                             for (i in 0..2) {
                                 gravity[i] = if (!hasGravity) event.values[i] else gravity[i] * 0.88f + event.values[i] * 0.12f
@@ -321,6 +354,26 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
                 )
                 drawCircle(color = theme.bgDeep, radius = 6.dp.toPx(), center = Offset(tipX, tipY))
                 drawCircle(color = needleColor, radius = 4.dp.toPx(), center = Offset(tipX, tipY))
+
+                // v28 #10: Astronomical Sun Position dot on compass ring
+                if (sunAzimuth != null) {
+                    val sunRad = Math.toRadians((sunAzimuth - animatedHeading - 90f).toDouble())
+                    val sunR = radius - 6.dp.toPx()
+                    val sx = cx + (sunR * cos(sunRad)).toFloat()
+                    val sy = cy + (sunR * sin(sunRad)).toFloat()
+                    drawCircle(color = Color(0x55FBBF24), radius = 10.dp.toPx(), center = Offset(sx, sy))
+                    drawCircle(color = Color(0xFFF59E0B), radius = 5.5.dp.toPx(), center = Offset(sx, sy))
+                }
+
+                // v28 #10: Live Bubble Level (tilt compensation check)
+                val bx = cx + (-tiltX * 2.2f).coerceIn(-18f, 18f)
+                val by = cy + (tiltY * 2.2f).coerceIn(-18f, 18f)
+                val isFlat = abs(tiltX) < 1.8f && abs(tiltY) < 1.8f
+                drawCircle(
+                    color = if (isFlat) SakinaBrandColors.StableEmerald.copy(alpha = 0.85f) else Color(0xAAFFD700),
+                    radius = 4.5.dp.toPx(),
+                    center = Offset(bx, by)
+                )
             }
 
             Box(
@@ -345,6 +398,33 @@ fun SakinaQiblaScreen(ctx: Context, modifier: Modifier = Modifier) {
         }
 
         // 3. Degree & Live Guidance Cartouche
+        // v28 #10: Live Directional Coaching Pill + Flatness Status
+        val absDelta = abs(deltaToQibla).roundToInt()
+        val coachText = when {
+            isAligned -> sakinaTr(lang, "✓ أنت الآن تواجه الكعبة المشرفة", "✓ Facing the Kaaba", "✓ Vous faites face à la Kaaba", "✓ Kıbleye Dönüksünüz", "✓ Menghadap Ka'bah", "✓ آپ قبلہ رخ ہیں")
+            deltaToQibla > 0f -> SakinaAdvancedPrefs.formatDigits(ctx, sakinaTr(lang, "↻ أدر الهاتف $absDelta° إلى اليمين", "↻ Turn $absDelta° right", "↻ Tournez de $absDelta° à droite", "↻ $absDelta° sağa dönün", "↻ Putar $absDelta° ke kanan", "↻ $absDelta° دائیں مڑیں"))
+            else -> SakinaAdvancedPrefs.formatDigits(ctx, sakinaTr(lang, "↺ أدر الهاتف $absDelta° إلى اليسار", "↺ Turn $absDelta° left", "↺ Tournez de $absDelta° à gauche", "↺ $absDelta° sola dönün", "↺ Putar $absDelta° ke kiri", "↺ $absDelta° بائیں مڑیں"))
+        }
+        val sunNote = if (sunAzimuth != null) {
+            SakinaAdvancedPrefs.formatDigits(ctx, sakinaTr(lang, " · ☀ الشمس ${sunAzimuth.roundToInt()}°", " · ☀ Sun ${sunAzimuth.roundToInt()}°", " · ☀ Soleil ${sunAzimuth.roundToInt()}°", " · ☀ Güneş ${sunAzimuth.roundToInt()}°", " · ☀ Matahari ${sunAzimuth.roundToInt()}°", " · ☀ سورج ${sunAzimuth.roundToInt()}°"))
+        } else ""
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .background(if (isAligned) SakinaBrandColors.StableEmerald.copy(alpha = 0.25f) else Color(0xCC041218))
+                .border(1.dp, if (isAligned) SakinaBrandColors.StableEmerald else theme.accentGold.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+        ) {
+            Text(
+                text = coachText + sunNote,
+                fontFamily = SakinaHeadingFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.5.sp,
+                color = if (isAligned) SakinaBrandColors.StableEmerald else theme.accentBright,
+                textAlign = TextAlign.Center
+            )
+        }
+
         val qiblaDeg = qiblaBearing.roundToInt()
         val headingDeg = normalizedHeading.roundToInt() % 360
         val cardinal = s.cardinals[((headingDeg + 22) / 45) % 8]

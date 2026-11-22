@@ -1,4 +1,21 @@
 package app.sakina
+import com.batoulapps.adhan.data.DateComponents
+import com.batoulapps.adhan.PrayerTimes
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyColumn
+import android.widget.Toast
+import android.provider.MediaStore
+import android.os.Environment
+import android.os.Build
+import android.graphics.Typeface
+import android.graphics.Shader
+import android.graphics.RectF
+import android.graphics.Paint
+import android.graphics.LinearGradient
+import android.graphics.Canvas
+import android.graphics.Bitmap
+import android.content.Intent
+import android.content.ContentValues
 
 import android.content.Context
 import android.icu.util.IslamicCalendar
@@ -14,7 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material3.Icon
+import androidx.compose.material3.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.AbsoluteAlignment
@@ -269,6 +286,7 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
     val lang = LocalSakinaLang.current
     // v27 Point 2: Hijri Calendar is the FIXED default; user can toggle to Gregorian Calendar anytime
     var isHijriMode by remember { mutableStateOf(true) }
+    var showImsakiyah by remember { mutableStateOf(false) }
     var monthOffset by remember { mutableIntStateOf(0) }
     val hijriOffsetDays = remember { Prefs.hijriOffset(ctx) }
 
@@ -399,6 +417,95 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
         }
 
         Spacer(modifier = Modifier.height(6.dp))
+
+        // v28 #04: Monthly Imsakiyah Button + PNG Share Dialog
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Brush.horizontalGradient(listOf(Color(0xFF0A3D30), Color(0xFF145343))))
+                .border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                .clickable { showImsakiyah = true }
+                .padding(vertical = 7.dp, horizontal = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = sakinaTr(lang, "📅 عرض الإمساكية الشهرية الكاملة · مشاركة كصورة PNG", "📅 Full Monthly Timetable · Share as PNG", "📅 Calendrier mensuel complet · Partager en PNG", "📅 Aylık İmsakiye · PNG Paylaş", "📅 Jadwal Bulanan Lengkap · Bagikan PNG", "📅 مکمل ماہانہ امساکیہ · PNG شیئر کریں"),
+                fontFamily = SakinaHeadingFont,
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.5.sp,
+                color = theme.accentBright
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+
+        if (showImsakiyah) {
+            val monthRows = remember(isHijriMode, monthOffset, daysInMonth, hijriOffsetDays) {
+                buildMonthlyImsakiyah(ctx, isHijriMode, monthOffset, daysInMonth, hijriOffsetDays)
+            }
+            val titleLabel = if (isHijriMode) hijriSubtitle else gregTitle
+            AlertDialog(
+                onDismissRequest = { showImsakiyah = false },
+                containerColor = theme.bgCard,
+                title = {
+                    Text(
+                        text = sakinaTr(lang, "إمساكية $titleLabel", "$titleLabel Timetable", "Horaires $titleLabel", "$titleLabel İmsakiye", "Jadwal $titleLabel", "امساکیہ $titleLabel"),
+                        fontFamily = SakinaHeadingFont,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = theme.accentBright
+                    )
+                },
+                text = {
+                    Column(modifier = Modifier.fillMaxWidth().heightIn(max = 390.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().background(Color(0x28FFFFFF)).padding(vertical = 4.dp, horizontal = 2.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            listOf(
+                                sakinaTr(lang, "اليوم", "D", "J", "G", "H", "دن"),
+                                sakinaTr(lang, "فجر", "Fajr", "Fajr", "İms", "Sub", "فجر"),
+                                sakinaTr(lang, "ظهر", "Dhr", "Doh", "Öğl", "Dzh", "ظہر"),
+                                sakinaTr(lang, "عصر", "Asr", "Asr", "İkn", "Ash", "عصر"),
+                                sakinaTr(lang, "مغرب", "Mgh", "Mgh", "Akş", "Mgh", "مغرب"),
+                                sakinaTr(lang, "عشاء", "Ish", "Ich", "Yat", "Isy", "عشاء")
+                            ).forEach { hLbl ->
+                                Text(hLbl, fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 10.sp, color = theme.accentBright, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                            }
+                        }
+                        LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                            items(monthRows) { r ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp, horizontal = 2.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(SakinaAdvancedPrefs.formatDigits(ctx, "${r.dayNum}"), fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 10.5.sp, color = theme.accentBright, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                                    Text(r.fajr, fontFamily = SakinaNumeralFont, fontSize = 10.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                                    Text(r.dhuhr, fontFamily = SakinaNumeralFont, fontSize = 10.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                                    Text(r.asr, fontFamily = SakinaNumeralFont, fontSize = 10.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                                    Text(r.maghrib, fontFamily = SakinaNumeralFont, fontSize = 10.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                                    Text(r.isha, fontFamily = SakinaNumeralFont, fontSize = 10.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                                }
+                                HorizontalDivider(color = Color(0x18FFFFFF))
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { shareImsakiyahAsPng(ctx, lang, titleLabel, monthRows) },
+                        colors = ButtonDefaults.buttonColors(containerColor = theme.accentGold)
+                    ) {
+                        Text(sakinaTr(lang, "مشاركة PNG", "Share PNG", "Partager PNG", "PNG Paylaş", "Bagikan PNG", "PNG شیئر"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, color = theme.bgDeep)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showImsakiyah = false }) {
+                        Text(sakinaTr(lang, "إغلاق", "Close", "Fermer", "Kapat", "Tutup", "بند کریں"), fontFamily = SakinaBodyFont, color = SakinaBrandColors.LuminousIvory)
+                    }
+                }
+            )
+        }
 
         // 1. Luxury Ornate Monthly Calendar Card (#7)
         val calShape = RoundedCornerShape(18.dp)
@@ -725,5 +832,210 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
                 )
             }
         }
+    }
+}
+
+
+// v28 #04: Monthly Imsakiyah Data & High-DPI PNG Generator + Share
+private data class ImsakiyahRow(
+    val dayNum: Int,
+    val gregShort: String,
+    val fajr: String,
+    val sunrise: String,
+    val dhuhr: String,
+    val asr: String,
+    val maghrib: String,
+    val isha: String
+)
+
+private fun buildMonthlyImsakiyah(
+    ctx: Context,
+    isHijriMode: Boolean,
+    monthOffset: Int,
+    daysInMonth: Int,
+    hijriOffsetDays: Int
+): List<ImsakiyahRow> {
+    val result = mutableListOf<ImsakiyahRow>()
+    val shortGreg = SimpleDateFormat("dd/MM", Locale.US)
+    val coords = Place.coords(ctx)
+    val params = Prefs.params(ctx)
+    val baseGreg = Calendar.getInstance().apply {
+        add(Calendar.MONTH, monthOffset)
+        set(Calendar.DAY_OF_MONTH, 1)
+    }
+    val baseHijri = IslamicCalendar().apply {
+        add(IslamicCalendar.DAY_OF_MONTH, hijriOffsetDays)
+        add(IslamicCalendar.MONTH, monthOffset)
+        set(IslamicCalendar.DAY_OF_MONTH, 1)
+    }
+    for (d in 1..daysInMonth) {
+        val cal = Calendar.getInstance()
+        if (isHijriMode) {
+            val h = IslamicCalendar().apply {
+                set(baseHijri.get(IslamicCalendar.YEAR), baseHijri.get(IslamicCalendar.MONTH), d)
+                add(IslamicCalendar.DAY_OF_MONTH, -hijriOffsetDays)
+            }
+            cal.timeInMillis = h.timeInMillis
+        } else {
+            cal.set(baseGreg.get(Calendar.YEAR), baseGreg.get(Calendar.MONTH), d)
+        }
+        val pt = PrayerTimes(coords, DateComponents.from(cal.time), params)
+        fun fmt(base: Date, keyAr: String?): String {
+            val off = if (keyAr != null) Offsets.get(ctx, keyAr) * 60_000L else 0L
+            return SakinaAdvancedPrefs.formatPrayerTime(ctx, Date(base.time + off))
+        }
+        result.add(
+            ImsakiyahRow(
+                dayNum = d,
+                gregShort = SakinaAdvancedPrefs.formatDigits(ctx, shortGreg.format(cal.time)),
+                fajr = fmt(pt.fajr, "الفجر"),
+                sunrise = fmt(pt.sunrise, null),
+                dhuhr = fmt(pt.dhuhr, "الظهر"),
+                asr = fmt(pt.asr, "العصر"),
+                maghrib = fmt(pt.maghrib, "المغرب"),
+                isha = fmt(pt.isha, "العشاء")
+            )
+        )
+    }
+    return result
+}
+
+private fun shareImsakiyahAsPng(
+    ctx: Context,
+    lang: SakinaLang,
+    monthTitle: String,
+    rows: List<ImsakiyahRow>
+) {
+    try {
+        val w = 1080
+        val rowH = 44
+        val headerH = 220
+        val footerH = 120
+        val h = headerH + (rows.size + 1) * rowH + footerH
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+
+        // Deep emerald gradient background
+        val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(
+                0f, 0f, 0f, h.toFloat(),
+                intArrayOf(0xFF05241C.toInt(), 0xFF0B3B2E.toInt(), 0xFF05241C.toInt()),
+                null, Shader.TileMode.CLAMP
+            )
+        }
+        c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), bg)
+
+        // Gold outer frame
+        val framePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 4f
+            color = 0xAAD4AF37.toInt()
+        }
+        c.drawRoundRect(RectF(20f, 20f, w - 20f, h - 20f), 28f, 28f, framePaint)
+
+        // Title & Subtitle
+        val titleP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE5C158.toInt()
+            textSize = 46f
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
+        val subP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFD1FAE5.toInt()
+            textSize = 28f
+            textAlign = Paint.Align.CENTER
+        }
+        val city = localizeCityName(Place.name(ctx), lang)
+        val method = localizeMethodName(Prefs.methodLabel(ctx), lang)
+        c.drawText(
+            sakinaTr(lang, "إمساكية $monthTitle", "$monthTitle Timetable", "Horaires $monthTitle", "$monthTitle İmsakiye", "Jadwal $monthTitle", "امساکیہ $monthTitle"),
+            w / 2f, 92f, titleP
+        )
+        c.drawText("$city · $method", w / 2f, 144f, subP)
+
+        // Table Header
+        val colsX = floatArrayOf(960f, 820f, 680f, 540f, 400f, 260f, 120f)
+        val headers = listOf(
+            sakinaTr(lang, "اليوم", "Day", "Jour", "Gün", "Hari", "دن"),
+            sakinaTr(lang, "الفجر", "Fajr", "Fajr", "İmsak", "Subuh", "فجر"),
+            sakinaTr(lang, "الشروق", "Sun", "Lev.", "Güneş", "Syuruq", "طلوع"),
+            sakinaTr(lang, "الظهر", "Dhuhr", "Dohr", "Öğle", "Dzuhur", "ظہر"),
+            sakinaTr(lang, "العصر", "Asr", "Asr", "İkindi", "Ashar", "عصر"),
+            sakinaTr(lang, "المغرب", "Magh.", "Magh.", "Akşam", "Magh.", "مغرب"),
+            sakinaTr(lang, "العشاء", "Isha", "Icha", "Yatsı", "Isya", "عشاء")
+        )
+        val hdrBg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF145343.toInt() }
+        c.drawRect(36f, headerH - 36f, w - 36f, headerH + 10f, hdrBg)
+
+        val hdrTxt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE5C158.toInt()
+            textSize = 24f
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
+        headers.forEachIndexed { idx, lbl -> c.drawText(lbl, colsX[idx], headerH - 6f, hdrTxt) }
+
+        val rowAlt = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x18FFFFFF }
+        val cellTxt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFF9FAFB.toInt()
+            textSize = 22f
+            textAlign = Paint.Align.CENTER
+        }
+        val dayTxt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFA7F3D0.toInt()
+            textSize = 21f
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
+
+        rows.forEachIndexed { i, r ->
+            val yTop = headerH + 12f + i * rowH
+            if (i % 2 == 1) c.drawRect(36f, yTop, w - 36f, yTop + rowH, rowAlt)
+            val yBase = yTop + 30f
+            c.drawText("${SakinaAdvancedPrefs.formatDigits(ctx, r.dayNum.toString())} (${r.gregShort})", colsX[0], yBase, dayTxt)
+            c.drawText(r.fajr, colsX[1], yBase, cellTxt)
+            c.drawText(r.sunrise, colsX[2], yBase, cellTxt)
+            c.drawText(r.dhuhr, colsX[3], yBase, cellTxt)
+            c.drawText(r.asr, colsX[4], yBase, cellTxt)
+            c.drawText(r.maghrib, colsX[5], yBase, cellTxt)
+            c.drawText(r.isha, colsX[6], yBase, cellTxt)
+        }
+
+        // Footer branding
+        val footP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE5C158.toInt()
+            textSize = 26f
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
+        c.drawText(
+            sakinaTr(lang, "تطبيق سَكِينة · أوفلاين ومجاني 100% بدون إعلانات", "Sakina App · 100% Offline & Ad-Free", "Application Sakina · 100% Hors-ligne & Sans Pub", "Sakina · %100 Çevrimdışı ve Reklamsız", "Sakina · 100% Offline & Tanpa Iklan", "سکینہ ایپ · 100% آف لائن، بلا اشتہار"),
+            w / 2f, h - 52f, footP
+        )
+
+        // Save via MediaStore (zero permissions on Android 10+) and share
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "sakina_imsakiyah_${System.currentTimeMillis()}.png")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            if (Build.VERSION.SDK_INT >= 29) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Sakina")
+            }
+        }
+        val uri = ctx.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        if (uri != null) {
+            ctx.contentResolver.openOutputStream(uri)?.use { out ->
+                bmp.compress(Bitmap.CompressFormat.PNG, 95, out)
+            }
+            val share = Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            ctx.startActivity(Intent.createChooser(share, monthTitle).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } else {
+            Toast.makeText(ctx, sakinaTr(lang, "تعذّر حفظ الصورة", "Could not save image", "Impossible d'enregistrer l'image", "Görsel kaydedilemedi", "Gagal menyimpan gambar", "تصویر محفوظ نہ ہو سکی"), Toast.LENGTH_SHORT).show()
+        }
+    } catch (_: Exception) {
+        Toast.makeText(ctx, sakinaTr(lang, "تعذّر مشاركة الصورة", "Could not share image", "Impossible de partager", "Paylaşılamadı", "Gagal membagikan", "شیئر نہیں ہو سکا"), Toast.LENGTH_SHORT).show()
     }
 }

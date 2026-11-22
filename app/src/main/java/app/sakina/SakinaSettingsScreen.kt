@@ -96,6 +96,13 @@ fun SakinaSettingsScreen(
     var autoLocation by remember { mutableStateOf(sp.getBoolean("auto_gps_location", true)) }
     var autoNight by remember { mutableStateOf(SakinaAdvancedPrefs.autoNightMode(ctx)) }
     var timeFmtMode by remember { mutableIntStateOf(SakinaAdvancedPrefs.timeFormatMode(ctx)) }
+    var easternDigits by remember { mutableStateOf(SakinaAdvancedPrefs.easternDigits(ctx)) }
+    var maghrebiNames by remember { mutableStateOf(SakinaAdvancedPrefs.useMaghrebiNames(ctx)) }
+    var showNawafil by remember { mutableStateOf(SakinaAdvancedPrefs.showNawafilCard(ctx)) }
+    var useAlarmStream by remember { mutableStateOf(SakinaAdvancedPrefs.useAlarmStream(ctx)) }
+    var forceAlarmClock by remember { mutableStateOf(SakinaAdvancedPrefs.forceAlarmClock(ctx)) }
+    var prePrayerMin by remember { mutableIntStateOf(SakinaAdvancedPrefs.prePrayerReminderMin(ctx)) }
+    var preSunriseMin by remember { mutableIntStateOf(SakinaAdvancedPrefs.preSunriseReminderMin(ctx)) }
     var dstMode by remember { mutableIntStateOf(SakinaAdvancedPrefs.dstMode(ctx)) }
     var hijriOff by remember { mutableIntStateOf(Prefs.hijriOffset(ctx)) }
 
@@ -436,6 +443,36 @@ fun SakinaSettingsScreen(
                             timeFmtMode = it; SakinaAdvancedPrefs.setTimeFormatMode(ctx, it)
                         }
                         Spacer(Modifier.height(8.dp))
+                        SettingSwitchRow(
+                            title = sakinaTr(lang, "أرقام عربية مشرقية (١٢:٣٤)", "Eastern Arabic Numerals (١٢:٣٤)", "Chiffres arabes orientaux (١٢:٣٤)", "Doğu Arap Rakamları (١٢:٣٤)", "Angka Arab Timur (١٢:٣٤)", "مشرقی عربی ہندسے (١٢:٣٤)"),
+                            checked = easternDigits,
+                            onCheckedChange = {
+                                easternDigits = it
+                                SakinaAdvancedPrefs.setEasternDigits(ctx, it)
+                                SakinaLiveNotifier.update(ctx)
+                                SakinaWidgetUpdater.updateAll(ctx)
+                            }
+                        )
+                        HorizontalDivider(color = Color(0x22FFFFFF), modifier = Modifier.padding(vertical = 4.dp))
+                        SettingSwitchRow(
+                            title = sakinaTr(lang, "أسماء الصلوات المغاربية (الصبح / Sobh)", "Maghrebi Prayer Names (Sobh / Dohr)", "Noms maghrébins (Sobh, Dohr, Maghreb)", "Mağrib Namaz İsimleri", "Nama Sholat Maghribi", "مغربی نماز کے نام"),
+                            checked = maghrebiNames,
+                            onCheckedChange = {
+                                maghrebiNames = it
+                                SakinaAdvancedPrefs.setUseMaghrebiNames(ctx, it)
+                                SakinaLiveNotifier.update(ctx)
+                            }
+                        )
+                        HorizontalDivider(color = Color(0x22FFFFFF), modifier = Modifier.padding(vertical = 4.dp))
+                        SettingSwitchRow(
+                            title = sakinaTr(lang, "إظهار بطاقة الإمساك والنوافل (الضحى والتهجد)", "Show Imsak & Nawafil (Duha / Tahajjud)", "Afficher Imsak & Nawafil (Doha / Tahajjud)", "İmsak ve Nafile Kartını Göster", "Tampilkan Kartu Imsak & Sunnah", "امساک اور نوافل کارڈ دکھائیں"),
+                            checked = showNawafil,
+                            onCheckedChange = {
+                                showNawafil = it
+                                SakinaAdvancedPrefs.setShowNawafilCard(ctx, it)
+                            }
+                        )
+                        Spacer(Modifier.height(8.dp))
                         Text(sakinaTr(lang, "التوقيت الصيفي (DST)", "Daylight Saving", "Heure d'été (DST)", "Yaz Saati (DST)", "Waktu Musim Panas", "ڈے لائٹ سیونگ"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = theme.accentBright)
                         Spacer(Modifier.height(4.dp))
                         val dstLabels = listOf(sakinaTr(lang, "تلقائي", "Auto", "Auto", "Oto", "Oto", "خودکار"), sakinaTr(lang, "مفعّل", "On", "Activé", "Açık", "Aktif", "آن"), sakinaTr(lang, "معطّل", "Off", "Désactivé", "Kapalı", "Mati", "آف"))
@@ -524,6 +561,79 @@ fun SakinaSettingsScreen(
                         sakinaTr(lang, "الصلوات الخمس", "5 Prayers", "5 prières", "5 Vakit", "5 Sholat", "5 نمازیں")
                     ) {
                         showPerPrayerMuezzin = true
+                    }
+                    SakinaSettingsPill(
+                        R.drawable.ic_alarm,
+                        sakinaTr(lang, "تعميم المؤذن الحالي لكل الصلوات", "Apply Current Muezzin to All", "Appliquer ce muezzin à toutes les prières", "Mevcut Müezzini Tümüne Uygula", "Terapkan Muadzin ke Semua Sholat", "موجودہ مؤذن تمام نمازوں پر لاگو کریں"),
+                        selectedVoice.localizedTitle(lang)
+                    ) {
+                        SakinaAdhanAudio.copyVoiceToAllPrayers(ctx, selectedVoice)
+                        Toast.makeText(ctx, sakinaTr(lang, "تم تعميم صوت الأذان لجميع الصلوات ✓", "Applied to all 5 prayers ✓", "Appliqué aux 5 prières ✓", "Tüm vakitlere uygulandı ✓", "Diterapkan ke semua sholat ✓", "تمام نمازوں پر لاگو کر دیا گیا ✓"), Toast.LENGTH_SHORT).show()
+                    }
+
+                    SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            sakinaTr(lang, "موثوقية الأذان والتنبيه المسبق", "Adhan Reliability & Pre-Alerts", "Fiabilité de l'Adhan et pré-alertes", "Ezan Güvenilirliği ve Ön Uyarı", "Keandalan Adzan & Pengingat Awal", "اذان کی درستگی اور پیشگی اطلاع"),
+                            fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = theme.accentBright
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        SettingSwitchRow(
+                            title = sakinaTr(lang, "استخدام قناة المنبّه (تجاوز الصامت للفجر)", "Use Alarm Stream (Bypass Silent)", "Canal alarme (contourner le mode silencieux)", "Alarm Kanalını Kullan (Sessizi Aş)", "Gunakan Saluran Alarm (Lewati Senyap)", "الارم چینل استعمال کریں (سائلنٹ بائی پاس)"),
+                            checked = useAlarmStream,
+                            onCheckedChange = { useAlarmStream = it; SakinaAdvancedPrefs.setUseAlarmStream(ctx, it) }
+                        )
+                        HorizontalDivider(color = Color(0x22FFFFFF), modifier = Modifier.padding(vertical = 5.dp))
+                        SettingSwitchRow(
+                            title = sakinaTr(lang, "فرض إشعارات الأذان (أيقونة المنبّه)", "Force Exact AlarmClock", "Forcer l'alarme exacte (icône horloge)", "Kesin Alarmı Zorla", "Paksa Alarm Tepat Waktu", "عین وقت پر الارم لازمی کریں"),
+                            checked = forceAlarmClock,
+                            onCheckedChange = {
+                                forceAlarmClock = it
+                                SakinaAdvancedPrefs.setForceAlarmClock(ctx, it)
+                                AlarmScheduler.scheduleNext(ctx)
+                            }
+                        )
+                        HorizontalDivider(color = Color(0x22FFFFFF), modifier = Modifier.padding(vertical = 5.dp))
+                        Text(sakinaTr(lang, "تنبيه مسبق قبل كل صلاة", "Pre-Prayer Reminder", "Rappel avant chaque prière", "Namaz Öncesi Hatırlatma", "Pengingat Sebelum Sholat", "نماز سے پہلے یاد دہانی"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = theme.accentBright)
+                        Spacer(Modifier.height(4.dp))
+                        val preOpts = listOf(0, 5, 10, 15)
+                        val preLabels = listOf(sakinaTr(lang, "معطّل", "Off", "Non", "Kapalı", "Mati", "بند"), "5m", "10m", "15m")
+                        SettingSegmentedRow(labels = preLabels, selectedIdx = preOpts.indexOf(prePrayerMin).coerceAtLeast(0)) { idx ->
+                            prePrayerMin = preOpts[idx]
+                            SakinaAdvancedPrefs.setPrePrayerReminderMin(ctx, prePrayerMin)
+                            AlarmScheduler.scheduleNext(ctx)
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Text(sakinaTr(lang, "تنبيه مسبق قبل الشروق", "Pre-Sunrise Reminder", "Rappel avant le lever du soleil", "Güneş Doğmadan Önce Hatırlatma", "Pengingat Sebelum Syuruq", "طلوع آفتاب سے پہلے یاد دہانی"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = theme.accentBright)
+                        Spacer(Modifier.height(4.dp))
+                        val sunOpts = listOf(0, 10, 15, 20)
+                        val sunLabels = listOf(sakinaTr(lang, "معطّل", "Off", "Non", "Kapalı", "Mati", "بند"), "10m", "15m", "20m")
+                        SettingSegmentedRow(labels = sunLabels, selectedIdx = sunOpts.indexOf(preSunriseMin).coerceAtLeast(0)) { idx ->
+                            preSunriseMin = sunOpts[idx]
+                            SakinaAdvancedPrefs.setPreSunriseReminderMin(ctx, preSunriseMin)
+                            AlarmScheduler.scheduleNext(ctx)
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(
+                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(theme.accentGold).clickable {
+                                    AlarmScheduler.scheduleTest(ctx)
+                                    Toast.makeText(ctx, sakinaTr(lang, "سيؤذّن اختبارياً بعد 10 ثوانٍ...", "Test Adhan in 10s...", "Test Adhan dans 10s...", "10 sn sonra test ezanı...", "Tes Adzan dalam 10 dtk...", "10 سیکنڈ میں ٹیسٹ اذان..."), Toast.LENGTH_SHORT).show()
+                                }.padding(vertical = 9.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(sakinaTr(lang, "اختبار خلال 10ث", "Test in 10s", "Test 10s", "10sn Test", "Tes 10 dtk", "10س ٹیسٹ"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = theme.bgDeep)
+                            }
+                            Box(
+                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(Color(0x28FFFFFF)).border(1.dp, theme.accentGold.copy(alpha = 0.5f), RoundedCornerShape(10.dp)).clickable {
+                                    AlarmScheduler.scheduleNext(ctx)
+                                    SakinaLiveNotifier.update(ctx)
+                                    Toast.makeText(ctx, sakinaTr(lang, "تمت إعادة جدولة كل الأذانات ✓", "All alarms rescheduled ✓", "Toutes les alertes replanifiées ✓", "Tüm ezanlar yeniden planlandı ✓", "Semua jadwal adzan diperbarui ✓", "تمام اذانیں دوبارہ شیڈول ہو گئیں ✓"), Toast.LENGTH_SHORT).show()
+                                }.padding(vertical = 9.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(sakinaTr(lang, "إعادة جدولة الكل ↻", "Reschedule All ↻", "Replanifier ↻", "Yeniden Planla ↻", "Jadwalkan Ulang ↻", "دوبارہ شیڈول ↻"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = theme.accentBright)
+                            }
+                        }
                     }
 
                     SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
@@ -769,6 +879,10 @@ fun SakinaSettingsScreen(
                                 }
                                 ctx.startActivity(Intent.createChooser(sendIntent, s.appName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                             } catch (_: Exception) {}
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        SakinaSettingsPill(R.drawable.ic_star_ornament, sakinaTr(lang, "قيّم تطبيق سَكِينة على Google Play", "Rate Sakina on Google Play", "Noter Sakina sur Google Play", "Sakina'yı Google Play'de Değerlendir", "Nilai Sakina di Google Play", "گوگل پلے پر سکینہ کو ریٹ کریں"), "★★★★★") {
+                            SakinaAdvancedPrefs.openPlayStoreRating(ctx)
                         }
                         Spacer(Modifier.height(6.dp))
                         SakinaSettingsPill(R.drawable.ic_star_ornament, sakinaTr(lang, "اقترح ميزة أو بلّغ عن خطأ", "Feedback & Bug Report", "Suggérer ou signaler un bug", "Geri Bildirim ve Hata Bildir", "Saran & Lapor Bug", "تجویز یا خرابی رپورٹ کریں"), "Email") {
