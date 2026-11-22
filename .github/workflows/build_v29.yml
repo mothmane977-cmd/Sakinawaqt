@@ -1,4 +1,4 @@
-name: Build Release AAB & APK (v29)
+name: Build Release AAB & APK (v30)
 on:
   push:
     branches: [main]
@@ -26,7 +26,7 @@ jobs:
             echo "Applied new app icons from $ICON_ZIP"
           fi
 
-      # 1. الخطوط + المصحف النصي العثماني أوفلاين (حفص وورش) مع تنظيف صور المصحف القديمة لتقليص الحجم (~18MB)
+      # 1. الخطوط + المصحف النصي العثماني أوفلاين (حفص وورش)
       - name: Bundle Fonts & Offline Quran Text (Hafs & Warsh)
         run: |
           rm -rf app/src/main/assets/mushaf
@@ -67,7 +67,7 @@ jobs:
           print("Bundled Fonts and Hafs & Warsh offline JSONs successfully")
           EOF
 
-      # 2. ضغط الأذان إلى OGG (مع -vn لتجاهل صور الغلاف التالفة) + إثراء المؤذنين
+      # 2. ضغط الأذان إلى OGG + إثراء المؤذنين
       - name: Compress Adhan Audio & Add Extra Muezzins (OGG)
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
@@ -100,14 +100,35 @@ jobs:
           EOF
           rm -rf /tmp/athan-mp3
 
-      # 3. فك تشفير مفتاح التوقيع الرسمي من GitHub Secrets
+      # 3. تضمين صوتيات أذكار الصباح والمساء والنوم أوفلاين (مشاري العفاسي — OGG مضغوط نقي ~7MB إجمالاً)
+      - name: Bundle Offline Adhkar Audio (Morning, Evening & Sleep)
+        run: |
+          mkdir -p app/src/main/res/raw /tmp/adhkar_dl
+          BASE="https://archive.org/download/way2sona_20160320_2316"
+          download_and_compress() {
+            local SRC_FILE="$1"
+            local OUT_NAME="$2"
+            curl -L --retry 3 -s "$BASE/$SRC_FILE" -o "/tmp/adhkar_dl/$SRC_FILE" || true
+            if [ -s "/tmp/adhkar_dl/$SRC_FILE" ] && [ $(wc -c < "/tmp/adhkar_dl/$SRC_FILE") -gt 50000 ]; then
+              ffmpeg -y -i "/tmp/adhkar_dl/$SRC_FILE" -vn -ac 1 -ar 22050 -c:a libvorbis -q:a 0 "app/src/main/res/raw/${OUT_NAME}.ogg"
+              ls -lh "app/src/main/res/raw/${OUT_NAME}.ogg"
+            else
+              echo "Warning: skipped $OUT_NAME (download unavailable)"
+            fi
+          }
+          download_and_compress "athkar_03.ogg" "adhkar_sabah"
+          download_and_compress "athkar_04.ogg" "adhkar_masaa"
+          download_and_compress "athkar_11.ogg" "adhkar_nawm"
+          rm -rf /tmp/adhkar_dl
+
+      # 4. فك تشفير مفتاح التوقيع الرسمي من GitHub Secrets
       - name: Decode Release Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > /tmp/sakina-upload.jks
 
-      # 4. بناء نسخة Google Play الموقّعة (.aab) + نسخة التجربة (.apk)
+      # 5. بناء نسخة Google Play الموقّعة (.aab) + نسخة التجربة (.apk)
       - name: Build Signed AAB & APK
         env:
           KEYSTORE_PATH: /tmp/sakina-upload.jks
@@ -127,3 +148,4 @@ jobs:
         with:
           name: sakina-release-apk
           path: app/build/outputs/apk/release/*.apk
+          
