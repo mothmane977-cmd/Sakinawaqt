@@ -30,13 +30,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 
 /**
- * v31: Jetpack Media3 Background Playback Service for Sakina Quran Reader.
- * - Handles lock-screen & Bluetooth controls automatically via MediaSessionService.
- * - Handles AudioFocus (pauses on phone calls) and noisy audio (headphone unplug).
- * - Exposes instant pause hook for SakinaAdhanForegroundService so Adhan never overlaps recitation.
+ * v32: Jetpack Media3 Background Playback Service for Sakina Quran Reader.
+ * - Supports multiple Hafs & Warsh reciters from permanent filesDir or bundled res/raw.
+ * - Handles lock-screen & Bluetooth controls, AudioFocus, noisy audio, and instant Adhan pause.
  */
 class SakinaQuranPlaybackService : MediaSessionService() {
 
@@ -111,6 +109,8 @@ data class QuranAudioUiState(
     val isPlaying: Boolean = false,
     val currentSurahNum: Int = 0,
     val currentSurahName: String = "",
+    val currentReciterId: String = "afasy",
+    val currentReciterName: String = "مشاري راشد العفاسي",
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
     val playbackSpeed: Float = 1.0f,
@@ -119,14 +119,7 @@ data class QuranAudioUiState(
     val sleepRemainingSec: Int = 0
 )
 
-/**
- * Unified MediaController & StateFlow facade consumed by SakinaQuranScreen (Compose UI)
- * and SakinaAdhanForegroundService (instant Adhan pause).
- */
 object SakinaQuranAudioController {
-
-    // Offline Surahs bundled in res/raw in v31: Al-Fatiha (1) + Ad-Duha (93) .. An-Nas (114)
-    val OFFLINE_BUNDLED_SURAHS: Set<Int> = setOf(1) + (93..114).toSet()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _uiState = MutableStateFlow(QuranAudioUiState())
@@ -158,23 +151,25 @@ object SakinaQuranAudioController {
         }
     }
 
-    fun resolveSurahUri(context: Context, surahNum: Int): Uri? {
-        val padded = surahNum.toString().padStart(3, '0')
-        // 1. Check future on-demand downloaded file (v33 ready)
-        val localFile = File(File(context.filesDir, "quran_audio/afasy"), "s$padded.ogg")
-        if (localFile.exists() && localFile.length() > 4096L) {
-            return Uri.fromFile(localFile)
+    fun resolveSurahUri(context: Context, reciterId: String, surahNum: Int): Uri? {
+        // 1. Permanent downloaded MP3 in context.filesDir/quran_audio/{reciterId}/{001..114}.mp3
+        val localMp3 = SakinaQuranDownloadManager.permanentFile(context, reciterId, surahNum)
+        if (localMp3.exists() && localMp3.length() > 4096L) {
+            return Uri.fromFile(localMp3)
         }
-        // 2. Check bundled res/raw/quran_sXXX.ogg (v31 offline)
-        val resId = context.resources.getIdentifier("quran_s$padded", "raw", context.packageName)
-        if (resId != 0) {
-            return Uri.parse("android.resource://${context.packageName}/$resId")
+        // 2. Bundled offline OGG in res/raw for Al-Afasy short surahs
+        if (reciterId == "afasy") {
+            val padded = surahNum.toString().padStart(3, '0')
+            val resId = context.resources.getIdentifier("quran_s$padded", "raw", context.packageName)
+            if (resId != 0) {
+                return Uri.parse("android.resource://${context.packageName}/$resId")
+            }
         }
         return null
     }
 
-    fun isSurahAvailableOffline(context: Context, surahNum: Int): Boolean =
-        resolveSurahUri(context, surahNum) != null
+    fun isSurahAvailableOffline(context: Context, surahNum: Int, reciterId: String = "afasy"): Boolean =
+        resolveSurahUri(context, reciterId, surahNum) != null
 
     fun connect(context: Context) {
         if (controller != null || controllerFuture != null) return
@@ -215,7 +210,6 @@ object SakinaQuranAudioController {
                     val dur = c.duration.coerceAtLeast(0L)
                     val st = _uiState.value
 
-                    // Sleep timer countdown with smooth 10-second fade-out
                     var remSec = 0
                     if (st.sleepTimerMinutes > 0 && sleepEndAtMs > 0L) {
                         val remMs = sleepEndAtMs - System.currentTimeMillis()
@@ -245,16 +239,22 @@ object SakinaQuranAudioController {
         }
     }
 
-    fun playSurah(context: Context, surahNum: Int, surahNameAr: String) {
-        val uri = resolveSurahUri(context, surahNum) ?: return
+    fun playSurah(
+        context: Context,
+        surahNum: Int,
+        surahNameAr: String,
+        reciterId: String = "afasy",
+        reciterNameAr: String = "مشاري راشد العفاسي"
+    ) {
+        val uri = resolveSurahUri(context, reciterId, surahNum) ?: return
         val appCtx = context.applicationContext
         val startBlock: (MediaController) -> Unit = { c ->
             val metadata = MediaMetadata.Builder()
                 .setTitle("سورة $surahNameAr")
-                .setArtist("مشاري راشد العفاسي · سَكِينة")
+                .setArtist("$reciterNameAr · سَكِينة")
                 .build()
             val item = MediaItem.Builder()
-                .setMediaId("surah_$surahNum")
+                .setMediaId("${reciterId}_$surahNum")
                 .setUri(uri)
                 .setMediaMetadata(metadata)
                 .build()
@@ -269,6 +269,8 @@ object SakinaQuranAudioController {
                 it.copy(
                     currentSurahNum = surahNum,
                     currentSurahName = surahNameAr,
+                    currentReciterId = reciterId,
+                    currentReciterName = reciterNameAr,
                     isPlaying = true,
                     positionMs = 0L
                 )
@@ -281,9 +283,10 @@ object SakinaQuranAudioController {
         } else {
             connect(appCtx)
             scope.launch {
-                repeat(20) {
+                for (attempt in 0 until 20) {
                     delay(100L)
-                    controller?.let { ready ->
+                    val ready = controller
+                    if (ready != null) {
                         startBlock(ready)
                         return@launch
                     }
@@ -292,11 +295,18 @@ object SakinaQuranAudioController {
         }
     }
 
-    fun togglePlayPause(context: Context, fallbackSurahNum: Int, fallbackSurahNameAr: String) {
+    fun togglePlayPause(
+        context: Context,
+        targetSurahNum: Int,
+        targetSurahNameAr: String,
+        reciterId: String,
+        reciterNameAr: String
+    ) {
         val c = controller
         val st = _uiState.value
-        if (c == null || st.currentSurahNum == 0 || (st.currentSurahNum != fallbackSurahNum && !c.isPlaying && isSurahAvailableOffline(context, fallbackSurahNum))) {
-            playSurah(context, fallbackSurahNum, fallbackSurahNameAr)
+        val sameTrack = st.currentSurahNum == targetSurahNum && st.currentReciterId == reciterId
+        if (c == null || !sameTrack) {
+            playSurah(context, targetSurahNum, targetSurahNameAr, reciterId, reciterNameAr)
             return
         }
         if (c.isPlaying) {
@@ -340,21 +350,14 @@ object SakinaQuranAudioController {
         _uiState.update { it.copy(repeatSurah = next) }
     }
 
-    fun cycleSleepTimer() {
-        val nextMin = when (_uiState.value.sleepTimerMinutes) {
-            0 -> 15
-            15 -> 30
-            30 -> 60
-            60 -> -1
-            else -> 0
-        }
+    fun setSleepTimerMinutes(minutes: Int) {
         controller?.volume = 1.0f
-        if (nextMin > 0) {
-            sleepEndAtMs = System.currentTimeMillis() + nextMin * 60_000L
-            _uiState.update { it.copy(sleepTimerMinutes = nextMin, sleepRemainingSec = nextMin * 60) }
+        if (minutes > 0) {
+            sleepEndAtMs = System.currentTimeMillis() + minutes * 60_000L
+            _uiState.update { it.copy(sleepTimerMinutes = minutes, sleepRemainingSec = minutes * 60) }
         } else {
             sleepEndAtMs = 0L
-            _uiState.update { it.copy(sleepTimerMinutes = nextMin, sleepRemainingSec = 0) }
+            _uiState.update { it.copy(sleepTimerMinutes = minutes, sleepRemainingSec = 0) }
         }
     }
 
