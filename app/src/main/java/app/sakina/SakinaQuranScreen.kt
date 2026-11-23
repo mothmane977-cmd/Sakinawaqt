@@ -924,41 +924,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
         val currentSurahNum = surahForMushafPage(currentPageNum)
         val currentSurahObj = surahs.firstOrNull { it.number == currentSurahNum }
 
-        // v32.2: Live Ayah Synchronization & Auto-Page-Flip across all reciters (Hafs & Warsh)
-        val liveAudioState by SakinaQuranAudioController.uiState.collectAsState()
-        val playingSurahObj = remember(surahs, liveAudioState.currentSurahNum) {
-            surahs.firstOrNull { it.number == liveAudioState.currentSurahNum }
-        }
-        val activeRecitedAyah = remember(
-            liveAudioState.currentSurahNum,
-            liveAudioState.positionMs,
-            liveAudioState.durationMs,
-            playingSurahObj
-        ) {
-            if (liveAudioState.currentSurahNum > 0 && liveAudioState.durationMs > 0L && playingSurahObj != null) {
-                SakinaQuranSyncEngine.estimateActiveAyah(
-                    surahNum = liveAudioState.currentSurahNum,
-                    positionMs = liveAudioState.positionMs,
-                    durationMs = liveAudioState.durationMs,
-                    ayahs = playingSurahObj.ayahs
-                )
-            } else -1
-        }
 
-        // Auto-flip Mushaf page smoothly whenever the recited Ayah moves to a new page
-        LaunchedEffect(activeRecitedAyah, liveAudioState.isPlaying, liveAudioState.currentSurahNum) {
-            if (liveAudioState.isPlaying && activeRecitedAyah > 0 && playingSurahObj != null) {
-                val targetPage = SakinaQuranSyncEngine.pageZeroIdxForAyah(
-                    surahNum = liveAudioState.currentSurahNum,
-                    ayahNum = activeRecitedAyah,
-                    totalAyahs = playingSurahObj.ayahs.size.coerceAtLeast(playingSurahObj.ayahCount),
-                    surahStartPages = SURAH_START_PAGES
-                )
-                if (pagerState.currentPage != targetPage) {
-                    pagerState.animateScrollToPage(targetPage)
-                }
-            }
-        }
 
         Column(
             modifier = modifier
@@ -1113,16 +1079,15 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                             Spacer(Modifier.height(10.dp))
 
                             if (pageAyahs.isNotEmpty()) {
-                                // v32.2: Verified Hafs Tajweed + Pure Warsh + Live Golden Ayah Highlighting
-                                val highlightAyahHere = if (liveAudioState.currentSurahNum == sNumForPage && activeRecitedAyah > 0) activeRecitedAyah else -1
-                                val styledPage = remember(pageAyahs, sNumForPage, riwaya, tajweedEnabled, isDarkPage, highlightAyahHere) {
+                                // v32.3: Clean Verified Hafs Tajweed + Pure Warsh (no distracting estimated highlight)
+                                val styledPage = remember(pageAyahs, sNumForPage, riwaya, tajweedEnabled, isDarkPage) {
                                     SakinaTajweedRepository.buildPageAnnotatedText(
                                         context = ctx,
                                         surahNum = sNumForPage,
                                         pageAyahs = pageAyahs,
                                         tajweedEnabled = tajweedEnabled && riwaya == QuranRiwaya.HAFS,
                                         darkTheme = isDarkPage,
-                                        activeAyahNum = highlightAyahHere
+                                        activeAyahNum = -1
                                     )
                                 }
                                 var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -2116,7 +2081,8 @@ private fun SakinaQuranLuxuryMiniPlayer(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
+                        .heightIn(min = 54.dp)
+                        .padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -2145,13 +2111,14 @@ private fun SakinaQuranLuxuryMiniPlayer(
 
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.Center
+                        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)
                     ) {
                         Text(
                             text = if (isArOrUr) "سورة $targetSurahName" else "Surah $targetSurahName",
-                            fontFamily = SakinaHeadingFont,
+                            fontFamily = SakinaBodyFont,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
+                            lineHeight = 16.sp,
                             color = Color(0xFFFAF6EC),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -2161,8 +2128,9 @@ private fun SakinaQuranLuxuryMiniPlayer(
                         Text(
                             text = errMsg ?: selectedReciter.displayName(lang),
                             fontFamily = SakinaBodyFont,
-                            fontSize = 10.5.sp,
-                            color = if (errMsg != null) Color(0xFFFCA5A5) else Color(0xCCD4AF37),
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            color = if (errMsg != null) Color(0xFFFCA5A5) else Color(0xE0F3DFA2),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)),
