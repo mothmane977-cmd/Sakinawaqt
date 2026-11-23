@@ -780,7 +780,7 @@ private fun SpatialHorizonCanvas(
 
         val horizonPath = Path().apply {
             moveTo(0f, horizonY + 26.dp.toPx())
-            quadraticTo(w * 0.5f, horizonY - 22.dp.toPx(), w, horizonY + 26.dp.toPx())
+            quadraticBezierTo(w * 0.5f, horizonY - 22.dp.toPx(), w, horizonY + 26.dp.toPx())
         }
         drawPath(
             path = horizonPath,
