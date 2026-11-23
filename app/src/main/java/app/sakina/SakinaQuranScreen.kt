@@ -837,15 +837,15 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                                     )
                                     isReady -> Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(Color(0x220A4D3C))
-                                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFF0A4D3C))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
-                                            text = "✓",
-                                            fontSize = 10.sp,
+                                            text = "▶",
+                                            fontSize = 9.5.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF0A4D3C)
+                                            color = Color(0xFFF3DFA2)
                                         )
                                     }
                                     else -> Text(
@@ -916,7 +916,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(start = 10.dp, end = 10.dp, top = 44.dp, bottom = 70.dp),
+                .padding(start = 10.dp, end = 10.dp, top = 44.dp, bottom = 96.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Top In-Page Mushaf Controls Bar (Back + Surah + Page + Ayah + Riwaya)
@@ -1598,6 +1598,7 @@ private fun SakinaQuranLuxuryMiniPlayer(
     val isArOrUr = lang == SakinaLang.AR || lang == SakinaLang.UR
     val audioState by SakinaQuranAudioController.uiState.collectAsState()
     val downloads by SakinaQuranDownloadManager.downloads.collectAsState()
+    val dlErrors by SakinaQuranDownloadManager.errors.collectAsState()
     val storageVersion by SakinaQuranDownloadManager.storageVersion.collectAsState()
 
     val selectedReciter = remember(riwaya, storageVersion) {
@@ -1746,11 +1747,12 @@ private fun SakinaQuranLuxuryMiniPlayer(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                val errMsg = dlErrors[dlKey]
                 Text(
-                    text = selectedReciter.displayName(lang),
+                    text = errMsg ?: selectedReciter.displayName(lang),
                     fontFamily = SakinaBodyFont,
                     fontSize = 10.5.sp,
-                    color = Color(0xCCD4AF37),
+                    color = if (errMsg != null) Color(0xFFFCA5A5) else Color(0xCCD4AF37),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.clickable { showReciterDialog = true }
