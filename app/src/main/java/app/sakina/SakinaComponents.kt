@@ -813,56 +813,28 @@ fun SakinaBottomPillBar(
     onTabSelected: (SakinaNavTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val theme = LocalSakinaTheme.current
     val s = LocalSakinaStrings.current
-    val barShape = RoundedCornerShape(20.dp)
-    Row(
+    val dockStrings = SakinaHomeStrings(
+        tabHome = SakinaNavTab.HOME.label(s),
+        tabQibla = SakinaNavTab.QIBLA.label(s),
+        tabQuran = SakinaNavTab.QURAN.label(s),
+        tabCalendar = SakinaNavTab.CALENDAR.label(s)
+    )
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
             .navigationBarsPadding()
-            .height(70.dp)
-            .clip(barShape)
-            .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.96f), theme.bgDeep)))
-            .border(1.dp, Sakina3DGoldBevelBrush, barShape)
-            .padding(horizontal = 4.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
-        SakinaNavTab.entries.forEach { tab ->
-            val selected = tab == currentTab
-            val textColor by animateColorAsState(if (selected) theme.bgDeep else theme.accentBright, label = "tabColor")
-            val tabShape = RoundedCornerShape(14.dp)
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(tabShape)
-                    .background(
-                        if (selected) Brush.verticalGradient(listOf(theme.accentBright, theme.accentGold))
-                        else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
-                    )
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onTabSelected(tab) }
-                    .padding(vertical = 3.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Image(painter = painterResource(id = tab.iconRes), contentDescription = tab.label(s), modifier = Modifier.size(31.dp))
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = tab.label(s),
-                    fontFamily = SakinaHeadingFont,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 9.5.sp,
-                    lineHeight = 11.sp,
-                    color = textColor,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                )
+        LiquidDynamicDock(
+            selectedIndex = currentTab.ordinal,
+            strings = dockStrings,
+            bodyFontFamily = SakinaBodyFont,
+            onTabSelected = { idx ->
+                val target = SakinaNavTab.entries.getOrElse(idx) { SakinaNavTab.HOME }
+                onTabSelected(target)
             }
-        }
+        )
     }
 }
 

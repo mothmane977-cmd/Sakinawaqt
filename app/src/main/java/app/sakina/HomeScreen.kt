@@ -230,6 +230,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
         mutableStateOf(SakinaLang.entries.firstOrNull { it.code == code } ?: SakinaLang.AR)
     }
     var currentTab by remember { mutableStateOf(SakinaNavTab.HOME) }
+    var useOrbitalHome by remember { mutableStateOf(sp.getBoolean("v33_orbital_home", true)) }
     var extraSection by remember { mutableStateOf(if (openAfterPrayer) ExtraSection.ADHKAR else ExtraSection.NONE) }
     var showRatingDialog by remember { mutableStateOf(SakinaAdvancedPrefs.shouldShowRatingPrompt(ctx)) }
     var adhkarInitCat by remember { mutableStateOf<Int?>(if (openAfterPrayer) 2 else null) }
@@ -346,6 +347,15 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                 }
                                 SakinaDrawerPillItem(R.drawable.ic_after_prayer, sakinaTr(currentLang, "التنبيهات الهادئة", "Quiet Notifications", "Notifications discrètes", "Sessiz Bildirimler", "Notifikasi Tenang", "خاموش اطلاعات")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.NOTIFICATIONS
+                                }
+                                SakinaDrawerPillItem(
+                                    R.drawable.ic_star_ornament,
+                                    if (useOrbitalHome) sakinaTr(currentLang, "التبديل للشاشة الكلاسيكية", "Switch to Classic Home", "Passer à l'accueil classique", "Klasik Ana Ekrana Geç", "Beralih ke Beranda Klasik", "کلاسک ہوم اسکرین")
+                                    else sakinaTr(currentLang, "التبديل للشاشة المدارية ✨", "Switch to Orbital Home ✨", "Passer à l'accueil orbital ✨", "Yörünge Ana Ekranına Geç ✨", "Beralih ke Beranda Orbital ✨", "آربیٹل ہوم اسکرین ✨")
+                                ) {
+                                    useOrbitalHome = !useOrbitalHome
+                                    sp.edit().putBoolean("v33_orbital_home", useOrbitalHome).apply()
+                                    scope.launch { rightDrawerState.close() }
                                 }
                                 SakinaDrawerPillItem(R.drawable.ic_star_ornament, sakinaTr(currentLang, "المظهر والخطوط", "Appearance & Fonts", "Apparence et polices", "Görünüm ve Yazı Tipi", "Tampilan & Font", "ظاہری شکل اور فونٹس")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.APPEARANCE
@@ -517,7 +527,21 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         ExtraSection.NONE -> {
                                             Crossfade(targetState = currentTab, label = "sakina4Tabs") { tab ->
                                                 when (tab) {
-                                                    SakinaNavTab.HOME -> SakinaHomeContent(ctx = ctx)
+                                                    SakinaNavTab.HOME -> SakinaHomeContent(
+                                                        ctx = ctx,
+                                                        useOrbitalHome = useOrbitalHome,
+                                                        onToggleOrbitalHome = {
+                                                            useOrbitalHome = !useOrbitalHome
+                                                            sp.edit().putBoolean("v33_orbital_home", useOrbitalHome).apply()
+                                                        },
+                                                        onOpenLeftDrawer = { scope.launch { leftDrawerState.open() } },
+                                                        onOpenRightDrawer = { scope.launch { rightDrawerState.open() } },
+                                                        onCycleLanguage = {
+                                                            val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
+                                                            currentLang = next
+                                                            sp.edit().putString("app_lang", next.code).apply()
+                                                        }
+                                                    )
                                                     SakinaNavTab.QIBLA -> SakinaQiblaScreen(ctx = ctx)
                                                     SakinaNavTab.QURAN -> SakinaQuranScreen(ctx = ctx)
                                                     SakinaNavTab.CALENDAR -> SakinaCalendarScreen(ctx = ctx)
@@ -526,7 +550,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         }
                                     }
 
-                                    if (extraSection == ExtraSection.NONE) {
+                                    if (extraSection == ExtraSection.NONE && !(currentTab == SakinaNavTab.HOME && useOrbitalHome)) {
                                         // v29 #5: Top-Right Dedicated Golden Settings Gear Icon -> General Settings Drawer
                                         Box(
                                             modifier = Modifier
@@ -1040,7 +1064,14 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
 }
 
 @Composable
-private fun SakinaHomeContent(ctx: Context) {
+private fun SakinaHomeContent(
+    ctx: Context,
+    useOrbitalHome: Boolean = true,
+    onToggleOrbitalHome: () -> Unit = {},
+    onOpenLeftDrawer: () -> Unit = {},
+    onOpenRightDrawer: () -> Unit = {},
+    onCycleLanguage: () -> Unit = {}
+) {
     val theme = LocalSakinaTheme.current
     val s = LocalSakinaStrings.current
     val lang = LocalSakinaLang.current
@@ -1138,6 +1169,151 @@ private fun SakinaHomeContent(ctx: Context) {
         "$dayName، $h · $gregWords"
     }
     val localizedCity = remember(lang, locRefreshTick) { localizeCityName(Place.name(ctx), lang) }
+
+    // v33: Orbital Living Horizon Home Mode (with 1-tap toggle back to Classic Mode)
+    if (useOrbitalHome) {
+        val activeDateKey = remember(dayOffset, minuteBucket) {
+            SakinaAdvancedPrefs.dateKeyForOffset(dayOffset)
+        }
+        val orbitalHijri = remember(viewedCal, s) {
+            val ic = IslamicCalendar().apply {
+                timeInMillis = viewedCal.timeInMillis
+                add(IslamicCalendar.DAY_OF_MONTH, Prefs.hijriOffset(ctx))
+            }
+            val hMonth = s.hijriMonths.getOrElse(ic.get(IslamicCalendar.MONTH).coerceIn(0, 11)) { "" }
+            "${ic.get(IslamicCalendar.DAY_OF_MONTH)} $hMonth ${ic.get(IslamicCalendar.YEAR)}".toWesternDigits()
+        }
+        val arWeekdays = listOf("", "أحد", "إثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت")
+        val dayItems = remember(dayOffset, lang, minuteBucket) {
+            (-1..5).map { dOff ->
+                val dCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, dOff) }
+                val dow = dCal.get(Calendar.DAY_OF_WEEK)
+                val lbl = when (lang) {
+                    SakinaLang.AR -> arWeekdays.getOrElse(dow) { "" }
+                    else -> SimpleDateFormat("EEE", lang.locale).format(dCal.time).replace(".", "").take(3)
+                }
+                val num = SakinaAdvancedPrefs.formatDigits(ctx, "${dCal.get(Calendar.DAY_OF_MONTH)}")
+                DayChipItem(dayLabel = lbl, dayNumber = num, isSelected = dayOffset == dOff)
+            }
+        }
+        val orbitalNodes = remember(rows, activeDateKey, trackerTick) {
+            val types = listOf(PrayerType.FAJR, PrayerType.DHUHR, PrayerType.ASR, PrayerType.MAGHRIB, PrayerType.ISHA)
+            rows.take(5).mapIndexed { idx, r ->
+                val alarmMode = when (r.mode) {
+                    2 -> PrayerAlarmMode.NOTIFICATION
+                    3 -> PrayerAlarmMode.SILENT
+                    else -> PrayerAlarmMode.ADHAN
+                }
+                OrbitalPrayerNode(
+                    type = types[idx],
+                    localizedName = r.displayTitle,
+                    timeText = r.timeText,
+                    isCompleted = SakinaAdvancedPrefs.isPrayerLogged(ctx, activeDateKey, idx),
+                    alarmMode = alarmMode
+                )
+            }
+        }
+        val nawafilOrb = remember(dayOffset, locRefreshTick) { SakinaAdvancedPrefs.computeNawafil(ctx, dayOffset) }
+        val sunriseDate = remember(dayOffset, locRefreshTick) {
+            try { PrayerEngine.events(ctx, dayOffset).firstOrNull { it.first == 1 }?.second } catch (_: Exception) { null }
+        }
+        val orbitalState = SakinaOrbitalHomeState(
+            cityName = localizedCity,
+            hijriDate = orbitalHijri,
+            nextPrayerIndex = if (nextIndexToday >= 0) nextIndexToday else 0,
+            countdownText = SakinaAdvancedPrefs.formatDigits(ctx, countdownText),
+            days = dayItems,
+            prayers = orbitalNodes,
+            imsakTime = SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafilOrb.imsak),
+            sunriseTime = sunriseDate?.let { SakinaAdvancedPrefs.formatPrayerTime(ctx, it) } ?: "--:--",
+            duhaTime = SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafilOrb.duha),
+            midnightTime = SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafilOrb.midnight),
+            tahajjudTime = SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafilOrb.lastThird),
+            languageCode = lang.code.uppercase()
+        )
+        val orbitalStrings = SakinaHomeStrings(
+            appTitle = s.appName,
+            menuDesc = sakinaTr(lang, "القائمة", "Menu", "Menu", "Menü", "Menu", "مینو"),
+            settingsDesc = sakinaTr(lang, "الإعدادات", "Settings", "Paramètres", "Ayarlar", "Pengaturan", "ترتیبات"),
+            todayProgressFormat = sakinaTr(lang, "%d/%d اليوم", "%d/%d Today", "%d/%d Auj.", "%d/%d Bugün", "%d/%d Hari ini", "%d/%d آج"),
+            remainingPrefix = sakinaTr(lang, "المتبقي لصلاة", "Remaining for", "Temps restant :", "Kalan süre:", "Tersisa:", "باقی وقت:"),
+            prayerTimePrefix = sakinaTr(lang, "وقت صلاة", "Time of", "Heure de", "Vakit:", "Waktu", "وقت"),
+            alarmAdhanLabel = sakinaTr(lang, "أذان", "Adhan", "Adhan", "Ezan", "Adzan", "اذان"),
+            alarmNotifLabel = sakinaTr(lang, "إشعار", "Notif", "Notif", "Bildirim", "Notif", "اطلاع"),
+            alarmSilentLabel = sakinaTr(lang, "صامت", "Silent", "Muet", "Sessiz", "Senyap", "خاموش"),
+            imsakLabel = sakinaTr(lang, "الإمساك", "Imsak", "Imsak", "İmsak", "Imsak", "امساک"),
+            sunriseLabel = sakinaTr(lang, "الشروق", "Sunrise", "Lever", "Güneş", "Syuruq", "طلوع"),
+            duhaLabel = sakinaTr(lang, "الضحى", "Duha", "Doha", "Kuşluk", "Dhuha", "چاشت"),
+            midnightLabel = sakinaTr(lang, "منتصف الليل", "Midnight", "Minuit", "Gece Yarısı", "Tengah Malam", "نصف شب"),
+            tahajjudLabel = sakinaTr(lang, "التهجد", "Tahajjud", "Tahajjud", "Teheccüd", "Tahajud", "تہجد"),
+            tabHome = SakinaNavTab.HOME.label(s),
+            tabQibla = SakinaNavTab.QIBLA.label(s),
+            tabQuran = SakinaNavTab.QURAN.label(s),
+            tabCalendar = SakinaNavTab.CALENDAR.label(s)
+        )
+
+        SakinaOrbitalHomeScreen(
+            state = orbitalState,
+            strings = orbitalStrings,
+            headingFontFamily = SakinaHeadingFont,
+            bodyFontFamily = SakinaBodyFont,
+            showBottomDock = false,
+            onMenuClick = onOpenLeftDrawer,
+            onSettingsClick = onOpenRightDrawer,
+            onCityClick = onOpenRightDrawer,
+            onLanguageClick = onCycleLanguage,
+            onToggleClassicLayout = onToggleOrbitalHome,
+            onDaySelected = { idx -> dayOffset = idx - 1 },
+            onTogglePrayerCompleted = { pType ->
+                SakinaAdvancedPrefs.togglePrayerLogged(ctx, activeDateKey, pType.ordinal)
+                trackerTick++
+            },
+            onTodayStatsClick = { showMonthlyStats = true },
+            onCyclePrayerAlarmMode = { pType ->
+                val row = rows.getOrNull(pType.ordinal)
+                if (row != null) {
+                    val nextMode = when (row.mode) { 0, 1 -> 2; 2 -> 3; else -> 0 }
+                    Modes.set(ctx, row.keyNameAr, nextMode)
+                    AlarmScheduler.scheduleNext(ctx)
+                    SakinaLiveNotifier.update(ctx)
+                    modeTick++
+                }
+            }
+        )
+
+        if (showMonthlyStats) {
+            val monthCount = remember(trackerTick) { SakinaAdvancedPrefs.monthlyLoggedCount(ctx) }
+            val monthTarget = remember { Calendar.getInstance().getActualMaximum(Calendar.DAY_OF_MONTH) * 5 }
+            AlertDialog(
+                onDismissRequest = { showMonthlyStats = false },
+                containerColor = theme.bgCard,
+                title = {
+                    Text(
+                        text = sakinaTr(lang, "إحصائيات متابعة الصلوات", "Prayer Tracker Statistics", "Statistiques des prières", "Namaz Takip İstatistikleri", "Statistik Sholat", "نماز کے اعدادوشمار"),
+                        fontFamily = SakinaHeadingFont,
+                        color = theme.accentBright
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = SakinaAdvancedPrefs.formatDigits(ctx, "${sakinaTr(lang, "صلوات اليوم المسجلة:", "Today logged:", "Aujourd'hui :", "Bugün:", "Hari ini:", "آج:")} ${orbitalNodes.count { it.isCompleted }} / 5"),
+                            fontFamily = SakinaBodyFont,
+                            color = SakinaBrandColors.LuminousIvory
+                        )
+                        Text(
+                            text = SakinaAdvancedPrefs.formatDigits(ctx, "${sakinaTr(lang, "إجمالي هذا الشهر:", "This month total:", "Ce mois-ci :", "Bu ay:", "Bulan ini:", "اس ماہ:")} $monthCount / $monthTarget"),
+                            fontFamily = SakinaBodyFont,
+                            fontWeight = FontWeight.Bold,
+                            color = theme.accentBright
+                        )
+                    }
+                },
+                confirmButton = { SakinaBackIconButton(onClick = { showMonthlyStats = false }) }
+            )
+        }
+        return
+    }
 
     Column(
         modifier = Modifier
