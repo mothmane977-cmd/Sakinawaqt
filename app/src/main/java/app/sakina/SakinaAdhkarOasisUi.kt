@@ -168,18 +168,11 @@ fun SakinaAdhkarOasisScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        SakinaOrbitalColors.DeepSpaceNavy,
-                        SakinaOrbitalColors.MidnightNavy,
-                        SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.55f)
-                    )
-                )
-            )
+            .background(SakinaLuxuryPalette.ObsidianNavy)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
+        SakinaAmbientLuxuryBackdrop(showGeometricPattern = true, showStarDust = true)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -348,18 +341,25 @@ private fun LuminousOrbitalTasbihRing(
                     center = center
                 )
 
-                // المسار الدائري الخلفي
-                drawCircle(
-                    color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.20f),
-                    radius = outerR,
-                    center = center,
-                    style = Stroke(width = 3.dp.toPx())
+                drawGlowingGoldOval(
+                    topLeft = Offset(center.x - outerR, center.y - outerR),
+                    size = Size(outerR * 2f, outerR * 2f),
+                    coreStrokePx = 2.6.dp.toPx(),
+                    alphaScale = 0.72f
                 )
 
-                // قوس التقدّم المضيء
+                drawArc(
+                    color = SakinaLuxuryPalette.GoldBright.copy(alpha = 0.32f),
+                    startAngle = -90f,
+                    sweepAngle = 360f * animatedFraction,
+                    useCenter = false,
+                    topLeft = Offset(center.x - outerR, center.y - outerR),
+                    size = Size(outerR * 2f, outerR * 2f),
+                    style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
+                )
                 drawArc(
                     brush = Brush.sweepGradient(
-                        colors = listOf(SakinaOrbitalColors.ChampagneGold, SakinaOrbitalColors.SoftGoldGlow, SakinaOrbitalColors.ChampagneGold)
+                        colors = listOf(SakinaLuxuryPalette.GoldRich, SakinaLuxuryPalette.GoldSpecular, SakinaLuxuryPalette.GoldBright)
                     ),
                     startAngle = -90f,
                     sweepAngle = 360f * animatedFraction,
@@ -369,26 +369,41 @@ private fun LuminousOrbitalTasbihRing(
                     style = Stroke(width = 3.8.dp.toPx(), cap = StrokeCap.Round)
                 )
 
-                // مسار الخرزات الداخلية
                 drawCircle(
-                    color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.16f),
+                    color = SakinaLuxuryPalette.EmeraldGlow.copy(alpha = 0.22f),
                     radius = innerR,
                     center = center,
-                    style = Stroke(width = 1.dp.toPx())
+                    style = Stroke(width = 5.dp.toPx())
+                )
+                drawCircle(
+                    color = SakinaLuxuryPalette.EmeraldGlow.copy(alpha = 0.78f),
+                    radius = innerR,
+                    center = center,
+                    style = Stroke(width = 1.4.dp.toPx())
                 )
 
-                // خرزات التسبيح المضيئة
                 val beads = tasbih.target.coerceIn(12, 33)
                 for (i in 0 until beads) {
                     val angle = (-PI / 2.0) + (i.toDouble() / beads) * (2.0 * PI)
                     val bx = center.x + (cos(angle) * outerR).toFloat()
                     val by = center.y + (sin(angle) * outerR).toFloat()
                     val lit = i < tasbih.count
-                    drawCircle(
-                        color = if (lit) SakinaOrbitalColors.SoftGoldGlow else SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.30f),
-                        radius = if (lit) 3.6.dp.toPx() else 2.dp.toPx(),
-                        center = Offset(bx, by)
-                    )
+                    if (lit) {
+                        drawGlowingLuxuryOrb(
+                            center = Offset(bx, by),
+                            coreRadiusPx = 3.2.dp.toPx(),
+                            coreColor = SakinaLuxuryPalette.GoldSpecular,
+                            haloColor = SakinaLuxuryPalette.GoldBright,
+                            haloScale = 2.6f,
+                            intensity = 0.95f
+                        )
+                    } else {
+                        drawCircle(
+                            color = SakinaLuxuryPalette.GoldBright.copy(alpha = 0.34f),
+                            radius = 1.9.dp.toPx(),
+                            center = Offset(bx, by)
+                        )
+                    }
                 }
             }
 
@@ -489,13 +504,19 @@ private fun BentoWorshipPortalGrid(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 pair.forEach { card ->
-                    Surface(
+                    Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { onPortalClick(card.type) },
-                        shape = RoundedCornerShape(18.dp),
-                        color = SakinaOrbitalColors.GlassNavy.copy(alpha = 0.78f),
-                        border = BorderStroke(0.9.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.38f))
+                            .sakinaLuxuryGlassCard(
+                                cornerRadius = 18.dp,
+                                innerHairline = false,
+                                emeraldFlare = card.hasOfflineAudio,
+                                shimmer = false,
+                                borderAlpha = 0.68f
+                            )
+                            .sakinaCornerFiligree(alpha = 0.56f)
+                            .clip(RoundedCornerShape(18.dp))
+                            .clickable { onPortalClick(card.type) }
                     ) {
                         Row(
                             modifier = Modifier

@@ -160,18 +160,11 @@ fun SakinaLunarCalendarScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        SakinaOrbitalColors.DeepSpaceNavy,
-                        SakinaOrbitalColors.MidnightNavy,
-                        SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.52f)
-                    )
-                )
-            )
+            .background(SakinaLuxuryPalette.ObsidianNavy)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
+        SakinaAmbientLuxuryBackdrop(showGeometricPattern = true, showStarDust = true)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -498,11 +491,16 @@ private fun MonthlyCalendarGlassCard(
     onNextMonthClick: () -> Unit,
     onDayClick: (CalendarDayCell) -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        color = SakinaOrbitalColors.GlassNavy.copy(alpha = 0.78f),
-        border = BorderStroke(1.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.35f))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 22.dp,
+                innerHairline = false,
+                emeraldFlare = true,
+                shimmer = false,
+                borderAlpha = 0.65f
+            )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             // شريط التنقل بين الأشهر
@@ -663,11 +661,16 @@ private fun SelectedDayPrayerBar(
         strings.ishaLabel to prayers.isha
     )
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = SakinaOrbitalColors.GlassNavy.copy(alpha = 0.72f),
-        border = BorderStroke(0.8.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.30f))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 20.dp,
+                innerHairline = false,
+                emeraldFlare = false,
+                shimmer = false,
+                borderAlpha = 0.60f
+            )
     ) {
         Row(
             modifier = Modifier
@@ -707,18 +710,14 @@ private fun HadithParchmentCard(
     headingFontFamily: FontFamily,
     bodyFontFamily: FontFamily
 ) {
-    Surface(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 10.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = SakinaOrbitalColors.ChampagneGold,
-                spotColor = SakinaOrbitalColors.ChampagneGold
-            ),
-        shape = RoundedCornerShape(20.dp),
-        color = SakinaOrbitalColors.WarmCream,
-        border = BorderStroke(1.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.6f))
+            .sakinaParchmentGlowCard(
+                cornerRadius = 20.dp,
+                haloAlpha = 0.34f,
+                doubleBorder = true
+            )
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),

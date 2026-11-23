@@ -568,18 +568,11 @@ fun SakinaSpatialQiblaScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        SakinaOrbitalColors.DeepSpaceNavy,
-                        SakinaOrbitalColors.MidnightNavy,
-                        SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.62f)
-                    )
-                )
-            )
+            .background(SakinaLuxuryPalette.ObsidianNavy)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
+        SakinaAmbientLuxuryBackdrop(showGeometricPattern = false, showStarDust = true)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -787,9 +780,22 @@ private fun SpatialHorizonCanvas(
             brush = Brush.horizontalGradient(
                 colors = listOf(
                     Color.Transparent,
-                    SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.7f),
-                    beamColor,
-                    SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.7f),
+                    SakinaLuxuryPalette.EmeraldGlow.copy(alpha = 0.25f),
+                    beamColor.copy(alpha = 0.45f),
+                    SakinaLuxuryPalette.EmeraldGlow.copy(alpha = 0.25f),
+                    Color.Transparent
+                )
+            ),
+            style = Stroke(width = 9.dp.toPx())
+        )
+        drawPath(
+            path = horizonPath,
+            brush = Brush.horizontalGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    SakinaLuxuryPalette.GoldRich.copy(alpha = 0.75f),
+                    SakinaLuxuryPalette.GoldSpecular,
+                    SakinaLuxuryPalette.GoldRich.copy(alpha = 0.75f),
                     Color.Transparent
                 )
             ),
@@ -852,39 +858,112 @@ private fun SpatialHorizonCanvas(
             center = kaabaCenter
         )
 
-        drawLine(
+        val dxBeam = kaabaCenter.x - reticleCenter.x
+        val dyBeam = kaabaCenter.y - reticleCenter.y
+        val beamLen = kotlin.math.hypot(dxBeam.toDouble(), dyBeam.toDouble()).toFloat().coerceAtLeast(1f)
+        val perpX = -dyBeam / beamLen
+        val perpY = dxBeam / beamLen
+        val baseSpread = 16.dp.toPx()
+        val beamCone = Path().apply {
+            moveTo(reticleCenter.x + perpX * baseSpread, reticleCenter.y + perpY * baseSpread)
+            lineTo(kaabaCenter.x, kaabaCenter.y)
+            lineTo(reticleCenter.x - perpX * baseSpread, reticleCenter.y - perpY * baseSpread)
+            close()
+        }
+        drawPath(
+            path = beamCone,
             brush = Brush.linearGradient(
                 colors = listOf(
-                    beamColor.copy(alpha = 0.95f),
-                    beamColor.copy(alpha = 0.65f),
-                    beamColor
+                    beamColor.copy(alpha = 0.22f),
+                    SakinaLuxuryPalette.GoldBright.copy(alpha = 0.36f),
+                    SakinaLuxuryPalette.GoldSpecular.copy(alpha = 0.60f)
                 ),
+                start = reticleCenter,
+                end = kaabaCenter
+            )
+        )
+        val steps = 6
+        for (s in 1 until steps) {
+            val t = s.toFloat() / steps
+            val cx = reticleCenter.x + dxBeam * t
+            val cy = reticleCenter.y + dyBeam * t
+            val halfW = baseSpread * (1f - t)
+            drawLine(
+                color = SakinaLuxuryPalette.GoldSpecular.copy(alpha = 0.45f),
+                start = Offset(cx + perpX * halfW, cy + perpY * halfW),
+                end = Offset(cx - perpX * halfW, cy - perpY * halfW),
+                strokeWidth = 0.9.dp.toPx()
+            )
+            drawGlowingLuxuryOrb(
+                center = Offset(cx, cy),
+                coreRadiusPx = (1.6f + (1f - t) * 1.2f).dp.toPx(),
+                coreColor = SakinaLuxuryPalette.GoldSpecular,
+                haloColor = beamColor,
+                haloScale = 2.6f,
+                intensity = 0.85f
+            )
+        }
+        drawLine(
+            brush = Brush.linearGradient(
+                colors = listOf(beamColor, SakinaLuxuryPalette.GoldSpecular, beamColor),
                 start = reticleCenter,
                 end = kaabaCenter
             ),
             start = reticleCenter,
             end = kaabaCenter,
-            strokeWidth = if (isAligned) 3.4.dp.toPx() else 2.4.dp.toPx(),
+            strokeWidth = if (isAligned) 3.4.dp.toPx() else 2.2.dp.toPx(),
             cap = StrokeCap.Round
         )
 
-        drawKaabaBeacon(center = kaabaCenter, sizePx = 22.dp.toPx(), glowColor = beamColor)
+        drawLuxuryKaabaEmblem(
+            center = kaabaCenter,
+            sizePx = 30.dp.toPx(),
+            withLightPillar = true,
+            pillarHeightPx = 92.dp.toPx(),
+            glowColor = beamColor
+        )
 
-        drawOval(
-            color = beamColor.copy(alpha = 0.72f),
+        drawGlowingGoldOval(
             topLeft = Offset(reticleCenter.x - reticleRx, reticleCenter.y - reticleRy),
             size = Size(reticleRx * 2f, reticleRy * 2f),
-            style = Stroke(width = 1.8.dp.toPx())
+            coreStrokePx = 2.4.dp.toPx(),
+            glowColor = beamColor,
+            alphaScale = 1.0f
         )
         drawOval(
-            color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.28f),
-            topLeft = Offset(reticleCenter.x - reticleRx * 0.68f, reticleCenter.y - reticleRy * 0.68f),
-            size = Size(reticleRx * 1.36f, reticleRy * 1.36f),
+            color = SakinaLuxuryPalette.EmeraldGlow.copy(alpha = 0.48f),
+            topLeft = Offset(reticleCenter.x - reticleRx * 0.84f, reticleCenter.y - reticleRy * 0.84f),
+            size = Size(reticleRx * 1.68f, reticleRy * 1.68f),
+            style = Stroke(width = 1.6.dp.toPx())
+        )
+        drawOval(
+            color = SakinaLuxuryPalette.GoldBright.copy(alpha = 0.36f),
+            topLeft = Offset(reticleCenter.x - reticleRx * 0.64f, reticleCenter.y - reticleRy * 0.64f),
+            size = Size(reticleRx * 1.28f, reticleRy * 1.28f),
             style = Stroke(
-                width = 1.dp.toPx(),
+                width = 1.1.dp.toPx(),
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
             )
         )
+        for (deg in 0 until 360 step 15) {
+            val a = deg * (PI / 180.0)
+            val isMajor = deg % 90 == 0
+            val innerScale = if (isMajor) 0.88f else 0.94f
+            val p1 = Offset(
+                reticleCenter.x + (cos(a) * reticleRx * innerScale).toFloat(),
+                reticleCenter.y + (sin(a) * reticleRy * innerScale).toFloat()
+            )
+            val p2 = Offset(
+                reticleCenter.x + (cos(a) * reticleRx).toFloat(),
+                reticleCenter.y + (sin(a) * reticleRy).toFloat()
+            )
+            drawLine(
+                color = if (isMajor) SakinaLuxuryPalette.GoldSpecular else SakinaLuxuryPalette.GoldBright.copy(alpha = 0.55f),
+                start = p1,
+                end = p2,
+                strokeWidth = if (isMajor) 2.dp.toPx() else 1.dp.toPx()
+            )
+        }
 
         val rad = (deltaDeg - 90f) * (PI / 180.0)
         val dotOnReticle = Offset(
@@ -954,18 +1033,16 @@ private fun UnifiedTelemetryPill(
         QiblaSensorMode.SUN_FALLBACK -> strings.sensorSunLabel
     }
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = SakinaOrbitalColors.GlassNavy,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isStable) {
-                Color(0xFF34D399).copy(alpha = 0.45f)
-            } else {
-                Color(0xFFF59E0B).copy(alpha = 0.65f)
-            }
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 22.dp,
+                innerHairline = false,
+                emeraldFlare = isStable,
+                shimmer = true,
+                borderAlpha = 0.72f
+            )
     ) {
         Row(
             modifier = Modifier

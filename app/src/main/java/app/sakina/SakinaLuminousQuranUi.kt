@@ -273,18 +273,11 @@ fun SakinaLuminousQuranScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        SakinaOrbitalColors.DeepSpaceNavy,
-                        SakinaOrbitalColors.MidnightNavy,
-                        SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.50f)
-                    )
-                )
-            )
+            .background(SakinaLuxuryPalette.ObsidianNavy)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
+        SakinaAmbientLuxuryBackdrop(showGeometricPattern = true, showStarDust = true)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -512,13 +505,18 @@ private fun QuranIndexPortalContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onResumeClick),
-            shape = RoundedCornerShape(18.dp),
-            color = SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.72f),
-            border = BorderStroke(1.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.45f))
+                .sakinaLuxuryGlassCard(
+                    cornerRadius = 18.dp,
+                    innerHairline = false,
+                    emeraldFlare = true,
+                    shimmer = true,
+                    borderAlpha = 0.72f
+                )
+                .clip(RoundedCornerShape(18.dp))
+                .clickable(onClick = onResumeClick)
         ) {
             Row(
                 modifier = Modifier
@@ -627,13 +625,16 @@ private fun QuranIndexPortalContent(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-            shape = RoundedCornerShape(22.dp),
-            color = SakinaOrbitalColors.WarmCream,
-            border = BorderStroke(1.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.55f))
+                .weight(1f)
+                .sakinaParchmentGlowCard(
+                    cornerRadius = 22.dp,
+                    haloAlpha = 0.32f,
+                    doubleBorder = false
+                )
+                .clip(RoundedCornerShape(22.dp))
         ) {
             val filteredSurahs = remember(state.surahs, state.searchQuery) {
                 if (state.searchQuery.isBlank()) state.surahs
@@ -994,19 +995,28 @@ private fun QuranMushafReaderContent(
                 .weight(1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .shadow(
-                        elevation = 14.dp,
-                        shape = RoundedCornerShape(22.dp),
-                        ambientColor = SakinaOrbitalColors.ChampagneGold,
-                        spotColor = SakinaOrbitalColors.ChampagneGold
-                    ),
-                shape = RoundedCornerShape(22.dp),
-                color = pageBg,
-                border = BorderStroke(1.2.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.65f))
+                    .then(
+                        if (isParchment) {
+                            Modifier.sakinaParchmentGlowCard(
+                                cornerRadius = 22.dp,
+                                haloAlpha = 0.36f,
+                                doubleBorder = true
+                            )
+                        } else {
+                            Modifier.sakinaLuxuryGlassCard(
+                                cornerRadius = 22.dp,
+                                innerHairline = true,
+                                emeraldFlare = true,
+                                shimmer = false,
+                                borderAlpha = 0.68f
+                            )
+                        }
+                    )
+                    .clip(RoundedCornerShape(22.dp))
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     // تقليب الصفحات بالسحب الأفقي الحقيقي (HorizontalPager)
@@ -1288,18 +1298,43 @@ private fun VerticalSpineScrubber(
         val fraction = ((currentPage - 1).toFloat() / (totalPages - 1).coerceAtLeast(1)).coerceIn(0f, 1f)
         Canvas(modifier = Modifier.fillMaxSize()) {
             val x = size.width / 2f
+            val topY = 8.dp.toPx()
+            val botY = size.height - 8.dp.toPx()
             drawLine(
-                color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.35f),
-                start = Offset(x, 8.dp.toPx()),
-                end = Offset(x, size.height - 8.dp.toPx()),
+                color = SakinaLuxuryPalette.GoldRich.copy(alpha = 0.25f),
+                start = Offset(x, topY),
+                end = Offset(x, botY),
+                strokeWidth = 5.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+            drawLine(
+                brush = Brush.verticalGradient(
+                    colors = listOf(SakinaLuxuryPalette.GoldDeep, SakinaLuxuryPalette.GoldSpecular, SakinaLuxuryPalette.GoldDeep)
+                ),
+                start = Offset(x, topY),
+                end = Offset(x, botY),
                 strokeWidth = 2.dp.toPx(),
                 cap = StrokeCap.Round
             )
-            val thumbY = 8.dp.toPx() + fraction * (size.height - 16.dp.toPx())
-            drawCircle(
-                color = SakinaOrbitalColors.SoftGoldGlow,
-                radius = 5.5.dp.toPx(),
-                center = Offset(x, thumbY)
+            val ticks = 28
+            for (i in 0..ticks) {
+                val ty = topY + (i.toFloat() / ticks) * (botY - topY)
+                val tw = if (i % 4 == 0) 4.5.dp.toPx() else 2.2.dp.toPx()
+                drawLine(
+                    color = SakinaLuxuryPalette.GoldBright.copy(alpha = 0.45f),
+                    start = Offset(x + 2.dp.toPx(), ty),
+                    end = Offset(x + 2.dp.toPx() + tw, ty),
+                    strokeWidth = 0.8.dp.toPx()
+                )
+            }
+            val thumbY = topY + fraction * (botY - topY)
+            drawGlowingLuxuryOrb(
+                center = Offset(x, thumbY),
+                coreRadiusPx = 5.dp.toPx(),
+                coreColor = SakinaLuxuryPalette.GoldSpecular,
+                haloColor = SakinaLuxuryPalette.GoldBright,
+                haloScale = 2.6f,
+                intensity = 1.0f
             )
         }
     }
@@ -1334,15 +1369,19 @@ private fun KineticWaveMiniPlayer(
         else -> 0f
     }
 
-    Surface(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            .clickable(onClick = onExpandClick),
-        shape = RoundedCornerShape(30.dp),
-        color = SakinaOrbitalColors.DeepEmerald,
-        border = BorderStroke(1.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.55f)),
-        shadowElevation = 10.dp
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 30.dp,
+                innerHairline = false,
+                emeraldFlare = true,
+                shimmer = true,
+                borderAlpha = 0.78f
+            )
+            .clip(RoundedCornerShape(30.dp))
+            .clickable(onClick = onExpandClick)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Box(

@@ -209,33 +209,11 @@ fun SakinaOrbitalHomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        SakinaOrbitalColors.DeepSpaceNavy,
-                        SakinaOrbitalColors.MidnightNavy,
-                        SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.58f)
-                    )
-                )
-            )
-            .drawBehind {
-                val starPoints = listOf(
-                    Offset(size.width * 0.14f, size.height * 0.22f),
-                    Offset(size.width * 0.86f, size.height * 0.19f),
-                    Offset(size.width * 0.78f, size.height * 0.44f),
-                    Offset(size.width * 0.18f, size.height * 0.52f)
-                )
-                starPoints.forEach { pt ->
-                    drawCircle(
-                        color = SakinaOrbitalColors.SoftGoldGlow.copy(alpha = 0.35f),
-                        radius = 2.dp.toPx(),
-                        center = pt
-                    )
-                }
-            }
+            .background(SakinaLuxuryPalette.ObsidianNavy)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
+        SakinaAmbientLuxuryBackdrop(showGeometricPattern = true, showStarDust = true)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -598,48 +576,34 @@ private fun OrbitalPrayerDial(
             )
 
             rotate(degrees = orbitTiltDeg, pivot = center) {
-                drawOval(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.25f),
-                            SakinaOrbitalColors.SoftGoldGlow.copy(alpha = 0.95f),
-                            SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.25f)
-                        )
-                    ),
+                // المدار الخارجي المتوهّج متعدد الطبقات (ذهب مصقول + هالة نورانية)
+                drawGlowingGoldOval(
                     topLeft = Offset(center.x - rxPx, center.y - ryPx),
                     size = Size(rxPx * 2f, ryPx * 2f),
-                    style = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round)
+                    coreStrokePx = 3.2.dp.toPx(),
+                    alphaScale = 1.0f
                 )
-
+                // حلقة مدارية وسطى دقيقة بلمعة ذهبية
+                drawGlowingGoldOval(
+                    topLeft = Offset(center.x - rxPx * 0.82f, center.y - ryPx * 0.82f),
+                    size = Size(rxPx * 1.64f, ryPx * 1.64f),
+                    coreStrokePx = 1.0.dp.toPx(),
+                    alphaScale = 0.45f
+                )
+                // حلقة داخلية خافتة تبرز الكعبة في المركز
                 drawOval(
-                    color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.22f),
-                    topLeft = Offset(center.x - rxPx * 0.84f, center.y - ryPx * 0.84f),
-                    size = Size(rxPx * 1.68f, ryPx * 1.68f),
-                    style = Stroke(width = 0.8.dp.toPx())
+                    color = SakinaLuxuryPalette.GoldBright.copy(alpha = 0.24f),
+                    topLeft = Offset(center.x - rxPx * 0.60f, center.y - ryPx * 0.60f),
+                    size = Size(rxPx * 1.20f, ryPx * 1.20f),
+                    style = Stroke(width = 0.75.dp.toPx())
                 )
             }
 
-            // مجسّم كعبة هندسي بسيط في المركز
-            val kaabaSize = 24.dp.toPx()
-            val kaabaTopLeft = Offset(center.x - kaabaSize / 2f, center.y - kaabaSize / 2f)
-            drawRoundRect(
-                color = SakinaOrbitalColors.DeepSpaceNavy,
-                topLeft = kaabaTopLeft,
-                size = Size(kaabaSize, kaabaSize),
-                cornerRadius = CornerRadius(4.dp.toPx())
-            )
-            drawRoundRect(
-                color = SakinaOrbitalColors.ChampagneGold,
-                topLeft = kaabaTopLeft,
-                size = Size(kaabaSize, kaabaSize),
-                cornerRadius = CornerRadius(4.dp.toPx()),
-                style = Stroke(width = 1.6.dp.toPx())
-            )
-            drawLine(
-                color = SakinaOrbitalColors.SoftGoldGlow,
-                start = Offset(kaabaTopLeft.x + 2.dp.toPx(), kaabaTopLeft.y + kaabaSize * 0.34f),
-                end = Offset(kaabaTopLeft.x + kaabaSize - 2.dp.toPx(), kaabaTopLeft.y + kaabaSize * 0.34f),
-                strokeWidth = 2.dp.toPx()
+            // مجسّم الكعبة المشرفة الفاخر بحزامها الذهبي وهالتها النورانية
+            drawLuxuryKaabaEmblem(
+                center = center,
+                sizePx = 34.dp.toPx(),
+                withLightPillar = false
             )
         }
 
@@ -675,34 +639,30 @@ private fun OrbitalPrayerDial(
                         contentDescription = "${node.localizedName} ${node.timeText}"
                     }
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (isNext || isFocused) {
-                        Box(
-                            modifier = Modifier
-                                .size((18 * pulseScale).dp)
-                                .background(
-                                    SakinaOrbitalColors.SoftGoldGlow.copy(alpha = 0.28f),
-                                    CircleShape
-                                )
+                Box(
+                    modifier = Modifier.size(if (isFocused) 26.dp else 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val orbColor = when {
+                            isFocused -> SakinaLuxuryPalette.GoldSpecular
+                            node.isCompleted -> SakinaLuxuryPalette.EmeraldSpecular
+                            else -> SakinaLuxuryPalette.GoldBright
+                        }
+                        val haloColor = when {
+                            isFocused -> SakinaLuxuryPalette.GoldBright
+                            node.isCompleted -> SakinaLuxuryPalette.EmeraldGlow
+                            else -> SakinaLuxuryPalette.GoldRich
+                        }
+                        drawGlowingLuxuryOrb(
+                            center = Offset(size.width / 2f, size.height / 2f),
+                            coreRadiusPx = (if (isFocused) 5.5f * pulseScale else 3.8f).dp.toPx(),
+                            coreColor = orbColor,
+                            haloColor = haloColor,
+                            haloScale = if (isFocused) 2.8f else 2.2f,
+                            intensity = if (isFocused || isNext) 1.0f else 0.78f
                         )
                     }
-                    Box(
-                        modifier = Modifier
-                            .size(if (isFocused) 14.dp else 10.dp)
-                            .background(
-                                color = when {
-                                    isFocused -> SakinaOrbitalColors.SoftGoldGlow
-                                    node.isCompleted -> SakinaOrbitalColors.DeepEmerald
-                                    else -> SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.85f)
-                                },
-                                shape = CircleShape
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.7f),
-                                shape = CircleShape
-                            )
-                    )
                 }
 
                 Spacer(modifier = Modifier.height(2.dp))
@@ -759,20 +719,16 @@ private fun FocalSpotlightCard(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.BottomCenter
     ) {
-        Surface(
+        Box(
             modifier = Modifier
                 .widthIn(max = 320.dp)
                 .fillMaxWidth(0.86f)
                 .padding(bottom = 20.dp)
-                .shadow(
-                    elevation = 16.dp,
-                    shape = RoundedCornerShape(24.dp),
-                    ambientColor = SakinaOrbitalColors.ChampagneGold,
-                    spotColor = SakinaOrbitalColors.ChampagneGold
-                ),
-            shape = RoundedCornerShape(24.dp),
-            color = SakinaOrbitalColors.WarmCream,
-            border = BorderStroke(1.2.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.7f))
+                .sakinaParchmentGlowCard(
+                    cornerRadius = 24.dp,
+                    haloAlpha = 0.36f,
+                    doubleBorder = true
+                )
         ) {
             Column(
                 modifier = Modifier.padding(top = 12.dp, bottom = 26.dp, start = 16.dp, end = 16.dp),
@@ -947,14 +903,17 @@ fun LiquidDynamicDock(
 ) {
     val labels = listOf(strings.tabHome, strings.tabQibla, strings.tabQuran, strings.tabCalendar)
 
-    Surface(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(62.dp),
-        shape = RoundedCornerShape(31.dp),
-        color = SakinaOrbitalColors.GlassNavy,
-        border = BorderStroke(1.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.38f)),
-        shadowElevation = 12.dp
+            .height(64.dp)
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 32.dp,
+                innerHairline = false,
+                emeraldFlare = false,
+                shimmer = true,
+                borderAlpha = 0.78f
+            )
     ) {
         Row(
             modifier = Modifier

@@ -201,18 +201,11 @@ fun SakinaControlSettingsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        SakinaOrbitalColors.DeepSpaceNavy,
-                        SakinaOrbitalColors.MidnightNavy,
-                        SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.45f)
-                    )
-                )
-            )
+            .background(SakinaLuxuryPalette.ObsidianNavy)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
+        SakinaAmbientLuxuryBackdrop(showGeometricPattern = true, showStarDust = false)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -528,13 +521,18 @@ private fun LiveReliabilityPulseCard(
     )
     val accent = if (diagnostics.isFullyReady) Color(0xFF34D399) else Color(0xFFFBBF24)
 
-    Surface(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(22.dp),
-        color = SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.65f),
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 22.dp,
+                innerHairline = false,
+                emeraldFlare = true,
+                shimmer = true,
+                borderAlpha = 0.72f
+            )
+            .clip(RoundedCornerShape(22.dp))
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier
@@ -579,10 +577,23 @@ private fun LiveReliabilityPulseCard(
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val stroke = 4.5.dp.toPx()
+                    val stroke = 5.dp.toPx()
                     drawCircle(
-                        color = accent.copy(alpha = 0.2f),
+                        brush = Brush.radialGradient(
+                            colors = listOf(accent.copy(alpha = 0.28f), Color.Transparent)
+                        ),
+                        radius = size.minDimension * 0.56f
+                    )
+                    drawCircle(
+                        color = accent.copy(alpha = 0.22f),
                         style = Stroke(stroke)
+                    )
+                    drawArc(
+                        color = accent.copy(alpha = 0.30f),
+                        startAngle = -90f,
+                        sweepAngle = 360f * progressAnim,
+                        useCenter = false,
+                        style = Stroke(stroke * 2.4f, cap = StrokeCap.Round)
                     )
                     drawArc(
                         color = accent,
@@ -615,14 +626,16 @@ private fun ExpandableControlModule(
     onHeaderClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = SakinaOrbitalColors.GlassNavy.copy(alpha = 0.78f),
-        border = BorderStroke(
-            width = 0.9.dp,
-            color = if (isExpanded) SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.65f) else SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.28f)
-        )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 18.dp,
+                innerHairline = true,
+                emeraldFlare = true,
+                shimmer = isExpanded,
+                borderAlpha = if (isExpanded) 0.85f else 0.58f
+            )
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
