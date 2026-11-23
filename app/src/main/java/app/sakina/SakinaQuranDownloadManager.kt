@@ -5,22 +5,15 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.work.Constraints
-import androidx.work.CoroutineWorker
-import androidx.work.Data
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.WorkerParameters
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
@@ -39,14 +32,18 @@ data class QuranReciter(
 }
 
 /**
- * v32: Permanent On-Demand Surah Download Manager (filesDir + WorkManager + Atomic tmp->renameTo)
- * with instant 0ms Surah MB sizes and automatic Reciter filtering by Riwaya (Hafs / Warsh).
+ * v32.1: Instant-start Permanent Surah Download Manager (filesDir + Atomic tmp->renameTo)
+ * - Runs immediately on Dispatchers.IO (bypasses Xiaomi HyperOS WorkManager/JobScheduler deferral!)
+ * - Supports automatic fallback mirrors + clean error state (never stalls at 2%).
+ * - Preserves permanent storage in context.filesDir/quran_audio/{reciterId}/{001..114}.mp3.
  */
 object SakinaQuranDownloadManager {
 
     private const val PREFS_NAME = "sakina_quran_audio_prefs"
     private const val KEY_RECITER_HAFS = "reciter_hafs"
     private const val KEY_RECITER_WARSH = "reciter_warsh"
+
+    private val dlScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var catalogLoaded = false
     private var catalogReciters: List<QuranReciter> = emptyList()
@@ -55,11 +52,14 @@ object SakinaQuranDownloadManager {
     private val _downloads = MutableStateFlow<Map<String, Float>>(emptyMap())
     val downloads: StateFlow<Map<String, Float>> = _downloads.asStateFlow()
 
-    // Incremented whenever a file finishes downloading or is deleted so Compose refreshes storage state
+    // Key format: "$reciterId:$surahNum" -> error message if download failed
+    private val _errors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val errors: StateFlow<Map<String, String>> = _errors.asStateFlow()
+
+    // Incremented whenever a file finishes downloading or is deleted so Compose refreshes immediately
     private val _storageVersion = MutableStateFlow(0)
     val storageVersion: StateFlow<Int> = _storageVersion.asStateFlow()
 
-    // Dynamic HEAD size cache for reciters/surahs missing from static JSON
     private val dynamicSizeCache = mutableMapOf<String, Double>()
 
     private fun defaultReciters(): List<QuranReciter> = listOf(
@@ -196,19 +196,33 @@ object SakinaQuranDownloadManager {
     fun isSurahReadyOffline(context: Context, reciterId: String, surahNum: Int): Boolean =
         isDownloadedOnDisk(context, reciterId, surahNum) || hasBundledRaw(context, reciterId, surahNum)
 
-    fun surahUrl(reciter: QuranReciter, surahNum: Int): String {
+    private fun candidateUrls(reciter: QuranReciter, surahNum: Int): List<String> {
         val padded = surahNum.toString().padStart(3, '0')
-        return "${reciter.serverUrl}$padded.mp3"
+        val list = mutableListOf("${reciter.serverUrl}$padded.mp3")
+        when (reciter.id) {
+            "afasy" -> list.add("https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/$padded.mp3")
+            "husary" -> list.add("https://download.quranicaudio.com/quran/mahmood_khaleel_al-husaree/$padded.mp3")
+            "basit" -> list.add("https://download.quranicaudio.com/quran/abdul_basit_murattal/$padded.mp3")
+            "qazabri_warsh" -> {
+                list.add("https://server9.mp3quran.net/omar_warsh/$padded.mp3")
+                list.add("https://download.quranicaudio.com/quran/abdulbaset_warsh/$padded.mp3")
+            }
+            "koshi_warsh" -> {
+                list.add("https://server11.mp3quran.net/koshi/$padded.mp3")
+                list.add("https://download.quranicaudio.com/quran/abdulbaset_warsh/$padded.mp3")
+            }
+            "yassin_warsh" -> {
+                list.add("https://server11.mp3quran.net/qari/$padded.mp3")
+                list.add("https://download.quranicaudio.com/quran/abdulbaset_warsh/$padded.mp3")
+            }
+        }
+        return list.distinct()
     }
 
-    /**
-     * Instant 0ms size lookup in MB from pre-bundled catalog (or realistic fallback from Ayah count).
-     */
     fun getSurahSizeMb(reciter: QuranReciter, surahNum: Int, ayahCountFallback: Int = 20): Double {
         val key = "${reciter.id}:$surahNum"
         dynamicSizeCache[key]?.let { if (it > 0.05) return it }
         reciter.sizesMb[surahNum]?.let { if (it > 0.05) return it }
-        // Clean proportional fallback (~0.17 MB per ayah on average for 64–96 kbps MP3)
         return (ayahCountFallback * 0.17).coerceAtLeast(0.3)
     }
 
@@ -232,26 +246,113 @@ object SakinaQuranDownloadManager {
         val key = downloadKey(reciter.id, surahNum)
         if (_downloads.value.containsKey(key)) return
 
-        _downloads.update { it + (key to 0.02f) }
+        val appCtx = context.applicationContext
+        _errors.update { it - key }
+        _downloads.update { it + (key to 0.01f) }
 
-        val data = Data.Builder()
-            .putString(SakinaQuranDownloadWorker.KEY_RECITER_ID, reciter.id)
-            .putString(SakinaQuranDownloadWorker.KEY_URL, surahUrl(reciter, surahNum))
-            .putInt(SakinaQuranDownloadWorker.KEY_SURAH_NUM, surahNum)
-            .putString(SakinaQuranDownloadWorker.KEY_SURAH_NAME, surahNameAr)
-            .build()
+        dlScope.launch {
+            val finalFile = permanentFile(appCtx, reciter.id, surahNum)
+            finalFile.parentFile?.mkdirs()
+            val tmpFile = File(finalFile.parentFile, "${finalFile.nameWithoutExtension}.tmp")
 
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
+            val nm = appCtx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val chId = "sakina_quran_downloads"
+            if (Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(
+                    NotificationChannel(chId, "تحميل السور القرآنية", NotificationManager.IMPORTANCE_LOW).apply {
+                        setSound(null, null)
+                    }
+                )
+            }
+            val notifId = 8200 + surahNum
 
-        val req = OneTimeWorkRequestBuilder<SakinaQuranDownloadWorker>()
-            .setInputData(data)
-            .setConstraints(constraints)
-            .build()
+            fun postNotif(pct: Int, done: Boolean = false) {
+                try {
+                    val b = NotificationCompat.Builder(appCtx, chId)
+                        .setSmallIcon(R.drawable.ic_stat_sakina)
+                        .setColor(0xFFC69C53.toInt())
+                        .setContentTitle(if (done) "تم حفظ سورة $surahNameAr أوفلاين ✓" else "جاري تحميل سورة $surahNameAr")
+                        .setContentText(if (done) "جاهزة للاستماع بدون إنترنت" else "$pct%")
+                        .setOnlyAlertOnce(true)
+                        .setOngoing(!done)
+                        .setAutoCancel(done)
+                    if (!done) b.setProgress(100, pct, pct == 0)
+                    nm.notify(notifId, b.build())
+                } catch (_: Exception) {}
+            }
 
-        WorkManager.getInstance(context.applicationContext)
-            .enqueueUniqueWork("sakina_dl_$key", ExistingWorkPolicy.KEEP, req)
+            var success = false
+            for (urlStr in candidateUrls(reciter, surahNum)) {
+                var conn: HttpURLConnection? = null
+                try {
+                    postNotif(0)
+                    conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
+                        connectTimeout = 15_000
+                        readTimeout = 25_000
+                        setRequestProperty("User-Agent", "Mozilla/5.0 (Android; SakinaApp/32)")
+                        instanceFollowRedirects = true
+                    }
+                    val code = conn.responseCode
+                    if (code !in 200..299) {
+                        conn.disconnect()
+                        continue
+                    }
+
+                    val totalBytes = conn.contentLengthLong
+                    var downloaded = 0L
+                    var lastPct = -1
+
+                    conn.inputStream.use { input ->
+                        FileOutputStream(tmpFile).use { output ->
+                            val buf = ByteArray(16 * 1024)
+                            while (true) {
+                                val read = input.read(buf)
+                                if (read <= 0) break
+                                output.write(buf, 0, read)
+                                downloaded += read
+                                val frac = if (totalBytes > 0L) {
+                                    (downloaded.toFloat() / totalBytes.toFloat()).coerceIn(0.02f, 0.99f)
+                                } else {
+                                    (downloaded.toFloat() / (1024f * 1024f * 2f)).coerceIn(0.05f, 0.90f)
+                                }
+                                val pct = (frac * 100).toInt()
+                                if (pct >= lastPct + 2) {
+                                    lastPct = pct
+                                    _downloads.update { it + (key to frac) }
+                                    postNotif(pct)
+                                }
+                            }
+                            output.flush()
+                        }
+                    }
+
+                    if (tmpFile.exists() && tmpFile.length() > 4096L) {
+                        if (finalFile.exists()) finalFile.delete()
+                        if (tmpFile.renameTo(finalFile)) {
+                            val mb = finalFile.length().toDouble() / (1024.0 * 1024.0)
+                            dynamicSizeCache[key] = mb
+                            _downloads.update { it - key }
+                            _storageVersion.update { it + 1 }
+                            postNotif(100, done = true)
+                            success = true
+                            break
+                        }
+                    }
+                    tmpFile.delete()
+                } catch (_: Exception) {
+                    tmpFile.delete()
+                } finally {
+                    try { conn?.disconnect() } catch (_: Exception) {}
+                }
+            }
+
+            if (!success) {
+                tmpFile.delete()
+                _downloads.update { it - key }
+                _errors.update { it + (key to "تعذّر التحميل · تحقق من الإنترنت") }
+                try { nm.cancel(notifId) } catch (_: Exception) {}
+            }
+        }
     }
 
     fun deleteDownloadedSurah(context: Context, reciterId: String, surahNum: Int): Boolean {
@@ -261,137 +362,5 @@ object SakinaQuranDownloadManager {
             _storageVersion.update { it + 1 }
         }
         return ok
-    }
-
-    internal fun reportProgress(key: String, progress: Float) {
-        _downloads.update { it + (key to progress.coerceIn(0f, 1f)) }
-    }
-
-    internal fun reportFinished(key: String, success: Boolean, sizeMb: Double = 0.0) {
-        if (sizeMb > 0.05) dynamicSizeCache[key] = sizeMb
-        _downloads.update { it - key }
-        if (success) {
-            _storageVersion.update { it + 1 }
-        }
-    }
-}
-
-/**
- * Background CoroutineWorker ensuring long Surahs (e.g. Al-Baqarah) finish downloading
- * even if the screen locks or user switches apps, using atomic .tmp -> .mp3 rename.
- */
-class SakinaQuranDownloadWorker(
-    appContext: Context,
-    params: WorkerParameters
-) : CoroutineWorker(appContext, params) {
-
-    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        val reciterId = inputData.getString(KEY_RECITER_ID) ?: return@withContext Result.failure()
-        val urlStr = inputData.getString(KEY_URL) ?: return@withContext Result.failure()
-        val surahNum = inputData.getInt(KEY_SURAH_NUM, 0)
-        val surahName = inputData.getString(KEY_SURAH_NAME) ?: "سورة $surahNum"
-        if (surahNum <= 0) return@withContext Result.failure()
-
-        val dlKey = SakinaQuranDownloadManager.downloadKey(reciterId, surahNum)
-        val finalFile = SakinaQuranDownloadManager.permanentFile(applicationContext, reciterId, surahNum)
-        finalFile.parentFile?.mkdirs()
-        val tmpFile = File(finalFile.parentFile, "${finalFile.nameWithoutExtension}.tmp")
-
-        val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val chId = "sakina_quran_downloads"
-        if (Build.VERSION.SDK_INT >= 26) {
-            nm.createNotificationChannel(
-                NotificationChannel(chId, "تحميل السور القرآنية", NotificationManager.IMPORTANCE_LOW).apply {
-                    setSound(null, null)
-                }
-            )
-        }
-        val notifId = 8200 + surahNum
-
-        fun postNotif(pct: Int, done: Boolean = false) {
-            try {
-                val b = NotificationCompat.Builder(applicationContext, chId)
-                    .setSmallIcon(R.drawable.ic_stat_sakina)
-                    .setColor(0xFFC69C53.toInt())
-                    .setContentTitle(if (done) "تم حفظ سورة $surahName أوفلاين ✓" else "جاري تحميل سورة $surahName")
-                    .setContentText(if (done) "جاهزة للاستماع بدون إنترنت" else "$pct%")
-                    .setOnlyAlertOnce(true)
-                    .setOngoing(!done)
-                    .setAutoCancel(done)
-                if (!done) b.setProgress(100, pct, pct == 0)
-                nm.notify(notifId, b.build())
-            } catch (_: Exception) {}
-        }
-
-        var conn: HttpURLConnection? = null
-        try {
-            postNotif(0)
-            conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 20_000
-                readTimeout = 30_000
-                setRequestProperty("User-Agent", "SakinaApp/32")
-                instanceFollowRedirects = true
-            }
-            if (conn.responseCode !in 200..299) {
-                SakinaQuranDownloadManager.reportFinished(dlKey, false)
-                nm.cancel(notifId)
-                return@withContext Result.retry()
-            }
-
-            val totalBytes = conn.contentLengthLong
-            var downloaded = 0L
-            var lastReportedPct = -1
-
-            conn.inputStream.use { input ->
-                FileOutputStream(tmpFile).use { output ->
-                    val buf = ByteArray(16 * 1024)
-                    while (true) {
-                        val read = input.read(buf)
-                        if (read <= 0) break
-                        output.write(buf, 0, read)
-                        downloaded += read
-                        if (totalBytes > 0L) {
-                            val frac = (downloaded.toFloat() / totalBytes.toFloat()).coerceIn(0f, 0.99f)
-                            val pct = (frac * 100).toInt()
-                            if (pct >= lastReportedPct + 3) {
-                                lastReportedPct = pct
-                                SakinaQuranDownloadManager.reportProgress(dlKey, frac)
-                                postNotif(pct)
-                            }
-                        }
-                    }
-                    output.flush()
-                }
-            }
-
-            if (tmpFile.exists() && tmpFile.length() > 4096L) {
-                if (finalFile.exists()) finalFile.delete()
-                val renamed = tmpFile.renameTo(finalFile)
-                if (renamed) {
-                    val mb = finalFile.length().toDouble() / (1024.0 * 1024.0)
-                    SakinaQuranDownloadManager.reportFinished(dlKey, true, mb)
-                    postNotif(100, done = true)
-                    return@withContext Result.success()
-                }
-            }
-            tmpFile.delete()
-            SakinaQuranDownloadManager.reportFinished(dlKey, false)
-            nm.cancel(notifId)
-            Result.failure()
-        } catch (_: Exception) {
-            tmpFile.delete()
-            SakinaQuranDownloadManager.reportFinished(dlKey, false)
-            nm.cancel(notifId)
-            Result.retry()
-        } finally {
-            try { conn?.disconnect() } catch (_: Exception) {}
-        }
-    }
-
-    companion object {
-        const val KEY_RECITER_ID = "reciter_id"
-        const val KEY_URL = "url"
-        const val KEY_SURAH_NUM = "surah_num"
-        const val KEY_SURAH_NAME = "surah_name"
     }
 }
