@@ -874,6 +874,7 @@ private fun OctagonalNumberBadge(number: Int, bodyFontFamily: FontFamily) {
 // ============================================================================
 // 4. قارئ المصحف المضيء (HorizontalPager + Spine Scrubber + فصل حفص/ورش)
 // ============================================================================
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun QuranMushafReaderContent(
     state: SakinaQuranScreenState,
@@ -1013,7 +1014,8 @@ private fun QuranMushafReaderContent(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
-                    ) { _ ->
+                    ) { pageIndex ->
+                        val ayahsForThisPage = pageAyahsProvider(pageIndex + 1)
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()

@@ -350,94 +350,138 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
     val dailyHadith = remember(selectedCal, hijriCal) { selectHadithForDate(selectedCal, hijriCal) }
     val isArabicOrUrdu = lang == SakinaLang.AR || lang == SakinaLang.UR
 
-    // #5: Shifted down (top = 56.dp) so the top cartouche sits well below the Mihrab arch,
-    // and added breathing room between the cartouche and the Calendar card while keeping the bottom anchored cleanly above the nav bar!
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(start = 14.dp, end = 14.dp, top = 54.dp, bottom = 78.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        SakinaOrnamentCartouche(contentPadding = PaddingValues(horizontal = 28.dp, vertical = 6.dp)) {
-            Text(
-                text = dynamicCalTitle,
-                fontFamily = SakinaEditorialFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.5.sp,
-                color = theme.accentBright,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
+    // v36: Wire Astronomical Moon-Phase & Glassmorphic Lunar Calendar UI
+    val monthCells = remember(isHijriMode, monthOffset, daysInMonth, firstDayOfWeek, todayDayNum, hijriOffsetDays, lang) {
+        val cells = mutableListOf<CalendarDayCell>()
+        repeat(firstDayOfWeek) {
+            cells.add(CalendarDayCell(dayNumber = 0, isCurrentMonth = false))
         }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Hijri (default) <-> Gregorian toggle pill
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(32.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xEE041218))
-                .border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
-                .padding(3.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            listOf(
-                true to sakinaTr(lang, "التقويم الهجري", "Hijri", "Hégirien", "Hicri", "Hijriah", "ہجری"),
-                false to sakinaTr(lang, "التقويم الميلادي", "Gregorian", "Grégorien", "Miladi", "Masehi", "عیسوی")
-            ).forEach { (hijriChoice, lbl) ->
-                val sel = isHijriMode == hijriChoice
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(if (sel) Brush.verticalGradient(listOf(theme.accentBright, theme.accentGold)) else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent)))
-                        .clickable {
-                            if (isHijriMode != hijriChoice) {
-                                isHijriMode = hijriChoice
-                                monthOffset = 0
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = lbl,
-                        fontFamily = SakinaHeadingFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.5.sp,
-                        color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory
-                    )
-                }
+        for (d in 1..daysInMonth) {
+            val cellCal = if (isHijriMode) {
+                val ic = (baseHijri.clone() as IslamicCalendar).apply { set(IslamicCalendar.DAY_OF_MONTH, d) }
+                Calendar.getInstance().apply { timeInMillis = ic.timeInMillis; add(Calendar.DAY_OF_YEAR, -hijriOffsetDays) }
+            } else {
+                (baseGreg.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, d) }
             }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // v28 #04: Monthly Imsakiyah Button + PNG Share Dialog
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Brush.horizontalGradient(listOf(Color(0xFF0A3D30), Color(0xFF145343))))
-                .border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
-                .clickable { showImsakiyah = true }
-                .padding(vertical = 7.dp, horizontal = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = sakinaTr(lang, "📅 عرض الإمساكية الشهرية الكاملة · مشاركة كصورة PNG", "📅 Full Monthly Timetable · Share as PNG", "📅 Calendrier mensuel complet · Partager en PNG", "📅 Aylık İmsakiye · PNG Paylaş", "📅 Jadwal Bulanan Lengkap · Bagikan PNG", "📅 مکمل ماہانہ امساکیہ · PNG شیئر کریں"),
-                fontFamily = SakinaHeadingFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.5.sp,
-                color = theme.accentBright
+            val cellHijri = IslamicCalendar().apply {
+                timeInMillis = cellCal.timeInMillis
+                add(IslamicCalendar.DAY_OF_MONTH, hijriOffsetDays)
+            }
+            val hM = cellHijri.get(IslamicCalendar.MONTH)
+            val hD = cellHijri.get(IslamicCalendar.DAY_OF_MONTH)
+            val isFri = cellCal.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY
+            val isWhite = hD in 13..15
+            val occ: String? = when {
+                hM == IslamicCalendar.MUHARRAM && hD == 1 -> sakinaTr(lang, "رأس السنة الهجرية", "Islamic New Year", "Nouvel An Hégirien", "Hicri Yılbaşı", "Tahun Baru Hijriah", "نیا ہجری سال")
+                hM == IslamicCalendar.MUHARRAM && hD == 10 -> sakinaTr(lang, "يوم عاشوراء", "Day of Ashura", "Jour d'Achoura", "Aşure Günü", "Hari Asyura", "یوم عاشورہ")
+                hM == IslamicCalendar.RAMADAN && hD == 1 -> sakinaTr(lang, "بداية شهر رمضان", "Start of Ramadan", "Début du Ramadan", "Ramazan Başlangıcı", "Awal Ramadan", "آغازِ رمضان")
+                hM == IslamicCalendar.RAMADAN && hD == 27 -> sakinaTr(lang, "ليلة 27 رمضان", "27th of Ramadan", "27e nuit de Ramadan", "Kadir Gecesi", "Malam 27 Ramadan", "27 رمضان")
+                hM == IslamicCalendar.SHAWWAL && hD == 1 -> sakinaTr(lang, "عيد الفطر المبارك", "Eid al-Fitr", "Aïd al-Fitr", "Ramazan Bayramı", "Idul Fitri", "عید الفطر")
+                hM == IslamicCalendar.DHU_AL_HIJJAH && hD == 9 -> sakinaTr(lang, "يوم عرفة", "Day of Arafah", "Jour d'Arafat", "Arefe Günü", "Hari Arafah", "یوم عرفہ")
+                hM == IslamicCalendar.DHU_AL_HIJJAH && hD == 10 -> sakinaTr(lang, "عيد الأضحى المبارك", "Eid al-Adha", "Aïd al-Adha", "Kurban Bayramı", "Idul Adha", "عید الاضحیٰ")
+                else -> null
+            }
+            cells.add(
+                CalendarDayCell(
+                    dayNumber = d,
+                    isCurrentMonth = true,
+                    isToday = monthOffset == 0 && d == todayDayNum,
+                    isFriday = isFri,
+                    isWhiteDay = isWhite,
+                    hasOccasion = occ != null,
+                    occasionName = occ
+                )
             )
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        cells
+    }
+
+    val monthHeaderLabel = remember(isHijriMode, baseHijri, baseGreg, s, lang) {
+        if (isHijriMode) {
+            val mName = s.hijriMonths.getOrElse(baseHijri.get(IslamicCalendar.MONTH).coerceIn(0, 11)) { "" }
+            "$mName ${baseHijri.get(IslamicCalendar.YEAR)} $hijriSuffix".toWesternDigits()
+        } else {
+            SimpleDateFormat("MMMM yyyy", lang.locale).format(baseGreg.time).toWesternDigits()
+        }
+    }
+
+    val prayerSummary = remember(dayPrayers) {
+        fun fmt(idx: Int): String = dayPrayers.getOrNull(idx)?.second?.let { SakinaAdvancedPrefs.formatPrayerTime(ctx, it) } ?: "--:--"
+        DayPrayerSummary(
+            fajr = fmt(0),
+            dhuhr = fmt(1),
+            asr = fmt(2),
+            maghrib = fmt(3),
+            isha = fmt(4)
+        )
+    }
+
+    val weekdayHdrs = when (lang) {
+        SakinaLang.AR -> listOf("السبت", "الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة")
+        SakinaLang.FR -> listOf("Sam", "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven")
+        SakinaLang.TR -> listOf("Cmt", "Paz", "Pzt", "Sal", "Çar", "Per", "Cum")
+        SakinaLang.ID -> listOf("Sab", "Min", "Sen", "Sel", "Rab", "Kam", "Jum")
+        SakinaLang.UR -> listOf("ہفتہ", "اتوار", "پیر", "منگل", "بدھ", "جمعرات", "جمعہ")
+        else -> listOf("Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri")
+    }
+
+    val calStrings = SakinaCalendarStrings(
+        screenTitle = dynamicCalTitle,
+        hijriModeLabel = sakinaTr(lang, "هجري", "Hijri", "Hégirien", "Hicri", "Hijriah", "ہجری"),
+        gregorianModeLabel = sakinaTr(lang, "ميلادي", "Gregorian", "Grégorien", "Miladi", "Masehi", "عیسوی"),
+        sharePngLabel = "PNG",
+        weekdayHeaders = weekdayHdrs,
+        fajrLabel = SakinaAdvancedPrefs.displayPrayerName(ctx, lang, 0, false),
+        dhuhrLabel = SakinaAdvancedPrefs.displayPrayerName(ctx, lang, 1, false),
+        asrLabel = SakinaAdvancedPrefs.displayPrayerName(ctx, lang, 2, false),
+        maghribLabel = SakinaAdvancedPrefs.displayPrayerName(ctx, lang, 3, false),
+        ishaLabel = SakinaAdvancedPrefs.displayPrayerName(ctx, lang, 4, false),
+        whiteDayBadge = sakinaTr(lang, "من الأيام البيض", "White Days (Fasting)", "Jours Blancs", "Eyyam-ı Biyd", "Puasa Ayyamul Bidh", "ایام بیض"),
+        hadithCardTitle = sakinaTr(lang, "حديث اليوم", "Hadith of the Day", "Hadith du jour", "Günün Hadisi", "Hadits Hari Ini", "آج کی حدیث"),
+        moonPhaseWaxingCrescent = sakinaTr(lang, "هلال متزايد", "Waxing Crescent", "Premier croissant", "Hilal", "Sabit Awal", "بڑھتا ہلال"),
+        moonPhaseFirstQuarter = sakinaTr(lang, "تربيع أول", "First Quarter", "Premier quartier", "İlk Dördün", "Perbani Awal", "تربیع اول"),
+        moonPhaseWaxingGibbous = sakinaTr(lang, "أحدب متزايد", "Waxing Gibbous", "Gibbeuse croissante", "Şişkin Ay", "Cembung Awal", "بڑھتا چاند"),
+        moonPhaseFullMoon = sakinaTr(lang, "بدر مكتمل", "Full Moon", "Pleine lune", "Dolunay", "Purnama", "پورا چاند"),
+        moonPhaseWaningGibbous = sakinaTr(lang, "أحدب متناقص", "Waning Gibbous", "Gibbeuse décroissante", "Azalan Şişkin", "Cembung Akhir", "گھٹتا چاند"),
+        moonPhaseLastQuarter = sakinaTr(lang, "تربيع أخير", "Last Quarter", "Dernier quartier", "Son Dördün", "Perbani Akhir", "تربیع آخر"),
+        moonPhaseWaningCrescent = sakinaTr(lang, "هلال متناقص", "Waning Crescent", "Dernier croissant", "Son Hilal", "Sabit Akhir", "گھٹتا ہلال"),
+        moonPhaseNewMoon = sakinaTr(lang, "محاق", "New Moon", "Nouvelle lune", "Yeni Ay", "Bulan Baru", "محاق")
+    )
+
+    val lunarState = SakinaLunarCalendarState(
+        displayMode = if (isHijriMode) CalendarDisplayMode.HIJRI else CalendarDisplayMode.GREGORIAN,
+        hijriDayOfMonth = hijriCal.get(IslamicCalendar.DAY_OF_MONTH),
+        hijriDateTitle = hijriSubtitle,
+        monthHeaderTitle = monthHeaderLabel,
+        gregorianSubtitle = gregTitle,
+        monthCells = monthCells,
+        selectedDayNumber = clampedSelected,
+        selectedDayPrayers = prayerSummary,
+        hadithTopic = if (isArabicOrUrdu) dailyHadith.topicAr else dailyHadith.topicEn,
+        hadithText = if (isArabicOrUrdu) dailyHadith.textAr else dailyHadith.textEn,
+        hadithSource = if (isArabicOrUrdu) dailyHadith.sourceAr else dailyHadith.sourceEn
+    )
+
+    SakinaLunarCalendarScreen(
+        state = lunarState,
+        strings = calStrings,
+        headingFontFamily = SakinaHeadingFont,
+        bodyFontFamily = SakinaBodyFont,
+        showBottomDock = false,
+        hostBottomBarReserve = 82.dp,
+        onDisplayModeChange = { mode ->
+            val wantHijri = (mode == CalendarDisplayMode.HIJRI)
+            if (wantHijri != isHijriMode) {
+                isHijriMode = wantHijri
+                monthOffset = 0
+                selectedDay = if (wantHijri) todayHijriDay else todayGregDay
+            }
+        },
+        onShareMonthlyPngClick = { showImsakiyah = true },
+        onPrevMonthClick = { monthOffset-- },
+        onNextMonthClick = { monthOffset++ },
+        onDayClick = { cell -> selectedDay = cell.dayNumber }
+    )
 
         if (showImsakiyah) {
             val monthRows = remember(isHijriMode, monthOffset, daysInMonth, hijriOffsetDays) {
@@ -508,333 +552,8 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
         }
 
         // 1. Luxury Ornate Monthly Calendar Card (#7)
-        val calShape = RoundedCornerShape(18.dp)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(10.dp, calShape)
-                .clip(calShape)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            theme.bgCard.copy(alpha = 0.96f),
-                            Color(0xFF071F24),
-                            theme.bgDeep.copy(alpha = 0.98f)
-                        )
-                    )
-                )
-                .border(1.4.dp, Sakina3DGoldBevelBrush, calShape)
-        ) {
-            // 4-Corner Gold Arabesque Filigree Ornaments inside the Calendar (#7)
-            val cSize = 18.dp
-            Image(
-                painter = painterResource(id = R.drawable.ic_corner_arabesque),
-                contentDescription = null,
-                alpha = 0.72f,
-                modifier = Modifier.size(cSize).align(AbsoluteAlignment.TopLeft).padding(2.dp)
-            )
-            Image(
-                painter = painterResource(id = R.drawable.ic_corner_arabesque),
-                contentDescription = null,
-                alpha = 0.72f,
-                modifier = Modifier.size(cSize).align(AbsoluteAlignment.TopRight).padding(2.dp).graphicsLayer { rotationZ = 90f }
-            )
-            Image(
-                painter = painterResource(id = R.drawable.ic_corner_arabesque),
-                contentDescription = null,
-                alpha = 0.72f,
-                modifier = Modifier.size(cSize).align(AbsoluteAlignment.BottomRight).padding(2.dp).graphicsLayer { rotationZ = 180f }
-            )
-            Image(
-                painter = painterResource(id = R.drawable.ic_corner_arabesque),
-                contentDescription = null,
-                alpha = 0.72f,
-                modifier = Modifier.size(cSize).align(AbsoluteAlignment.BottomLeft).padding(2.dp).graphicsLayer { rotationZ = 270f }
-            )
 
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp)
-            ) {
-                // Luxury Month Header Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0x33D4AF37))
-                        .border(0.8.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(theme.bgDeep)
-                            .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
-                            .clickable { monthOffset-- },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(16.dp))
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = if (isHijriMode) hijriSubtitle else gregTitle,
-                            fontFamily = SakinaEditorialFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.5.sp,
-                            color = theme.accentBright,
-                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                        )
-                        Text(
-                            text = if (isHijriMode) gregTitle else hijriSubtitle,
-                            fontFamily = SakinaBodyFont,
-                            fontSize = 10.sp,
-                            color = SakinaBrandColors.LuminousIvory,
-                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(theme.bgDeep)
-                            .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
-                            .clickable { monthOffset++ },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(16.dp))
-                    }
-                }
-
-                Spacer(Modifier.height(4.dp))
-
-                // Gold-Tinted Weekdays Ribbon
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0x1AD4AF37))
-                        .padding(vertical = 2.5.dp)
-                ) {
-                    s.weekdays.forEach { d ->
-                        Text(
-                            text = d,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Center,
-                            fontFamily = SakinaBodyFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 8.8.sp,
-                            color = theme.accentBright,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Clip
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(3.dp))
-
-                val totalCells = firstDayOfWeek + daysInMonth
-                val rows = (totalCells + 6) / 7
-                for (r in 0 until rows) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
-                        for (c in 0 until 7) {
-                            val idx = r * 7 + c
-                            val dayNum = idx - firstDayOfWeek + 1
-                            val isSelected = dayNum == clampedSelected
-                            val isToday = monthOffset == 0 && dayNum == todayDayNum
-                            val isFriday = c == 6
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(21.dp)
-                                    .padding(horizontal = 2.dp)
-                                    .clip(RoundedCornerShape(7.dp))
-                                    .then(
-                                        when {
-                                            isSelected -> Modifier
-                                                .background(Brush.verticalGradient(listOf(theme.accentBright, theme.accentGold)))
-                                                .border(1.dp, Color.White.copy(alpha = 0.7f), RoundedCornerShape(7.dp))
-                                            isToday -> Modifier
-                                                .background(Color(0xFF0F3D3E))
-                                                .border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(7.dp))
-                                            else -> Modifier
-                                        }
-                                    )
-                                    .clickable(enabled = dayNum in 1..daysInMonth) { selectedDay = dayNum },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (dayNum in 1..daysInMonth) {
-                                    Text(
-                                        text = "$dayNum".toWesternDigits(),
-                                        fontFamily = SakinaNumeralFont,
-                                        fontWeight = if (isSelected || isToday || isFriday) FontWeight.Bold else FontWeight.Normal,
-                                        fontSize = 10.8.sp,
-                                        color = when {
-                                            isSelected -> theme.bgDeep
-                                            isToday || isFriday -> theme.accentBright
-                                            else -> SakinaBrandColors.LuminousIvory
-                                        },
-                                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // 2. Spacious 5-Column Prayer Times Card ("توقيت صلوات هذا اليوم") (#6)
-        // Shows ALL 5 prayers and their times in 5 columns with zero truncation!
-        SakinaParchmentPanel(
-            modifier = Modifier.fillMaxWidth(),
-            cornerRadius = 15.dp,
-            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 7.dp)
-        ) {
-            Text(
-                text = "❖ ${s.dayPrayersCardTitle} ❖",
-                fontFamily = SakinaEditorialFont,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.5.sp,
-                color = Color(0xFF0F3D3E),
-                textAlign = TextAlign.Center,
-                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(5.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0x140F3D3E))
-                    .border(0.8.dp, Color(0x44C5A059), RoundedCornerShape(10.dp))
-                    .padding(vertical = 5.dp, horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                dayPrayers.forEachIndexed { idx, (_, d) ->
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = s.prayers.getOrElse(idx) { "" },
-                            fontFamily = SakinaEditorialFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.5.sp,
-                            color = Color(0xFF0F3D3E),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center,
-                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = hm.format(d).toWesternDigits(),
-                            fontFamily = SakinaNumeralFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.2.sp,
-                            color = SakinaInkDark,
-                            maxLines = 1,
-                            textAlign = TextAlign.Center,
-                            style = TextStyle(
-                                fontFeatureSettings = "tnum",
-                                platformStyle = PlatformTextStyle(includeFontPadding = false)
-                            )
-                        )
-                    }
-                    if (idx < dayPrayers.lastIndex) {
-                        Box(
-                            modifier = Modifier
-                                .width(0.8.dp)
-                                .height(24.dp)
-                                .background(Color(0x33C5A059))
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // 3. Verified Hadith of the Day Card with Isnad & Grade
-        val frMap = mapOf(
-            "Deeds Most Beloved to Allah" to Triple("Les œuvres les plus aimées d'Allah", "On demanda au Prophète ﷺ : « Quelle est l'œuvre la plus aimée d'Allah ? » Il répondit : « La prière accomplie à son heure, puis la bienfaisance envers les parents, puis l'effort dans le sentier d'Allah. »", "Ibn Mas'oud | Boukhari (527) & Mouslim (85) | Sahih"),
-            "Virtue of Friday" to Triple("Mérite du vendredi", "Le meilleur jour sur lequel le soleil s'est levé est le vendredi : c'est en ce jour qu'Adam fut créé.", "Abou Hourayra | Sahih Mouslim (854)"),
-            "Monday & Thursday Fasting" to Triple("Jeûne du lundi et jeudi", "Les œuvres sont présentées le lundi et le jeudi, et j'aime que mes œuvres soient présentées alors que je jeûne.", "Abou Hourayra | Tirmidhi (747) | Sahih"),
-            "The White Days" to Triple("Les jours blancs", "Jeûner trois jours chaque mois équivaut au jeûne de toute l'année.", "Abou Dharr | Boukhari (1979) & Mouslim (1159)")
-        )
-        val frHit = if (lang == SakinaLang.FR) frMap[dailyHadith.occasionEn] else null
-        val occasionText = when {
-            isArabicOrUrdu -> dailyHadith.occasionAr
-            frHit != null -> frHit.first
-            lang == SakinaLang.FR -> "Parole prophétique"
-            else -> dailyHadith.occasionEn
-        }
-        val matnText = when {
-            isArabicOrUrdu -> dailyHadith.matnAr
-            frHit != null -> frHit.second
-            else -> dailyHadith.matnEn
-        }
-        val isnadText = when {
-            isArabicOrUrdu -> dailyHadith.isnadAr
-            frHit != null -> frHit.third
-            else -> dailyHadith.isnadEn
-        }
-        val matnFontSize = if (matnText.length > 145) 10.2.sp else 11.2.sp
-
-        SakinaParchmentPanel(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            cornerRadius = 15.dp,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "❖ ${s.dailyHadithTitle} ($occasionText) ❖",
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    color = Color(0xFF0F3D3E),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = matnText.toWesternDigits(),
-                    fontFamily = SakinaEditorialFont,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = matnFontSize,
-                    lineHeight = 15.5.sp,
-                    color = SakinaInkDark,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = isnadText.toWesternDigits(),
-                    fontFamily = SakinaBodyFont,
-                    fontSize = 10.5.sp,
-                    lineHeight = 14.5.sp,
-                    color = Color(0xFF6B5224),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-    }
 }
-
 
 // v28 #04: Monthly Imsakiyah Data & High-DPI PNG Generator + Share
 private data class ImsakiyahRow(
