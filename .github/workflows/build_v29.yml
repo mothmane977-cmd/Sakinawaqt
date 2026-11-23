@@ -1,4 +1,4 @@
-name: Build Release AAB & APK (v31)
+name: Build Release AAB & APK (v32)
 on:
   push:
     branches: [main]
@@ -26,40 +26,37 @@ jobs:
             echo "Applied new app icons from $ICON_ZIP"
           fi
 
-      # 0.5. إضافة تبعيات Jetpack Media3 وتسجيل خدمة التلاوة تلقائياً في Gradle وManifest
-      - name: Configure Jetpack Media3 in Gradle & AndroidManifest
+      # 0.5. إضافة تبعيات Jetpack Media3 + WorkManager وتسجيل خدمة التلاوة تلقائياً
+      - name: Configure Jetpack Media3 & WorkManager in Gradle & AndroidManifest
         run: |
           python3 - << 'EOF'
           import os, re
 
-          # 1) Patch app/build.gradle.kts (or app/build.gradle)
           for gpath in ["app/build.gradle.kts", "app/build.gradle"]:
               if os.path.exists(gpath):
                   txt = open(gpath, "r", encoding="utf-8").read()
+                  is_kts = gpath.endswith(".kts")
+                  additions = []
                   if "media3-exoplayer" not in txt:
-                      is_kts = gpath.endswith(".kts")
-                      deps_block = (
-                          '\n    // v31: Jetpack Media3 (ExoPlayer + MediaSessionService)\n'
-                          '    implementation("androidx.media3:media3-exoplayer:1.5.1")\n'
-                          '    implementation("androidx.media3:media3-session:1.5.1")\n'
-                          '    implementation("androidx.media3:media3-common:1.5.1")\n'
-                      ) if is_kts else (
-                          "\n    // v31: Jetpack Media3 (ExoPlayer + MediaSessionService)\n"
-                          "    implementation 'androidx.media3:media3-exoplayer:1.5.1'\n"
-                          "    implementation 'androidx.media3:media3-session:1.5.1'\n"
-                          "    implementation 'androidx.media3:media3-common:1.5.1'\n"
+                      additions += [
+                          '    implementation("androidx.media3:media3-exoplayer:1.5.1")' if is_kts else "    implementation 'androidx.media3:media3-exoplayer:1.5.1'",
+                          '    implementation("androidx.media3:media3-session:1.5.1")' if is_kts else "    implementation 'androidx.media3:media3-session:1.5.1'",
+                          '    implementation("androidx.media3:media3-common:1.5.1")' if is_kts else "    implementation 'androidx.media3:media3-common:1.5.1'",
+                      ]
+                  if "work-runtime-ktx" not in txt:
+                      additions.append(
+                          '    implementation("androidx.work:work-runtime-ktx:2.9.1")' if is_kts else "    implementation 'androidx.work:work-runtime-ktx:2.9.1'"
                       )
+                  if additions:
                       m = re.search(r"dependencies\s*\{", txt)
                       if m:
                           idx = m.end()
-                          txt = txt[:idx] + deps_block + txt[idx:]
+                          block = "\n    // v32: Jetpack Media3 + WorkManager\n" + "\n".join(additions) + "\n"
+                          txt = txt[:idx] + block + txt[idx:]
                           open(gpath, "w", encoding="utf-8").write(txt)
-                          print(f"Added Media3 1.5.1 dependencies to {gpath}")
-                  else:
-                      print(f"Media3 already present in {gpath}")
+                          print(f"Updated dependencies in {gpath}")
                   break
 
-          # 2) Patch app/src/main/AndroidManifest.xml
           mpath = "app/src/main/AndroidManifest.xml"
           if os.path.exists(mpath):
               mtxt = open(mpath, "r", encoding="utf-8").read()
@@ -80,12 +77,10 @@ jobs:
                       mtxt = mtxt.replace("</application>", svc.replace("    </application>", "</application>"), 1)
                   open(mpath, "w", encoding="utf-8").write(mtxt)
                   print("Registered SakinaQuranPlaybackService in AndroidManifest.xml")
-              else:
-                  print("SakinaQuranPlaybackService already registered")
           EOF
 
-      # 1. الخطوط + المصحف النصي العثماني أوفلاين (حفص وورش)
-      - name: Bundle Fonts & Offline Quran Text (Hafs & Warsh)
+      # 1. الخطوط + المصحف العثماني + فهرس التجويد المفحوص لحفص (0% انزياح) + نص ورش الصافي
+      - name: Bundle Fonts, Verified Hafs Tajweed Index & Warsh Offline Text
         run: |
           rm -rf app/src/main/assets/mushaf
           mkdir -p app/src/main/res/font app/src/main/assets
@@ -108,21 +103,173 @@ jobs:
           fi
 
           python3 - << 'EOF'
-          import json, urllib.request
-          sources = {
-              "quran_hafs.json": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ara-quranuthmanihaf.min.json",
-              "quran_warsh.json": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ara-quranwarsh.min.json",
+          import json, re, urllib.request
+          from html.parser import HTMLParser
+
+          # 1) Build exact-aligned Hafs Uthmani text + verified Tajweed rule spans from Quran.com v4
+          RULE_MAP = {
+              "madda_necessary": 0, "madd_6": 0,
+              "madda_obligatory": 1, "madd_muttasil": 1,
+              "madda_permissible": 2, "madd_munfasil": 2,
+              "madda_normal": 4, "madd_2": 4, "madd_246": 3,
+              "ghunnah": 5,
+              "ikhafa": 6, "ikhafa_shafawi": 6, "ikhfa": 6, "ikhfa_shafawi": 6,
+              "idgham_ghunnah": 7, "idgham_shafawi": 7, "idgham_mutajanisayn": 7, "idgham_mutaqaribayn": 7,
+              "iqlab": 8,
+              "qalaqah": 9, "qalqalah": 9,
+              "idgham_wo_ghunnah": 10, "idghaam_no_ghunnah": 10,
+              "ham_wasl": 11, "laam_shamsiyah": 11, "slnt": 11, "silent": 11
           }
+
+          class TajweedHTMLParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.out = []
+                  self.cur_len = 0
+                  self.stack = []
+                  self.spans = []
+                  self.skip_depth = 0
+              def handle_starttag(self, tag, attrs):
+                  ad = dict(attrs)
+                  cls = ad.get("class", "").strip()
+                  if tag == "span" and cls == "end":
+                      self.skip_depth += 1
+                      return
+                  if tag == "tajweed":
+                      code = RULE_MAP.get(cls, -1)
+                      self.stack.append((code, self.cur_len))
+              def handle_endtag(self, tag):
+                  if tag == "span" and self.skip_depth > 0:
+                      self.skip_depth -= 1
+                      return
+                  if tag == "tajweed" and self.stack:
+                      code, start = self.stack.pop()
+                      if code >= 0 and self.cur_len > start:
+                          self.spans.append([start, self.cur_len, code])
+              def handle_data(self, data):
+                  if self.skip_depth > 0:
+                      return
+                  self.out.append(data)
+                  self.cur_len += len(data)
+
+          hafs_ok = False
+          try:
+              req = urllib.request.Request(
+                  "https://api.quran.com/api/v4/quran/verses/uthmani_tajweed",
+                  headers={"User-Agent": "SakinaBuild/32"}
+              )
+              payload = json.loads(urllib.request.urlopen(req, timeout=45).read().decode("utf-8"))
+              verses = payload.get("verses", [])
+              if len(verses) == 6236:
+                  hafs_grouped = {}
+                  tajweed_rules = {}
+                  for v in verses:
+                      vk = v["verse_key"]  # e.g. "1:1"
+                      s_num, a_num = vk.split(":")
+                      p = TajweedHTMLParser()
+                      p.feed(v.get("text_uthmani_tajweed", ""))
+                      clean_txt = "".join(p.out).strip()
+                      hafs_grouped.setdefault(s_num, []).append(clean_txt)
+                      if p.spans:
+                          tajweed_rules[vk] = p.spans
+                  with open("app/src/main/assets/quran_hafs.json", "w", encoding="utf-8") as f:
+                      json.dump(hafs_grouped, f, ensure_ascii=False, separators=(",", ":"))
+                  with open("app/src/main/assets/quran_hafs_tajweed_rules.json", "w", encoding="utf-8") as f:
+                      json.dump(tajweed_rules, f, ensure_ascii=False, separators=(",", ":"))
+                  hafs_ok = True
+                  print(f"Bundled exact-aligned Hafs Uthmani + {len(tajweed_rules)} Tajweed-indexed verses!")
+          except Exception as e:
+              print("Warning: Quran.com tajweed fetch failed, falling back to fawazahmed0:", e)
+
+          # Fallback for Hafs + Primary for Warsh (pure Uthmani text)
+          sources = {"quran_warsh.json": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ara-quranwarsh.min.json"}
+          if not hafs_ok:
+              sources["quran_hafs.json"] = "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/ara-quranuthmanihaf.min.json"
           for out_name, url in sources.items():
-              req = urllib.request.Request(url, headers={"User-Agent": "SakinaBuild/1.0"})
+              req = urllib.request.Request(url, headers={"User-Agent": "SakinaBuild/32"})
               data = json.loads(urllib.request.urlopen(req, timeout=30).read().decode("utf-8"))
               grouped = {}
               for item in data.get("quran", []):
                   ch = str(item["chapter"])
                   grouped.setdefault(ch, []).append(f"{item['text']} ({item['verse']})")
               with open(f"app/src/main/assets/{out_name}", "w", encoding="utf-8") as f:
-                  json.dump(grouped, f, ensure_ascii=False)
-          print("Bundled Fonts and Hafs & Warsh offline JSONs successfully")
+                  json.dump(grouped, f, ensure_ascii=False, separators=(",", ":"))
+          print("Bundled Fonts, Hafs Tajweed & Warsh text successfully")
+          EOF
+
+      # 1.5. توليد دليل القراء (حفص + ورش) مع أحجام السور بالميجابايت (0ms داخل التطبيق)
+      - name: Generate Reciters Catalog & Exact Surah Sizes JSON
+        run: |
+          python3 - << 'EOF'
+          import concurrent.futures, json, urllib.request
+
+          catalog = [
+              {"id": "afasy", "nameAr": "مشاري راشد العفاسي", "nameEn": "Mishary Al-Afasy", "riwaya": "HAFS", "server": "https://server8.mp3quran.net/afs/"},
+              {"id": "husary", "nameAr": "محمود خليل الحصري", "nameEn": "Mahmoud Al-Husary", "riwaya": "HAFS", "server": "https://server13.mp3quran.net/husr/"},
+              {"id": "basit", "nameAr": "عبد الباسط عبد الصمد", "nameEn": "AbdulBaset AbdulSamad", "riwaya": "HAFS", "server": "https://server7.mp3quran.net/basit/"},
+              {"id": "maher", "nameAr": "ماهر المعيقلي", "nameEn": "Maher Al-Muaiqly", "riwaya": "HAFS", "server": "https://server12.mp3quran.net/maher/"},
+              {"id": "qazabri_warsh", "nameAr": "عمر القزابري (ورش)", "nameEn": "Omar Al-Qazabri (Warsh)", "riwaya": "WARSH", "server": "https://server9.mp3quran.net/omar_warsh/"},
+              {"id": "koshi_warsh", "nameAr": "العيون الكوشي (ورش)", "nameEn": "Laayoun El Kouchi (Warsh)", "riwaya": "WARSH", "server": "https://server11.mp3quran.net/koshi/"},
+              {"id": "yassin_warsh", "nameAr": "ياسين الجزائري (ورش)", "nameEn": "Yassin Al-Jazaery (Warsh)", "riwaya": "WARSH", "server": "https://server11.mp3quran.net/qari/"},
+          ]
+
+          # Live-verify server URLs from official MP3Quran API v3
+          try:
+              req = urllib.request.Request("https://www.mp3quran.net/api/v3/reciters?language=ar", headers={"User-Agent": "SakinaBuild/32"})
+              recs = json.loads(urllib.request.urlopen(req, timeout=25).read().decode("utf-8")).get("reciters", [])
+              def find_server(name_kw, want_warsh):
+                  for r in recs:
+                      if name_kw in r.get("name", ""):
+                          for m in r.get("moshaf", []):
+                              mn = m.get("name", "")
+                              is_w = ("ورش" in mn)
+                              if is_w == want_warsh and m.get("surah_total", 0) >= 114 and m.get("server"):
+                                  return m["server"]
+                  return None
+              updates = [
+                  ("afasy", "العفاسي", False),
+                  ("husary", "الحصري", False),
+                  ("basit", "عبد الباسط", False),
+                  ("maher", "المعيقلي", False),
+                  ("qazabri_warsh", "القزابري", True),
+                  ("koshi_warsh", "الكوشي", True),
+                  ("yassin_warsh", "ياسين", True),
+              ]
+              for cid, kw, is_w in updates:
+                  srv = find_server(kw, is_w)
+                  if srv:
+                      for c in catalog:
+                          if c["id"] == cid:
+                              c["server"] = srv if srv.endswith("/") else srv + "/"
+                              print(f"Verified live MP3Quran server for {cid}: {c['server']}")
+          except Exception as e:
+              print("Using fallback server URLs:", e)
+
+          # Fast parallel HEAD check for exact MB sizes (first reciter per Riwaya + key reciters)
+          def head_mb(url):
+              try:
+                  req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "SakinaBuild/32"})
+                  with urllib.request.urlopen(req, timeout=8) as resp:
+                      cl = int(resp.headers.get("Content-Length", "0"))
+                      if cl > 0:
+                          return round(cl / (1024 * 1024), 1)
+              except Exception:
+                  pass
+              return 0.0
+
+          for rec in catalog[:2] + [c for c in catalog if c["id"] == "qazabri_warsh"]:
+              sizes = {}
+              with concurrent.futures.ThreadPoolExecutor(max_workers=16) as ex:
+                  futs = {ex.submit(head_mb, f"{rec['server']}{n:03d}.mp3"): n for n in range(1, 115)}
+                  for fut, n in futs.items():
+                      mb = fut.result()
+                      if mb > 0:
+                          sizes[str(n)] = mb
+              rec["sizesMb"] = sizes
+              print(f"Fetched {len(sizes)} exact MB sizes for {rec['id']}")
+
+          with open("app/src/main/assets/quran_reciters_catalog.json", "w", encoding="utf-8") as f:
+              json.dump(catalog, f, ensure_ascii=False, separators=(",", ":"))
           EOF
 
       # 2. ضغط الأذان إلى OGG + إثراء المؤذنين
@@ -145,12 +292,10 @@ jobs:
                   if any(k in low for k in keywords):
                       subprocess.run(["ffmpeg", "-y", "-i", m, "-vn", "-c:a", "libvorbis", "-q:a", "1", out_ogg], check=False)
                       if os.path.exists(out_ogg) and os.path.getsize(out_ogg) > 10000:
-                          print(f"Added {target_name}.ogg from {os.path.basename(m)}")
                           return
               fallback = os.path.join(raw_dir, "madinah.ogg")
               if os.path.exists(fallback):
                   shutil.copy(fallback, out_ogg)
-                  print(f"Fallback copy for {target_name}.ogg")
           find_and_convert("makkah", ["makkah", "mecca", "haram", "mulla"])
           find_and_convert("afasy", ["afasy", "mishary", "alafasy"])
           find_and_convert("aqsa", ["aqsa", "quds", "palestine"])
@@ -169,9 +314,6 @@ jobs:
             curl -L --retry 3 -s "$BASE/$SRC_FILE" -o "/tmp/adhkar_dl/$SRC_FILE" || true
             if [ -s "/tmp/adhkar_dl/$SRC_FILE" ] && [ $(wc -c < "/tmp/adhkar_dl/$SRC_FILE") -gt 50000 ]; then
               ffmpeg -y -i "/tmp/adhkar_dl/$SRC_FILE" -vn -ac 1 -ar 22050 -c:a libvorbis -q:a 0 "app/src/main/res/raw/${OUT_NAME}.ogg"
-              ls -lh "app/src/main/res/raw/${OUT_NAME}.ogg"
-            else
-              echo "Warning: skipped $OUT_NAME (download unavailable)"
             fi
           }
           download_and_compress "athkar_03.ogg" "adhkar_sabah"
@@ -194,11 +336,8 @@ jobs:
             fi
             if [ -s "$TMP" ] && [ $(wc -c < "$TMP") -gt 10000 ]; then
               ffmpeg -y -loglevel error -i "$TMP" -vn -ac 1 -ar 22050 -c:a libvorbis -q:a 0 "$OUT"
-            else
-              echo "Warning: skipped surah $NUM"
             fi
           done
-          du -sh app/src/main/res/raw/quran_s*.ogg || true
           rm -rf /tmp/quran_dl
 
       # 5. فك تشفير مفتاح التوقيع الرسمي من GitHub Secrets
@@ -217,13 +356,11 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: gradle :app:bundleRelease :app:assembleRelease --no-daemon
 
-      # رفع ملف Google Play (.aab)
       - uses: actions/upload-artifact@v4
         with:
           name: sakina-playstore-aab
           path: app/build/outputs/bundle/release/*.aab
 
-      # رفع ملف التجربة للهاتف (.apk)
       - uses: actions/upload-artifact@v4
         with:
           name: sakina-release-apk
