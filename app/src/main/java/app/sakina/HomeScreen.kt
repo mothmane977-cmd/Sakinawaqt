@@ -1173,7 +1173,7 @@ private fun SakinaHomeContent(
     // v33: Orbital Living Horizon Home Mode (with 1-tap toggle back to Classic Mode)
     if (useOrbitalHome) {
         val activeDateKey = remember(dayOffset, minuteBucket) {
-            SakinaAdvancedPrefs.dateKeyForOffset(dayOffset)
+            SakinaAdvancedPrefs.dateKeyOffset(dayOffset)
         }
         val orbitalHijri = remember(viewedCal, s) {
             val ic = IslamicCalendar().apply {
@@ -1224,11 +1224,11 @@ private fun SakinaHomeContent(
             countdownText = SakinaAdvancedPrefs.formatDigits(ctx, countdownText),
             days = dayItems,
             prayers = orbitalNodes,
-            imsakTime = SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafilOrb.imsak),
+            imsakTime = nawafilOrb?.let { SakinaAdvancedPrefs.formatPrayerTime(ctx, it.imsak) } ?: "--:--",
             sunriseTime = sunriseDate?.let { SakinaAdvancedPrefs.formatPrayerTime(ctx, it) } ?: "--:--",
-            duhaTime = SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafilOrb.duha),
-            midnightTime = SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafilOrb.midnight),
-            tahajjudTime = SakinaAdvancedPrefs.formatPrayerTime(ctx, nawafilOrb.lastThird),
+            duhaTime = nawafilOrb?.let { SakinaAdvancedPrefs.formatPrayerTime(ctx, it.duha) } ?: "--:--",
+            midnightTime = nawafilOrb?.let { SakinaAdvancedPrefs.formatPrayerTime(ctx, it.midnight) } ?: "--:--",
+            tahajjudTime = nawafilOrb?.let { SakinaAdvancedPrefs.formatPrayerTime(ctx, it.lastThird) } ?: "--:--",
             languageCode = lang.code.uppercase()
         )
         val orbitalStrings = SakinaHomeStrings(
@@ -1282,8 +1282,7 @@ private fun SakinaHomeContent(
         )
 
         if (showMonthlyStats) {
-            val monthCount = remember(trackerTick) { SakinaAdvancedPrefs.monthlyLoggedCount(ctx) }
-            val monthTarget = remember { Calendar.getInstance().getActualMaximum(Calendar.DAY_OF_MONTH) * 5 }
+            val (monthCount, monthTarget, _) = remember(trackerTick) { SakinaAdvancedPrefs.monthlyPrayerStats(ctx) }
             AlertDialog(
                 onDismissRequest = { showMonthlyStats = false },
                 containerColor = theme.bgCard,
