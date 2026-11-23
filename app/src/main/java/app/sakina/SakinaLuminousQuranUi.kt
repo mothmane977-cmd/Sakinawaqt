@@ -540,9 +540,9 @@ private fun QuranIndexPortalContent(
                 )
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(SakinaOrbitalColors.ChampagneGold)
-                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = strings.resumeLabel,
@@ -1372,7 +1372,7 @@ private fun KineticWaveMiniPlayer(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp)
+            .height(68.dp)
             .sakinaLuxuryGlassCard(
                 cornerRadius = 30.dp,
                 innerHairline = false,

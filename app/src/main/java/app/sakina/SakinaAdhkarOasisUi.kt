@@ -512,12 +512,12 @@ private fun BentoWorshipPortalGrid(
                                 innerHairline = false,
                                 emeraldFlare = card.hasOfflineAudio,
                                 shimmer = false,
-                                borderAlpha = 0.68f
+                                borderAlpha = 0.72f
                             )
-                            .sakinaCornerFiligree(alpha = 0.56f)
                             .clip(RoundedCornerShape(18.dp))
                             .clickable { onPortalClick(card.type) }
                     ) {
+                        SakinaLuxuryCornerOverlay(cornerSize = 20.dp, alpha = 0.75f)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

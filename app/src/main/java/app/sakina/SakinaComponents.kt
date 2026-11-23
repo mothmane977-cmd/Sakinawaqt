@@ -504,10 +504,14 @@ fun SakinaBackIconButton(
     val pill = RoundedCornerShape(20.dp)
     Row(
         modifier = modifier
-            .shadow(8.dp, pill, ambientColor = Color.Black, spotColor = Color.Black)
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 20.dp,
+                innerHairline = false,
+                emeraldFlare = false,
+                shimmer = false,
+                borderAlpha = 0.75f
+            )
             .clip(pill)
-            .background(SakinaDarkPlateBrush)
-            .border(1.3.dp, Sakina3DGoldBevelBrush, pill)
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -540,13 +544,17 @@ fun SakinaGraduatedMenuIcon(
     val tileShape = RoundedCornerShape(12.dp)
     Box(
         modifier = modifier
-            .size(40.dp)
-            .shadow(7.dp, tileShape, ambientColor = Color.Black, spotColor = Color.Black)
-            .clip(tileShape)
-            .background(SakinaDarkPlateBrush)
-            .border(1.4.dp, Sakina3DGoldBevelBrush, tileShape)
+            .size(38.dp)
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 19.dp,
+                innerHairline = false,
+                emeraldFlare = false,
+                shimmer = false,
+                borderAlpha = 0.72f
+            )
+            .clip(CircleShape)
             .clickable { onClick() }
-            .padding(horizontal = 7.dp, vertical = 9.dp),
+            .padding(horizontal = 9.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -675,14 +683,11 @@ fun SakinaParchmentPanel(
         modifier = modifier
             .sakinaParchmentGlowCard(
                 cornerRadius = cornerRadius,
-                haloAlpha = 0.34f,
+                haloAlpha = 0.44f,
                 doubleBorder = true
             )
-            .sakinaCornerFiligree(
-                goldColor = SakinaLuxuryPalette.GoldRich,
-                alpha = 0.46f
-            )
     ) {
+        SakinaLuxuryCornerOverlay(cornerSize = 26.dp, alpha = 0.82f)
         Column(modifier = Modifier.fillMaxWidth().padding(contentPadding), content = content)
     }
 }

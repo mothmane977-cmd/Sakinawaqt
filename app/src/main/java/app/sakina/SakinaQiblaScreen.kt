@@ -87,6 +87,12 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.math.tan
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.IntOffset
 
 private const val KAABA_LAT = 21.422487
 private const val KAABA_LON = 39.826206
@@ -572,7 +578,13 @@ fun SakinaSpatialQiblaScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        SakinaAmbientLuxuryBackdrop(showGeometricPattern = false, showStarDust = true)
+        Image(
+            painter = painterResource(id = R.drawable.bg_qibla_horizon_grid),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            alpha = 0.94f,
+            modifier = Modifier.fillMaxSize()
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -761,7 +773,16 @@ private fun SpatialHorizonCanvas(
         label = "beaconPulse"
     )
 
-    val beamColor = if (isAligned) Color(0xFF34D399) else SakinaOrbitalColors.SoftGoldGlow
+    val beamColor = if (isAligned) SakinaLuxuryPalette.EmeraldGlow else SakinaLuxuryPalette.GoldBright
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val boxW = with(density) { maxWidth.toPx() }
+        val boxH = with(density) { maxHeight.toPx() }
+        val clampedNormUi = (deltaDeg / 70f).coerceIn(-1f, 1f)
+        val kaabaXUi = boxW * 0.5f + clampedNormUi * (boxW * 0.40f)
+        val kaabaYUi = boxH * 0.24f + (clampedNormUi * clampedNormUi) * with(density) { 18.dp.toPx() } - with(density) { 4.dp.toPx() }
+        val kaabaImgPx = with(density) { 68.dp.toPx() }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width
@@ -903,23 +924,18 @@ private fun SpatialHorizonCanvas(
                 intensity = 0.85f
             )
         }
-        drawLine(
-            brush = Brush.linearGradient(
-                colors = listOf(beamColor, SakinaLuxuryPalette.GoldSpecular, beamColor),
-                start = reticleCenter,
-                end = kaabaCenter
-            ),
+        drawGlowingGoldLine(
             start = reticleCenter,
             end = kaabaCenter,
-            strokeWidth = if (isAligned) 3.4.dp.toPx() else 2.2.dp.toPx(),
-            cap = StrokeCap.Round
+            coreStrokePx = if (isAligned) 3.4.dp.toPx() else 2.4.dp.toPx(),
+            glowColor = beamColor
         )
 
         drawLuxuryKaabaEmblem(
             center = kaabaCenter,
-            sizePx = 30.dp.toPx(),
+            sizePx = 32.dp.toPx(),
             withLightPillar = true,
-            pillarHeightPx = 92.dp.toPx(),
+            pillarHeightPx = 98.dp.toPx(),
             glowColor = beamColor
         )
 
@@ -991,6 +1007,21 @@ private fun SpatialHorizonCanvas(
             color = if (isPhoneFlat) Color(0xFF34D399) else SakinaOrbitalColors.SoftGoldGlow,
             radius = 5.dp.toPx(),
             center = bubbleOffset
+        )
+    }
+
+        // مجسّم الكعبة ثلاثي الأبعاد الحقيقي يتحرك ديناميكياً فوق الأفق الجيوديسي
+        Image(
+            painter = painterResource(id = R.drawable.ic_kaaba_3d_glow),
+            contentDescription = null,
+            modifier = Modifier
+                .size(68.dp)
+                .absoluteOffset {
+                    IntOffset(
+                        x = (kaabaXUi - kaabaImgPx / 2f).roundToInt(),
+                        y = (kaabaYUi - kaabaImgPx * 0.56f).roundToInt()
+                    )
+                }
         )
     }
 }

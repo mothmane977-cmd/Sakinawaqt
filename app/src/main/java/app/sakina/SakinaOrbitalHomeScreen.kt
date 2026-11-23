@@ -88,6 +88,8 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 
 // ============================================================================
 // 1. لوحة ألوان سَكِينة المعتمدة (Sakina Identity Palette - v33 Orbital Horizon)
@@ -599,13 +601,20 @@ private fun OrbitalPrayerDial(
                 )
             }
 
-            // مجسّم الكعبة المشرفة الفاخر بحزامها الذهبي وهالتها النورانية
+            // هالة نورانية خلف مجسم الكعبة ثلاثي الأبعاد
             drawLuxuryKaabaEmblem(
                 center = center,
-                sizePx = 34.dp.toPx(),
+                sizePx = 38.dp.toPx(),
                 withLightPillar = false
             )
         }
+
+        // مجسّم الكعبة ثلاثي الأبعاد الحقيقي بالكسوة والحزام الذهبي المتوهج
+        Image(
+            painter = painterResource(id = R.drawable.ic_kaaba_3d_glow),
+            contentDescription = null,
+            modifier = Modifier.size(72.dp)
+        )
 
         prayers.forEachIndexed { index, node ->
             val angle = animatedRotation.toDouble() + index * (2.0 * PI / count)

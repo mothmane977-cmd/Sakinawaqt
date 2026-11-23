@@ -67,6 +67,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.PI
 import kotlin.math.cos
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 
 // ============================================================================
 // 1. نماذج البيانات، التوطين، وحالة التقويم الهجري والقمر الفلكي
@@ -408,76 +410,37 @@ private fun AstronomicalMoonPhaseCanvas(
         label = "moonPhase"
     )
 
-    Canvas(modifier = modifier) {
-        val center = Offset(size.width / 2f, size.height / 2f)
-        val radius = size.minDimension * 0.42f
-
-        // هالة القمر الدافئة
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    SakinaOrbitalColors.SoftGoldGlow.copy(alpha = 0.28f),
-                    Color.Transparent
-                ),
-                center = center,
-                radius = radius * 1.45f
-            ),
-            radius = radius * 1.45f,
-            center = center
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        // صورة القمر الفلكي الواقعي بالهالة الذهبية الدافئة
+        Image(
+            painter = painterResource(id = R.drawable.ic_lunar_moon_glow),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize()
         )
-
-        // القرص المظلم الخلفي
-        drawCircle(
-            color = Color(0xFF0E1D34),
-            radius = radius,
-            center = center
-        )
-
-        // رسم الجزء المضاء من القمر بحسب زاوية الطور (0..1)
-        val illumination = (1.0 - cos(animatedPhase * 2.0 * PI)) / 2.0 // 0 محاق .. 1 بدر
-        val waxing = animatedPhase <= 0.5f
-
-        val litPath = Path().apply {
-            val steps = 36
-            val rect = Rect(center.x - radius, center.y - radius, center.x + radius, center.y + radius)
-            if (waxing) {
-                arcTo(rect, -90f, 180f, false)
-                val innerWidthFactor = ((1.0 - 2.0 * illumination)).toFloat()
-                for (i in steps downTo 0) {
-                    val angle = -PI / 2.0 + (i.toDouble() / steps) * PI
-                    val x = center.x + (radius * innerWidthFactor * cos(angle)).toFloat()
-                    val y = center.y + (radius * kotlin.math.sin(angle)).toFloat()
-                    lineTo(x, y)
-                }
-            } else {
-                arcTo(rect, 90f, 180f, false)
-                val innerWidthFactor = ((2.0 * illumination - 1.0)).toFloat()
-                for (i in steps downTo 0) {
-                    val angle = PI / 2.0 + (i.toDouble() / steps) * PI
-                    val x = center.x + (radius * innerWidthFactor * cos(angle)).toFloat()
-                    val y = center.y + (radius * kotlin.math.sin(angle)).toFloat()
-                    lineTo(x, y)
-                }
+        // طبقة ظل فلكي ديناميكية تعكس طور القمر الهجري اليومي بدقة
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val radius = size.minDimension * 0.37f
+            val illumination = ((1.0 - cos(animatedPhase * 2.0 * PI)) / 2.0).coerceIn(0.0, 1.0)
+            val shadowFrac = (1.0 - illumination).toFloat()
+            if (shadowFrac > 0.06f) {
+                val waxing = animatedPhase <= 0.5f
+                val shadowOffsetX = if (waxing) -radius * (1.25f - shadowFrac * 1.1f) else radius * (1.25f - shadowFrac * 1.1f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xD8050D1A),
+                            Color(0xA6050D1A),
+                            Color.Transparent
+                        ),
+                        center = Offset(center.x + shadowOffsetX, center.y),
+                        radius = radius * (0.75f + shadowFrac * 0.55f)
+                    ),
+                    radius = radius,
+                    center = center
+                )
             }
-            close()
         }
-
-        drawPath(
-            path = litPath,
-            brush = Brush.radialGradient(
-                colors = listOf(SakinaOrbitalColors.WarmCream, SakinaOrbitalColors.ChampagneGold),
-                center = Offset(center.x - radius * 0.2f, center.y - radius * 0.2f),
-                radius = radius * 1.5f
-            )
-        )
-
-        // إطار قمري ناعم
-        drawCircle(
-            color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.45f),
-            radius = radius,
-            center = center,
-            style = Stroke(width = 1.dp.toPx())
-        )
     }
 }
 
@@ -584,11 +547,11 @@ private fun MonthlyCalendarGlassCard(
                                     .aspectRatio(1.08f)
                                     .padding(2.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(
+                                    .then(
                                         when {
-                                            isSelected -> SakinaOrbitalColors.ChampagneGold
-                                            cell.isToday -> SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.22f)
-                                            else -> Color.Transparent
+                                            isSelected -> Modifier.background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
+                                            cell.isToday -> Modifier.background(SakinaLuxuryPalette.GoldBright.copy(alpha = 0.22f))
+                                            else -> Modifier
                                         }
                                     )
                                     .clickable(enabled = cell.isCurrentMonth) { onDayClick(cell) }

@@ -567,19 +567,24 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             modifier = Modifier
                                                 .align(AbsoluteAlignment.TopRight)
                                                 .statusBarsPadding()
-                                                .padding(end = 16.dp, top = 14.dp)
+                                                .padding(end = 16.dp, top = 12.dp)
                                                 .size(38.dp)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(effectiveTheme.bgDeep.copy(alpha = 0.88f))
-                                                .border(1.1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
+                                                .sakinaLuxuryGlassCard(
+                                                    cornerRadius = 19.dp,
+                                                    innerHairline = false,
+                                                    emeraldFlare = false,
+                                                    shimmer = false,
+                                                    borderAlpha = 0.72f
+                                                )
+                                                .clip(CircleShape)
                                                 .clickable { scope.launch { rightDrawerState.open() } },
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Rounded.Settings,
                                                 contentDescription = sakinaTr(currentLang, "الإعدادات", "Settings", "Paramètres", "Ayarlar", "Pengaturan", "ترتیبات"),
-                                                tint = effectiveTheme.accentBright,
-                                                modifier = Modifier.size(22.dp)
+                                                tint = SakinaLuxuryPalette.GoldBright,
+                                                modifier = Modifier.size(20.dp)
                                             )
                                         }
 
@@ -602,10 +607,15 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
 
                                             Box(
                                                 modifier = Modifier
-                                                    .size(34.dp)
+                                                    .size(36.dp)
+                                                    .sakinaLuxuryGlassCard(
+                                                        cornerRadius = 18.dp,
+                                                        innerHairline = false,
+                                                        emeraldFlare = false,
+                                                        shimmer = false,
+                                                        borderAlpha = 0.72f
+                                                    )
                                                     .clip(CircleShape)
-                                                    .background(effectiveTheme.bgDeep.copy(alpha = 0.88f))
-                                                    .border(1.dp, Sakina3DGoldBevelBrush, CircleShape)
                                                     .clickable {
                                                         val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
                                                         currentLang = next
@@ -613,13 +623,12 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                                     },
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                Image(painter = painterResource(id = R.drawable.ic_language), contentDescription = "Language", alpha = 0.35f, modifier = Modifier.size(22.dp))
                                                 Text(
                                                     text = currentLang.code.uppercase(),
                                                     fontFamily = SakinaNumeralFont,
                                                     fontWeight = FontWeight.Bold,
-                                                    fontSize = 10.sp,
-                                                    color = effectiveTheme.accentBright,
+                                                    fontSize = 10.5.sp,
+                                                    color = SakinaLuxuryPalette.GoldSpecular,
                                                     style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                                                 )
                                             }
