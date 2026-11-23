@@ -91,7 +91,7 @@ fun SakinaSettingsScreen(
     var fullAdhan by remember { mutableStateOf(Modes.get(ctx, "الفجر") != 3) }
     var qiyamAlert by remember { mutableStateOf(SakinaAdvancedPrefs.customReminders(ctx).any { it.id == "qiyam" && it.enabled }) }
     var iqamaAlert by remember { mutableStateOf(SakinaAdvancedPrefs.customReminders(ctx).any { it.id == "iqama" && it.enabled }) }
-    var kahfFriday by remember { mutableStateOf(SakinaAdvancedPrefs.kahfFridayNotif(ctx)) }
+    var kahfFriday by remember { mutableStateOf(SakinaAdvancedPrefs.fridayKahfNotif(ctx)) }
     var fastingReminder by remember { mutableStateOf(SakinaAdvancedPrefs.voluntaryFastingNotif(ctx)) }
 
     // Live Reliability Diagnostics from Android System Services
@@ -288,7 +288,7 @@ fun SakinaSettingsScreen(
         },
         onKahfFridayChanged = {
             kahfFriday = it
-            SakinaAdvancedPrefs.setKahfFridayNotif(ctx, it)
+            SakinaAdvancedPrefs.setFridayKahfNotif(ctx, it)
             try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {}
         },
         onFastingReminderChanged = {
