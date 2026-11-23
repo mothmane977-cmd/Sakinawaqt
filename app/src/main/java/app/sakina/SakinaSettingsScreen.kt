@@ -129,10 +129,10 @@ fun SakinaSettingsScreen(
     val themeOption = remember(selectedTheme) {
         when (selectedTheme) {
             SakinaLuxuryTheme.ROYAL_NAVY -> SakinaSettingsThemeOption.ROYAL_BLUE
-            SakinaLuxuryTheme.EMERALD_SANCTUARY -> SakinaSettingsThemeOption.HARAM_EMERALD
+            SakinaLuxuryTheme.ROYAL_EMERALD -> SakinaSettingsThemeOption.HARAM_EMERALD
             SakinaLuxuryTheme.MIDNIGHT_AMOLED -> SakinaSettingsThemeOption.AMOLED_BLACK
-            SakinaLuxuryTheme.DESERT_GOLD -> SakinaSettingsThemeOption.MAKKI_AMBER
-            SakinaLuxuryTheme.PEARL_DAYLIGHT -> SakinaSettingsThemeOption.ANDALUSI_BURGUNDY
+            SakinaLuxuryTheme.ANDALUSIAN_BURGUNDY -> SakinaSettingsThemeOption.ANDALUSI_BURGUNDY
+            SakinaLuxuryTheme.DESERT_AMBER -> SakinaSettingsThemeOption.MAKKI_AMBER
         }
     }
 
@@ -215,10 +215,10 @@ fun SakinaSettingsScreen(
         onThemeSelected = { opt ->
             val mapped = when (opt) {
                 SakinaSettingsThemeOption.ROYAL_BLUE -> SakinaLuxuryTheme.ROYAL_NAVY
-                SakinaSettingsThemeOption.HARAM_EMERALD -> SakinaLuxuryTheme.EMERALD_SANCTUARY
+                SakinaSettingsThemeOption.HARAM_EMERALD -> SakinaLuxuryTheme.ROYAL_EMERALD
                 SakinaSettingsThemeOption.AMOLED_BLACK -> SakinaLuxuryTheme.MIDNIGHT_AMOLED
-                SakinaSettingsThemeOption.MAKKI_AMBER -> SakinaLuxuryTheme.DESERT_GOLD
-                SakinaSettingsThemeOption.ANDALUSI_BURGUNDY -> SakinaLuxuryTheme.PEARL_DAYLIGHT
+                SakinaSettingsThemeOption.ANDALUSI_BURGUNDY -> SakinaLuxuryTheme.ANDALUSIAN_BURGUNDY
+                SakinaSettingsThemeOption.MAKKI_AMBER -> SakinaLuxuryTheme.DESERT_AMBER
             }
             onThemeChange(mapped)
         },
