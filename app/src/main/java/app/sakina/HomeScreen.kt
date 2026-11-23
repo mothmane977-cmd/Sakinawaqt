@@ -626,11 +626,13 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         )
                                     }
 
-                                    SakinaBottomPillBar(
-                                        currentTab = currentTab,
-                                        onTabSelected = { extraSection = ExtraSection.NONE; openedFromRightDrawer = false; openedFromLeftDrawer = false; currentTab = it },
-                                        modifier = Modifier.align(Alignment.BottomCenter)
-                                    )
+                                    if (extraSection == ExtraSection.NONE) {
+                                        SakinaBottomPillBar(
+                                            currentTab = currentTab,
+                                            onTabSelected = { extraSection = ExtraSection.NONE; openedFromRightDrawer = false; openedFromLeftDrawer = false; currentTab = it },
+                                            modifier = Modifier.align(Alignment.BottomCenter)
+                                        )
+                                    }
                                 }
                             }
                         }
