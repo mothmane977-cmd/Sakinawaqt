@@ -447,7 +447,7 @@ private fun SevenDaySelectorStrip(
                     .clip(RoundedCornerShape(14.dp))
                     .background(
                         if (day.isSelected) {
-                            SakinaOrbitalColors.ChampagneGold
+                            SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.92f)
                         } else {
                             SakinaOrbitalColors.GlassNavy.copy(alpha = 0.55f)
                         }
@@ -467,13 +467,13 @@ private fun SevenDaySelectorStrip(
             ) {
                 Text(
                     text = day.dayLabel,
-                    color = if (day.isSelected) SakinaOrbitalColors.InkNavy else SakinaOrbitalColors.WarmCream.copy(alpha = 0.72f),
+                    color = if (day.isSelected) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.72f),
                     fontSize = 10.sp,
                     fontFamily = bodyFontFamily
                 )
                 Text(
                     text = day.dayNumber,
-                    color = if (day.isSelected) SakinaOrbitalColors.InkNavy else SakinaOrbitalColors.SoftGoldGlow,
+                    color = if (day.isSelected) SakinaLuxuryColors.WarmCream else SakinaOrbitalColors.SoftGoldGlow,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = bodyFontFamily,
@@ -611,7 +611,7 @@ private fun OrbitalPrayerDial(
 
         // مجسّم الكعبة ثلاثي الأبعاد الحقيقي بالكسوة والحزام الذهبي المتوهج
         Image(
-            painter = painterResource(id = R.drawable.ic_kaaba_3d_glow),
+            painter = painterResource(id = R.drawable.ic_kaaba_3d),
             contentDescription = null,
             modifier = Modifier.size(72.dp)
         )
@@ -749,24 +749,19 @@ private fun FocalSpotlightCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = strings.todayProgressFormat.format(completedCount, totalPrayers),
+                        text = "$completedCount/$totalPrayers ${strings.todaySuffix}",
                         color = SakinaOrbitalColors.DeepEmerald,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         fontFamily = bodyFontFamily,
+                        maxLines = 1,
+                        softWrap = false,
+                        style = TextStyle(fontFeatureSettings = "tnum"),
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
-                            .background(SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.1f))
+                            .background(SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.10f))
                             .clickable(onClick = onTodayStatsClick)
                             .padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-
-                    Text(
-                        text = "${prayer.localizedName} · ${prayer.timeText}",
-                        color = SakinaOrbitalColors.MutedGoldText,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = headingFontFamily
                     )
 
                     Row(
@@ -781,7 +776,7 @@ private fun FocalSpotlightCard(
                                 }
                             )
                             .clickable(onClick = onCycleAlarmMode)
-                            .padding(horizontal = 7.dp, vertical = 3.dp)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                             .semantics {
                                 contentDescription = "${strings.toggleAlarmDesc} ${prayer.localizedName}"
                             }
@@ -799,9 +794,11 @@ private fun FocalSpotlightCard(
                         Spacer(modifier = Modifier.size(3.dp))
                         Text(
                             text = alarmLabel,
-                            fontSize = 10.sp,
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.SemiBold,
                             fontFamily = bodyFontFamily,
+                            maxLines = 1,
+                            softWrap = false,
                             color = when (prayer.alarmMode) {
                                 PrayerAlarmMode.ADHAN -> SakinaOrbitalColors.MutedGoldText
                                 PrayerAlarmMode.NOTIFICATION -> SakinaOrbitalColors.DeepEmerald
@@ -810,6 +807,18 @@ private fun FocalSpotlightCard(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "${prayer.localizedName} · ${prayer.timeText}",
+                    color = SakinaOrbitalColors.MutedGoldText,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = headingFontFamily,
+                    maxLines = 1,
+                    style = TextStyle(fontFeatureSettings = "tnum")
+                )
 
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -910,6 +919,20 @@ fun LiquidDynamicDock(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val dockTabs = listOf(
+        SakinaDockTab("0", strings.tabHome, R.drawable.ic_sakina_home),
+        SakinaDockTab("1", strings.tabQibla, R.drawable.ic_sakina_qibla),
+        SakinaDockTab("2", strings.tabQuran, R.drawable.ic_sakina_quran),
+        SakinaDockTab("3", strings.tabCalendar, R.drawable.ic_sakina_calendar)
+    )
+    SakinaLuxuryFloatingDock(
+        tabs = dockTabs,
+        selectedRoute = selectedIndex.coerceIn(0, 3).toString(),
+        onTabSelected = { route -> onTabSelected(route.toIntOrNull() ?: 0) },
+        modifier = modifier
+    )
+    return
+    @Suppress("UNREACHABLE_CODE")
     val labels = listOf(strings.tabHome, strings.tabQibla, strings.tabQuran, strings.tabCalendar)
 
     Box(

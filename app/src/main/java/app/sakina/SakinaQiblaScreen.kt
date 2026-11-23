@@ -93,6 +93,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.AbsoluteAlignment
 
 private const val KAABA_LAT = 21.422487
 private const val KAABA_LON = 39.826206
@@ -579,10 +580,10 @@ fun SakinaSpatialQiblaScreen(
             .navigationBarsPadding()
     ) {
         Image(
-            painter = painterResource(id = R.drawable.bg_qibla_horizon_grid),
+            painter = painterResource(id = R.drawable.bg_qibla_horizon),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            alpha = 0.94f,
+            alpha = 0.95f,
             modifier = Modifier.fillMaxSize()
         )
         Column(
@@ -775,14 +776,17 @@ private fun SpatialHorizonCanvas(
 
     val beamColor = if (isAligned) SakinaLuxuryPalette.EmeraldGlow else SakinaLuxuryPalette.GoldBright
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = AbsoluteAlignment.TopLeft
+    ) {
         val density = LocalDensity.current
         val boxW = with(density) { maxWidth.toPx() }
         val boxH = with(density) { maxHeight.toPx() }
-        val clampedNormUi = (deltaDeg / 70f).coerceIn(-1f, 1f)
-        val kaabaXUi = boxW * 0.5f + clampedNormUi * (boxW * 0.40f)
-        val kaabaYUi = boxH * 0.24f + (clampedNormUi * clampedNormUi) * with(density) { 18.dp.toPx() } - with(density) { 4.dp.toPx() }
-        val kaabaImgPx = with(density) { 68.dp.toPx() }
+        // الكعبة ثابتة دائماً في منتصف الأفق (تعمل في جميع اللغات RTL و LTR بدون اختفاء)
+        val kaabaXUi = boxW * 0.5f
+        val kaabaYUi = boxH * 0.24f - with(density) { 4.dp.toPx() }
+        val kaabaImgPx = with(density) { 74.dp.toPx() }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width
@@ -864,9 +868,9 @@ private fun SpatialHorizonCanvas(
             )
         }
 
-        val clampedNorm = (deltaDeg / 70f).coerceIn(-1f, 1f)
-        val kaabaX = w * 0.5f + clampedNorm * (w * 0.40f)
-        val kaabaY = horizonY + (clampedNorm * clampedNorm) * 18.dp.toPx() - 4.dp.toPx()
+        // الكعبة ثابتة في منتصف الأفق بينما يدور مؤشر البوصلة والشعاع مع اتجاه الهاتف
+        val kaabaX = w * 0.5f
+        val kaabaY = horizonY - 4.dp.toPx()
         val kaabaCenter = Offset(kaabaX, kaabaY)
 
         drawCircle(
@@ -1010,12 +1014,12 @@ private fun SpatialHorizonCanvas(
         )
     }
 
-        // مجسّم الكعبة ثلاثي الأبعاد الحقيقي يتحرك ديناميكياً فوق الأفق الجيوديسي
+        // مجسّم الكعبة ثلاثي الأبعاد ثابت دائماً في منتصف الأفق
         Image(
-            painter = painterResource(id = R.drawable.ic_kaaba_3d_glow),
+            painter = painterResource(id = R.drawable.ic_kaaba_3d),
             contentDescription = null,
             modifier = Modifier
-                .size(68.dp)
+                .size(74.dp)
                 .absoluteOffset {
                     IntOffset(
                         x = (kaabaXUi - kaabaImgPx / 2f).roundToInt(),

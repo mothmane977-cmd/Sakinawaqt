@@ -326,15 +326,11 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     .padding(horizontal = 16.dp, vertical = 20.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    SakinaTitle3D(
-                                        text = sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres", "Genel Ayarlar", "Pengaturan", "عمومی ترتیبات"),
-                                        fontSize = 14.sp,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    SakinaBackIconButton(onClick = { scope.launch { rightDrawerState.close() } })
-                                }
+                                SakinaUnboxedHeader(
+                                    title = sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres", "Genel Ayarlar", "Pengaturan", "عمومی ترتیبات"),
+                                    backIconRes = R.drawable.ic_sakina_back,
+                                    onBack = { scope.launch { rightDrawerState.close() } }
+                                )
                                 Text(
                                     text = sakinaTr(currentLang, "التنبيهات والمنبهات والضبط", "Alarms, Notifications & Settings", "Alarmes, notifications et réglages", "Alarmlar, Bildirimler ve Ayarlar", "Alarm, Notifikasi & Pengaturan", "الارم، اطلاعات اور ترتیبات"),
                                     fontFamily = SakinaBodyFont,
@@ -342,14 +338,14 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     color = effectiveTheme.accentGold,
                                     modifier = Modifier.padding(horizontal = 4.dp)
                                 )
-                                SakinaDrawerPillItem(R.drawable.ic_alarm, sakinaTr(currentLang, "المنبهات الصوتية", "Sound Alarms", "Alarmes sonores", "Sesli Alarmlar", "Alarm Suara", "صوتی الارم")) {
+                                SakinaDrawerPillItem(R.drawable.ic_sakina_clock, sakinaTr(currentLang, "المنبهات الصوتية", "Sound Alarms", "Alarmes sonores", "Sesli Alarmlar", "Alarm Suara", "صوتی الارم")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.ALARM
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_after_prayer, sakinaTr(currentLang, "التنبيهات الهادئة", "Quiet Notifications", "Notifications discrètes", "Sessiz Bildirimler", "Notifikasi Tenang", "خاموش اطلاعات")) {
+                                SakinaDrawerPillItem(R.drawable.ic_sakina_lantern, sakinaTr(currentLang, "التنبيهات الهادئة", "Quiet Notifications", "Notifications discrètes", "Sessiz Bildirimler", "Notifikasi Tenang", "خاموش اطلاعات")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.NOTIFICATIONS
                                 }
                                 SakinaDrawerPillItem(
-                                    R.drawable.ic_star_ornament,
+                                    R.drawable.ic_sakina_home,
                                     if (useOrbitalHome) sakinaTr(currentLang, "التبديل للشاشة الكلاسيكية", "Switch to Classic Home", "Passer à l'accueil classique", "Klasik Ana Ekrana Geç", "Beralih ke Beranda Klasik", "کلاسک ہوم اسکرین")
                                     else sakinaTr(currentLang, "التبديل للشاشة المدارية ✨", "Switch to Orbital Home ✨", "Passer à l'accueil orbital ✨", "Yörünge Ana Ekranına Geç ✨", "Beralih ke Beranda Orbital ✨", "آربیٹل ہوم اسکرین ✨")
                                 ) {
@@ -357,14 +353,14 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     sp.edit().putBoolean("v33_orbital_home", useOrbitalHome).apply()
                                     scope.launch { rightDrawerState.close() }
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_star_ornament, sakinaTr(currentLang, "المظهر والخطوط", "Appearance & Fonts", "Apparence et polices", "Görünüm ve Yazı Tipi", "Tampilan & Font", "ظاہری شکل اور فونٹس")) {
+                                SakinaDrawerPillItem(R.drawable.ic_sakina_lantern, sakinaTr(currentLang, "المظهر والخطوط", "Appearance & Fonts", "Apparence et polices", "Görünüm ve Yazı Tipi", "Tampilan & Font", "ظاہری شکل اور فونٹس")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.APPEARANCE
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_settings, sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres généraux", "Genel Ayarlar", "Pengaturan Umum", "عمومی ترتیبات")) {
+                                SakinaDrawerPillItem(R.drawable.ic_sakina_settings, sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres généraux", "Genel Ayarlar", "Pengaturan Umum", "عمومی ترتیبات")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.SETTINGS
                                 }
                                 SakinaDrawerPillItem(
-                                    R.drawable.ic_star_ornament,
+                                    R.drawable.ic_sakina_shield,
                                     sakinaTr(currentLang, "تشخيص البطارية والصلاحيات", "Battery & Alarm Diagnostics", "Diagnostic batterie et alarmes", "Pil ve Alarm Tanılama", "Diagnostik Baterai & Alarm", "بیٹری اور الارم تشخیص")
                                 ) {
                                     scope.launch { rightDrawerState.close() }
@@ -390,15 +386,11 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             .padding(horizontal = 16.dp, vertical = 20.dp),
                                         verticalArrangement = Arrangement.spacedBy(7.dp)
                                     ) {
-                                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                            SakinaTitle3D(
-                                                text = sakinaTr(currentLang, "الأذكار والعبادات", "Adhkar & Worship", "Invocations & Culte", "Zikir ve İbadetler", "Dzikir & Ibadah", "اذکار اور عبادات"),
-                                                fontSize = 14.sp,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            Spacer(Modifier.width(8.dp))
-                                            SakinaBackIconButton(onClick = { scope.launch { leftDrawerState.close() } })
-                                        }
+                                        SakinaUnboxedHeader(
+                                            title = sakinaTr(currentLang, "الأذكار والعبادات", "Adhkar & Worship", "Invocations & Culte", "Zikir ve İbadetler", "Dzikir & Ibadah", "اذکار اور عبادات"),
+                                            backIconRes = R.drawable.ic_sakina_back,
+                                            onBack = { scope.launch { leftDrawerState.close() } }
+                                        )
                                         Spacer(Modifier.height(2.dp))
 
                                         SakinaDrawerPillItem(R.drawable.ic_tasbih, s.adhkarTitle) {

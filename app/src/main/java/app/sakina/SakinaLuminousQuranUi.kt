@@ -1190,15 +1190,22 @@ private fun ReaderTopChip(
 ) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (isActive) SakinaOrbitalColors.ChampagneGold else SakinaOrbitalColors.GlassNavy)
-            .border(0.8.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                if (isActive) SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.90f)
+                else SakinaLuxuryColors.MidnightNavy.copy(alpha = 0.78f)
+            )
+            .border(
+                width = if (isActive) 1.1.dp else 0.8.dp,
+                color = if (isActive) SakinaLuxuryColors.SoftGoldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.35f),
+                shape = RoundedCornerShape(14.dp)
+            )
             .clickable(onClick = onClick)
-            .padding(horizontal = 9.dp, vertical = 4.dp)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
         Text(
             text = label,
-            color = if (isActive) SakinaOrbitalColors.InkNavy else SakinaOrbitalColors.SoftGoldGlow,
+            color = if (isActive) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.80f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = bodyFontFamily
@@ -1534,14 +1541,19 @@ private fun ExpandedLuxuryAudioOverlay(
             .clickable(onClick = onDismiss),
         contentAlignment = Alignment.BottomCenter
     ) {
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = bottomReserve)
-                .clickable(enabled = false, onClick = {}),
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            color = SakinaOrbitalColors.DeepEmerald,
-            border = BorderStroke(1.2.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.6f))
+                .padding(bottom = bottomReserve, start = 10.dp, end = 10.dp)
+                .sakinaLuxuryGlassCard(
+                    cornerRadius = 28.dp,
+                    innerHairline = true,
+                    emeraldFlare = true,
+                    shimmer = true,
+                    borderAlpha = 0.84f
+                )
+                .clip(RoundedCornerShape(28.dp))
+                .clickable(enabled = false, onClick = {})
         ) {
             Column(
                 modifier = Modifier

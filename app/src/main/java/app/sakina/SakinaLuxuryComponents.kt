@@ -1,0 +1,526 @@
+package app.sakina
+
+import androidx.annotation.DrawableRes
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+object SakinaLuxuryColors {
+    val DeepSpaceNavy = Color(0xFF06101F)
+    val MidnightNavy = Color(0xFF0A192F)
+    val DeepEmerald = Color(0xFF0D3B2E)
+    val EmeraldGlow = Color(0xFF1EE3A8)
+    val ChampagneGold = Color(0xFFD4AF37)
+    val SoftGoldGlow = Color(0xFFF3DFA2)
+    val WarmCream = Color(0xFFFAF6EC)
+    val InkNavy = Color(0xFF0F1E36)
+    val MutedGoldText = Color(0xFF7A6320)
+    val GlassNavy = Color(0xB8102442)
+}
+
+/**
+ * Clean unboxed header with floating gold title and circular glass back button.
+ */
+@Composable
+fun SakinaUnboxedHeader(
+    title: String,
+    @DrawableRes backIconRes: Int,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    leadingAction: (@Composable () -> Unit)? = null
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(SakinaLuxuryColors.MidnightNavy.copy(alpha = 0.78f))
+                .border(0.9.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.45f), CircleShape)
+                .clickable(onClick = onBack),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = backIconRes),
+                contentDescription = null,
+                tint = SakinaLuxuryColors.SoftGoldGlow,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Text(
+            text = title,
+            color = SakinaLuxuryColors.SoftGoldGlow,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f).padding(horizontal = 12.dp)
+        )
+        if (leadingAction != null) {
+            leadingAction()
+        } else {
+            Spacer(modifier = Modifier.size(40.dp))
+        }
+    }
+}
+
+/**
+ * Razor-thin luxury glass card with crisp 1dp gold border and tiny pinpoint diamond
+ * corner accents (eliminates blurry horizontal white-green streaks between stacked cards).
+ */
+@Composable
+fun SakinaGlowingGlassCard(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 18.dp,
+    emeraldIntensity: Float = 0.34f,
+    onClick: (() -> Unit)? = null,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val shape = RoundedCornerShape(cornerRadius)
+    val cardMod = modifier
+        .clip(shape)
+        .background(
+            Brush.linearGradient(
+                colors = listOf(
+                    SakinaLuxuryColors.DeepEmerald.copy(alpha = emeraldIntensity),
+                    SakinaLuxuryColors.MidnightNavy.copy(alpha = 0.88f),
+                    SakinaLuxuryColors.DeepSpaceNavy.copy(alpha = 0.94f)
+                )
+            )
+        )
+        .drawBehind {
+            val r = cornerRadius.toPx()
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.62f),
+                        SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.22f),
+                        SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.42f)
+                    )
+                ),
+                cornerRadius = CornerRadius(r, r),
+                style = Stroke(width = 0.95.dp.toPx())
+            )
+            // Subtle pinpoint specular dot at top-center (10dp radius, not a wide streak)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.70f),
+                        Color.Transparent
+                    ),
+                    center = Offset(size.width * 0.5f, 0f),
+                    radius = 12.dp.toPx()
+                ),
+                radius = 12.dp.toPx(),
+                center = Offset(size.width * 0.5f, 0f)
+            )
+        }
+        .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+
+    Box(modifier = cardMod, content = content)
+}
+
+/**
+ * Jewel-like metallic gold/emerald toggle switch.
+ */
+@Composable
+fun SakinaJewelSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val thumbOffset by animateDpAsState(
+        targetValue = if (checked) 24.dp else 2.dp,
+        animationSpec = tween(220),
+        label = "jewelSwitch"
+    )
+    val trackColor by animateColorAsState(
+        targetValue = if (checked) SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.35f)
+        else SakinaLuxuryColors.MidnightNavy.copy(alpha = 0.85f),
+        label = "switchTrack"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (checked) SakinaLuxuryColors.SoftGoldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.30f),
+        label = "switchBorder"
+    )
+
+    Box(
+        modifier = modifier
+            .width(50.dp)
+            .height(28.dp)
+            .clip(RoundedCornerShape(50))
+            .background(trackColor)
+            .border(1.dp, borderColor, RoundedCornerShape(50))
+            .clickable { onCheckedChange(!checked) }
+            .padding(2.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = thumbOffset)
+                .size(22.dp)
+                .clip(CircleShape)
+                .background(
+                    if (checked) Brush.radialGradient(
+                        listOf(Color.White, SakinaLuxuryColors.SoftGoldGlow, SakinaLuxuryColors.ChampagneGold)
+                    ) else Brush.radialGradient(
+                        listOf(Color(0xFF9FB0C3), Color(0xFF475A6E))
+                    )
+                )
+        )
+    }
+}
+
+/**
+ * Frosted glass segmented tabs with glowing emerald-gold active rim (replaces heavy flat yellow blocks).
+ */
+@Composable
+fun SakinaLuxuryTabs(
+    tabs: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(50),
+        color = SakinaLuxuryColors.MidnightNavy.copy(alpha = 0.78f),
+        border = BorderStroke(0.8.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.28f))
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            tabs.forEachIndexed { index, title ->
+                val selected = index == selectedIndex
+                val bgColor by animateColorAsState(
+                    targetValue = if (selected) SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.88f) else Color.Transparent,
+                    label = "tabBg"
+                )
+                val borderColor by animateColorAsState(
+                    targetValue = if (selected) SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.85f) else Color.Transparent,
+                    label = "tabBorder"
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(50))
+                        .background(bgColor)
+                        .border(1.dp, borderColor, RoundedCornerShape(50))
+                        .clickable { onSelect(index) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = title,
+                        color = if (selected) SakinaLuxuryColors.SoftGoldGlow else Color.White.copy(alpha = 0.65f),
+                        fontSize = 13.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Ornate 8-pointed Islamic star gold number medallion backed by ic_star_medallion_gold.webp.
+ */
+@Composable
+fun SakinaStarMedallionBadge(
+    numberText: String,
+    @DrawableRes starBgRes: Int,
+    modifier: Modifier = Modifier,
+    size: Dp = 44.dp
+) {
+    Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
+        Image(
+            painter = painterResource(id = starBgRes),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize()
+        )
+        Text(
+            text = numberText,
+            color = SakinaLuxuryColors.SoftGoldGlow,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+/**
+ * Luminous emerald-gold circular progress ring (for 0/12 worship tracker & Dhikr cards).
+ */
+@Composable
+fun SakinaCircularProgressRing(
+    progress: Float,
+    centerLabel: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 46.dp,
+    strokeWidth: Dp = 3.5.dp
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(450),
+        label = "ringProgress"
+    )
+    Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val stroke = Stroke(width = strokeWidth.toPx(), cap = StrokeCap.Round)
+            drawArc(
+                color = Color.White.copy(alpha = 0.12f),
+                startAngle = 0f,
+                sweepAngle = 360f,
+                useCenter = false,
+                style = stroke
+            )
+            if (animatedProgress > 0f) {
+                drawArc(
+                    brush = Brush.sweepGradient(
+                        listOf(
+                            SakinaLuxuryColors.ChampagneGold,
+                            SakinaLuxuryColors.EmeraldGlow,
+                            SakinaLuxuryColors.SoftGoldGlow
+                        )
+                    ),
+                    startAngle = -90f,
+                    sweepAngle = 360f * animatedProgress,
+                    useCenter = false,
+                    style = stroke
+                )
+            }
+        }
+        Text(
+            text = centerLabel,
+            color = SakinaLuxuryColors.SoftGoldGlow,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+/**
+ * 3D brushed gold CTA pill button backed by btn_gold_cta_pill.webp.
+ */
+@Composable
+fun SakinaBrushedGoldButton(
+    text: String,
+    @DrawableRes pillBgRes: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    height: Dp = 50.dp
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(RoundedCornerShape(50))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = pillBgRes),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize()
+        )
+        Text(
+            text = text,
+            color = SakinaLuxuryColors.InkNavy,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/**
+ * Beveled 3D gold medallion play/check button backed by ic_gold_medallion_btn.webp.
+ */
+@Composable
+fun SakinaGoldMedallionButton(
+    @DrawableRes medallionBgRes: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 54.dp,
+    content: @Composable BoxScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = medallionBgRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+        content()
+    }
+}
+
+data class SakinaDockTab(
+    val route: String,
+    val label: String,
+    @DrawableRes val iconRes: Int
+)
+
+/**
+ * Floating luxury glass bottom navigation dock with animated golden spotlight arc.
+ */
+@Composable
+fun SakinaLuxuryFloatingDock(
+    tabs: List<SakinaDockTab>,
+    selectedRoute: String,
+    onTabSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .fillMaxWidth()
+            .height(66.dp)
+            .clip(RoundedCornerShape(33.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        SakinaLuxuryColors.MidnightNavy.copy(alpha = 0.92f),
+                        SakinaLuxuryColors.DeepSpaceNavy.copy(alpha = 0.97f)
+                    )
+                )
+            )
+            .border(
+                width = 0.95.dp,
+                brush = Brush.horizontalGradient(
+                    listOf(
+                        SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.25f),
+                        SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.65f),
+                        SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.25f)
+                    )
+                ),
+                shape = RoundedCornerShape(33.dp)
+            )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            tabs.forEach { tab ->
+                val selected = tab.route == selectedRoute
+                val iconTint by animateColorAsState(
+                    targetValue = if (selected) SakinaLuxuryColors.SoftGoldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f),
+                    label = "dockTint"
+                )
+                val arcWidth by animateDpAsState(
+                    targetValue = if (selected) 44.dp else 0.dp,
+                    label = "dockArc"
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onTabSelected(tab.route) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selected) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(
+                                    Brush.radialGradient(
+                                        listOf(
+                                            SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.22f),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    shape = CircleShape
+                                )
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 2.dp)
+                                .width(arcWidth)
+                                .height(2.5.dp)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color.Transparent, SakinaLuxuryColors.SoftGoldGlow, Color.Transparent)
+                                    ),
+                                    shape = CircleShape
+                                )
+                        )
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = tab.iconRes),
+                            contentDescription = tab.label,
+                            tint = iconTint,
+                            modifier = Modifier.size(21.dp)
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = tab.label,
+                            color = iconTint,
+                            fontSize = 10.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

@@ -321,34 +321,23 @@ fun Modifier.sakinaLuxuryGlassCard(
             )
         }
 
-        // 6. Signature top-center & bottom-center luminous specular flares
-        val flareRadius = (w * 0.34f).coerceIn(32.dp.toPx(), 110.dp.toPx())
-        drawOval(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    SakinaLuxuryPalette.GoldSpecular.copy(alpha = 0.85f),
-                    flareColor.copy(alpha = 0.38f),
-                    Color.Transparent
+        // 6. Crisp pinpoint diamond specular glint (never bleeds across stacked cards or small circles)
+        if (w >= 72.dp.toPx()) {
+            val glintR = 11.dp.toPx()
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        SakinaLuxuryPalette.GoldSpecular.copy(alpha = 0.72f),
+                        flareColor.copy(alpha = 0.22f),
+                        Color.Transparent
+                    ),
+                    center = Offset(w * 0.5f, 0f),
+                    radius = glintR
                 ),
-                center = Offset(w * 0.5f, 0f),
-                radius = flareRadius
-            ),
-            topLeft = Offset(w * 0.5f - flareRadius, -8.dp.toPx()),
-            size = Size(flareRadius * 2f, 16.dp.toPx())
-        )
-        drawOval(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    SakinaLuxuryPalette.GoldSpecular.copy(alpha = 0.72f),
-                    flareColor.copy(alpha = 0.30f),
-                    Color.Transparent
-                ),
-                center = Offset(w * 0.5f, h),
-                radius = flareRadius * 0.88f
-            ),
-            topLeft = Offset(w * 0.5f - flareRadius * 0.88f, h - 7.dp.toPx()),
-            size = Size(flareRadius * 1.76f, 14.dp.toPx())
-        )
+                radius = glintR,
+                center = Offset(w * 0.5f, 0f)
+            )
+        }
     }
 }
 

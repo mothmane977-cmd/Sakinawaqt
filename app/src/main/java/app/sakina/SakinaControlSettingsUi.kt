@@ -430,23 +430,12 @@ fun SakinaControlSettingsScreen(
                         SettingsSwitchRow(strings.kahfFridayLabel, state.kahfFridayEnabled, bodyFontFamily, onKahfFridayChanged)
                         SettingsSwitchRow(strings.fastingReminderLabel, state.fastingReminderEnabled, bodyFontFamily, onFastingReminderChanged)
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(SakinaOrbitalColors.ChampagneGold)
-                                .clickable(onClick = onTestAdhanClick)
-                                .padding(vertical = 9.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = strings.testAdhanLabel,
-                                color = SakinaOrbitalColors.InkNavy,
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = bodyFontFamily
-                            )
-                        }
+                        SakinaBrushedGoldButton(
+                            text = strings.testAdhanLabel,
+                            pillBgRes = R.drawable.btn_gold_cta_pill,
+                            onClick = onTestAdhanClick,
+                            height = 44.dp
+                        )
                     }
                 }
 
@@ -719,15 +708,9 @@ private fun SettingsSwitchRow(
                 .weight(1f)
                 .padding(end = 10.dp)
         )
-        Switch(
+        SakinaJewelSwitch(
             checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = SakinaOrbitalColors.InkNavy,
-                checkedTrackColor = SakinaOrbitalColors.ChampagneGold,
-                uncheckedThumbColor = SakinaOrbitalColors.WarmCream.copy(alpha = 0.7f),
-                uncheckedTrackColor = SakinaOrbitalColors.DeepSpaceNavy
-            )
+            onCheckedChange = onCheckedChange
         )
     }
 }
