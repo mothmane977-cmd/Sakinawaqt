@@ -192,7 +192,7 @@ fun SakinaSettingsScreen(
         useMaghribiNames = maghrebiNames,
         useHanafiAsr = isHanafi,
         hijriOffsetDays = hijriOff,
-        muezzinName = SakinaAdhanAudio.localizedTitle(selectedVoice, lang),
+        muezzinName = selectedVoice.localizedTitle(lang),
         fajrWakeupEnabled = fajrWakeup,
         fullAdhanEnabled = fullAdhan,
         qiyamAlertEnabled = qiyamAlert,
@@ -421,7 +421,7 @@ fun SakinaSettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = SakinaAdhanAudio.localizedTitle(voice, lang),
+                                text = voice.localizedTitle(lang),
                                 fontFamily = SakinaBodyFont,
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                                 fontSize = 13.sp,

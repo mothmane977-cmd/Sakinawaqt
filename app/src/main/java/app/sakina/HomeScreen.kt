@@ -497,7 +497,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                             SakinaBackgroundLayer(headerImageRes = headerImg, showMihrabFrame = true) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     when (extraSection) {
-                                        ExtraSection.ADHKAR -> SakinaAdhkarScreen(ctx = ctx, initialCategoryIndex = adhkarInitCat)
+                                        ExtraSection.ADHKAR -> SakinaAdhkarScreen(ctx = ctx, initialCategoryIndex = adhkarInitCat, onBackClick = { returnFromExtra() }, onOpenSubSection = { extraSection = it })
                                         ExtraSection.DUAS -> SakinaDuasScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.RUQYAH -> SakinaRuqyahScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.SUNNAH -> SakinaSunnahScreen(ctx = ctx, onBackClick = { returnFromExtra() })
@@ -615,15 +615,6 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         }
                                         }
                                         }
-                                    } else if (extraSection == ExtraSection.ADHKAR) {
-                                        // Back button on top-left when viewing Adhkar or Calendar from Left Drawer
-                                        SakinaBackIconButton(
-                                            onClick = { returnFromExtra() },
-                                            modifier = Modifier
-                                                .align(AbsoluteAlignment.TopLeft)
-                                                .statusBarsPadding()
-                                                .padding(start = 16.dp, top = 54.dp)
-                                        )
                                     }
 
                                     if (extraSection == ExtraSection.NONE) {

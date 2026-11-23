@@ -7,6 +7,8 @@ import android.media.MediaPlayer
 import android.media.AudioAttributes
 
 import android.content.Context
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.foundation.text.BasicTextField
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
@@ -158,776 +160,261 @@ private val ADHKAR_CATEGORIES = listOf(
 private val TASBIH_PHRASES = listOf("سُبْحَانَ اللَّهِ", "الْحَمْدُ لِلَّهِ", "اللَّهُ أَكْبَرُ", "لَا إِلَٰهَ إِلَّا اللَّهُ", "أَسْتَغْفِرُ اللَّهَ")
 
 @Composable
-fun SakinaAdhkarScreen(ctx: Context, initialCategoryIndex: Int? = null, modifier: Modifier = Modifier) {
+fun SakinaAdhkarScreen(
+    ctx: Context,
+    initialCategoryIndex: Int? = null,
+    onBackClick: () -> Unit = {},
+    onOpenSubSection: (ExtraSection) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     val theme = LocalSakinaTheme.current
     val s = LocalSakinaStrings.current
     val lang = LocalSakinaLang.current
-    val isArOrUr = lang == SakinaLang.AR || lang == SakinaLang.UR
-    val view = LocalView.current
     val sp = remember { ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE) }
 
-    var selectedCategoryIndex by remember { mutableStateOf<Int?>(initialCategoryIndex) }
-    LaunchedEffect(initialCategoryIndex) {
-        if (initialCategoryIndex != null) selectedCategoryIndex = initialCategoryIndex
-    }
+    var selectedCategoryIndex by remember(initialCategoryIndex) { mutableStateOf<Int?>(initialCategoryIndex) }
     var phraseIdx by remember { mutableIntStateOf(0) }
     var count by remember { mutableIntStateOf(sp.getInt("tasbih_count", 0)) }
-    val target = 33
+    var round by remember { mutableIntStateOf(sp.getInt("tasbih_round", 1)) }
     val itemCounts = remember { mutableStateMapOf<String, Int>() }
 
-    // Daily Name of Allah index (#20)
-    val initialAsmaIdx = remember {
-        Calendar.getInstance().get(Calendar.DAY_OF_YEAR) % ASMA_UL_HUSNA_DAILY.size
+    var showSearchDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Offline MediaPlayer for Morning / Evening / Sleep Adhkar (Mishary Al-Afasy OGG)
+    var audioPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+    var isAudioPlaying by remember { mutableStateOf(false) }
+
+    fun stopAdhkarAudio() {
+        try { audioPlayer?.stop() } catch (_: Exception) {}
+        try { audioPlayer?.release() } catch (_: Exception) {}
+        audioPlayer = null
+        isAudioPlaying = false
     }
-    var asmaIdx by remember { mutableIntStateOf(initialAsmaIdx) }
-    var showAsmaDialog by remember { mutableStateOf(false) }
-    val currentAsma = ASMA_UL_HUSNA_DAILY[asmaIdx]
 
-    BackHandler(enabled = selectedCategoryIndex != null) { selectedCategoryIndex = null }
+    DisposableEffect(selectedCategoryIndex) {
+        onDispose { stopAdhkarAudio() }
+    }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(start = 14.dp, end = 14.dp, top = 48.dp, bottom = 72.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        // 1. Header Cartouche
-        Box(modifier = Modifier.fillMaxWidth()) {
-            if (selectedCategoryIndex != null) {
-                SakinaBackIconButton(
-                    onClick = { selectedCategoryIndex = null },
-                    modifier = Modifier.align(Alignment.CenterStart)
-                )
-            }
-            SakinaOrnamentCartouche(
-                modifier = Modifier.align(Alignment.Center),
-                contentPadding = PaddingValues(horizontal = 36.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = selectedCategoryIndex?.let { s.adhkarCatTitles[it] } ?: s.adhkarTitle,
-                    style = TextStyle(
-                        fontFamily = SakinaEditorialFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.5.sp,
-                        brush = SakinaCalligraphyBrush()
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
-                )
-            }
+    BackHandler(enabled = selectedCategoryIndex != null) {
+        stopAdhkarAudio()
+        selectedCategoryIndex = null
+    }
+
+    val audioRawNameForCat: (Int?) -> String? = { idx ->
+        when (idx) {
+            0 -> "adhkar_sabah"
+            1 -> "adhkar_masaa"
+            3 -> "adhkar_nawm"
+            else -> null
         }
+    }
 
-        if (selectedCategoryIndex == null) {
-            // 2. Surah Al-Ahzab: 35 directly under the cartouche in Classical Naskh (#24, #25)
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.92f), theme.bgDeep.copy(alpha = 0.96f))))
-                        .border(1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(14.dp))
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
-                        fontFamily = SakinaNaskhFontFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        lineHeight = 14.sp,
-                        color = theme.accentGold,
-                        textAlign = TextAlign.Center,
-                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                    )
-                    Text(
-                        text = "﴿ وَالذَّاكِرِينَ اللَّهَ كَثِيرًا وَالذَّاكِرَاتِ أَعَدَّ اللَّهُ لَهُمْ مَغْفِرَةً وَأَجْرًا عَظِيمًا ﴾ {الأحزاب: 35}".toWesternDigits(),
-                        fontFamily = SakinaNaskhFontFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.2.sp,
-                        lineHeight = 17.sp,
-                        textAlign = TextAlign.Center,
-                        style = TextStyle(
-                            brush = Brush.verticalGradient(
-                                listOf(Color(0xFFFFF7D6), Color(0xFFE6CF94), Color(0xFFD4AF37))
-                            ),
-                            shadow = Shadow(color = Color(0xAA000000), offset = Offset(0f, 2f), blurRadius = 4f),
-                            platformStyle = PlatformTextStyle(includeFontPadding = false)
-                        )
-                    )
-                    }
-                }
-            }
-
-            // 3. 3x2 Adhkar Category Cards with larger 28.dp icons (#19)
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
-                for (row in 0 until 3) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                        for (col in 0 until 2) {
-                            val idx = row * 2 + col
-                            val cat = ADHKAR_CATEGORIES[idx]
-                            val locTitle = s.adhkarCatTitles[idx]
-                            val fontSize = if (locTitle.length > 22) 10.sp else 11.5.sp
-                            SakinaGlassCard(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(66.dp)
-                                    .clickable { selectedCategoryIndex = idx },
-                                cornerRadius = 15.dp,
-                                glowGold = idx < 2,
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Image(
-                                        painter = painterResource(id = cat.iconRes),
-                                        contentDescription = locTitle,
-                                        modifier = Modifier.size(27.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text(
-                                        text = locTitle,
-                                        fontFamily = SakinaHeadingFont,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = fontSize,
-                                        lineHeight = 12.5.sp,
-                                        color = theme.accentBright,
-                                        textAlign = TextAlign.Center,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 4. Asma ul-Husna (Name of the Day, Meaning & Virtue) Card (#20)
-            SakinaParchmentPanel(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showAsmaDialog = true },
-                cornerRadius = 15.dp,
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = Color(0xFF0F3D3E),
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable {
-                                asmaIdx = (asmaIdx - 1 + ASMA_UL_HUSNA_DAILY.size) % ASMA_UL_HUSNA_DAILY.size
-                            }
-                    )
-                    Text(
-                        text = "❖ ${s.asmaTitle} ❖",
-                        fontFamily = SakinaNaskhFontFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        color = Color(0xFF6B5224),
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Icon(
-                        Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                        contentDescription = null,
-                        tint = Color(0xFF0F3D3E),
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable {
-                                asmaIdx = (asmaIdx + 1) % ASMA_UL_HUSNA_DAILY.size
-                            }
-                    )
-                }
-                Text(
-                    text = currentAsma.nameAr,
-                    fontFamily = SakinaNaskhFontFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.5.sp,
-                    color = Color(0xFF0F3D3E),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = if (isArOrUr) currentAsma.meaningAr else currentAsma.meaningEn,
-                    fontFamily = SakinaBodyFont,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 10.sp,
-                    lineHeight = 13.5.sp,
-                    color = SakinaInkDark,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = (if (isArOrUr) currentAsma.virtueAr else currentAsma.virtueEn).toWesternDigits(),
-                    fontFamily = SakinaBodyFont,
-                    fontSize = 9.2.sp,
-                    lineHeight = 12.5.sp,
-                    color = Color(0xFF6B5224),
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            // 5. Compact Interactive Misbaha / Tasbih Counter Bar
-            val pulseScale by animateFloatAsState(
-                targetValue = if (count % 2 == 1) 1.02f else 1.0f,
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                label = "tasbihPulse"
-            )
-            val progress = (count % target).toFloat() / target.toFloat()
-
-            SakinaGlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = 16.dp,
-                glowGold = true,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 7.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Left/Start: Ergonomic 60.dp Gold-Ringed Tap Counter Medallion (crisp number only, zero clipping!)
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .scale(pulseScale)
-                            .clip(CircleShape)
-                            .background(theme.bgDeep.copy(alpha = 0.7f))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                count++
-                                sp.edit().putInt("tasbih_count", count).apply()
-                                if (count % target == 0) view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                else view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val cx = size.width / 2f
-                            val cy = size.height / 2f
-                            val r = size.minDimension / 2f - 4.dp.toPx()
-                            drawCircle(color = Color(0x33D4AF37), radius = r, style = Stroke(width = 2.dp.toPx()))
-                            drawArc(
-                                brush = Sakina3DGoldBevelBrush,
-                                startAngle = -90f,
-                                sweepAngle = progress * 360f,
-                                useCenter = false,
-                                style = Stroke(width = 3.4.dp.toPx(), cap = StrokeCap.Round)
-                            )
-                            for (i in 0 until 12) {
-                                val angle = (i * 30.0 - 90.0) * PI / 180.0
-                                val bx = cx + (r * cos(angle)).toFloat()
-                                val by = cy + (r * sin(angle)).toFloat()
-                                val active = i <= ((count % target) * 12 / target)
-                                drawCircle(
-                                    color = if (active) theme.accentBright else Color(0x44D4AF37),
-                                    radius = if (active) 2.2.dp.toPx() else 1.4.dp.toPx(),
-                                    center = Offset(bx, by)
-                                )
-                            }
-                        }
-                        Text(
-                            text = "$count".toWesternDigits(),
-                            fontFamily = SakinaNumeralFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = theme.accentBright,
-                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                        )
-                    }
-
-                    // Right/Main: Spacious Phrase Selector + Prompt/Progress + Reset Button
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0x22FFFFFF))
-                                    .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                    .clickable { phraseIdx = (phraseIdx - 1 + TASBIH_PHRASES.size) % TASBIH_PHRASES.size },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(17.dp))
-                            }
-                            Text(
-                                text = TASBIH_PHRASES[phraseIdx],
-                                fontFamily = SakinaNaskhFontFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = theme.accentBright,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0x22FFFFFF))
-                                    .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                    .clickable { phraseIdx = (phraseIdx + 1) % TASBIH_PHRASES.size },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = theme.accentBright, modifier = Modifier.size(17.dp))
-                            }
-                            Spacer(Modifier.width(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0x22FFFFFF))
-                                    .border(0.8.dp, Sakina3DGoldBevelBrush, CircleShape)
-                                    .clickable {
-                                        count = 0
-                                        sp.edit().putInt("tasbih_count", 0).apply()
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Rounded.Refresh, contentDescription = "Reset", tint = theme.accentBright, modifier = Modifier.size(14.dp))
-                            }
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "${s.tasbihPrompt} (${count % target}/$target)".toWesternDigits(),
-                                fontFamily = SakinaBodyFont,
-                                fontSize = 10.sp,
-                                color = SakinaBrandColors.SoftSilver,
-                                maxLines = 1
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                                TASBIH_PHRASES.forEachIndexed { idx, _ ->
-                                    val sel = idx == phraseIdx
-                                    Box(
-                                        modifier = Modifier
-                                            .size(if (sel) 16.dp else 6.dp, 6.dp)
-                                            .clip(CircleShape)
-                                            .background(if (sel) theme.accentBright else Color(0x44FFFFFF))
-                                            .clickable { phraseIdx = idx }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+    fun toggleCategoryAudio(catIdx: Int?) {
+        val rawName = audioRawNameForCat(catIdx) ?: return
+        val rawId = ctx.resources.getIdentifier(rawName, "raw", ctx.packageName)
+        if (rawId == 0) return
+        val cur = audioPlayer
+        if (cur != null) {
+            if (cur.isPlaying) {
+                cur.pause()
+                isAudioPlaying = false
+            } else {
+                cur.start()
+                isAudioPlaying = true
             }
         } else {
-            val catIdx = selectedCategoryIndex!!
-            val category = ADHKAR_CATEGORIES[catIdx]
-            val audioRawName = when (catIdx) {
-                0 -> "adhkar_sabah"
-                1 -> "adhkar_masaa"
-                3 -> "adhkar_nawm"
-                else -> null
-            }
-            if (audioRawName != null) {
-                SakinaAdhkarAudioPlayerBar(
-                    ctx = ctx,
-                    rawName = audioRawName,
-                    title = s.adhkarCatTitles.getOrElse(catIdx) { category.title },
-                    lang = lang
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-            }
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(top = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                itemsIndexed(category.items) { idx, item ->
-                    val key = "${category.title}_$idx"
-                    val doneCount = itemCounts[key] ?: 0
-                    val completed = doneCount >= item.targetCount
+            val mp = MediaPlayer.create(ctx.applicationContext, rawId) ?: return
+            mp.setOnCompletionListener { isAudioPlaying = false }
+            mp.start()
+            audioPlayer = mp
+            isAudioPlaying = true
+        }
+    }
 
-                    SakinaParchmentPanel(
+    fun progressForCat(idx: Int): Float {
+        val cat = ADHKAR_CATEGORIES.getOrNull(idx) ?: return 0f
+        if (cat.items.isEmpty()) return 0f
+        val done = cat.items.indices.count { i ->
+            (itemCounts["${cat.title}_$i"] ?: 0) >= cat.items[i].targetCount
+        }
+        return done.toFloat() / cat.items.size.toFloat()
+    }
+
+    val portals = listOf(
+        WorshipPortalCard(
+            WorshipPortalType.MORNING_ADHKAR,
+            s.adhkarCatTitles.getOrElse(0) { "أذكار الصباح" },
+            sakinaTr(lang, "أوفلاين · صوت", "Offline · Audio", "Hors-ligne · Audio", "Çevrimdışı · Ses", "Offline · Audio", "آف لائن · آڈیو"),
+            progressForCat(0),
+            true
+        ),
+        WorshipPortalCard(
+            WorshipPortalType.EVENING_ADHKAR,
+            s.adhkarCatTitles.getOrElse(1) { "أذكار المساء" },
+            sakinaTr(lang, "أوفلاين · صوت", "Offline · Audio", "Hors-ligne · Audio", "Çevrimdışı · Ses", "Offline · Audio", "آف لائن · آڈیو"),
+            progressForCat(1),
+            true
+        ),
+        WorshipPortalCard(
+            WorshipPortalType.SLEEP_AND_POST_PRAYER,
+            s.adhkarCatTitles.getOrElse(3) { "أذكار النوم" },
+            sakinaTr(lang, "أوفلاين · صوت", "Offline · Audio", "Hors-ligne · Audio", "Çevrimdışı · Ses", "Offline · Audio", "آف لائن · آڈیو"),
+            progressForCat(3),
+            true
+        ),
+        WorshipPortalCard(
+            WorshipPortalType.RUQYAH,
+            s.ruqyahTitle,
+            sakinaTr(lang, "آيات وأدعية الحصن", "Quran & Sunnah", "Coran et Sunna", "Kur'an ve Sünnet", "Al-Qur'an & Sunnah", "قرآن و سنت"),
+            0.25f,
+            false
+        ),
+        WorshipPortalCard(
+            WorshipPortalType.NAMES_OF_ALLAH,
+            sakinaTr(lang, "أسماء الله الحسنى", "99 Names of Allah", "Les 99 Noms", "Esmaül Hüsna", "Asmaul Husna", "اسماء الحسنیٰ"),
+            sakinaTr(lang, "99 اسماً وشرحاً", "99 Names", "99 Noms", "99 İsim", "99 Nama", "99 اسماء"),
+            0.50f,
+            false
+        ),
+        WorshipPortalCard(
+            WorshipPortalType.DUAS_AND_TRACKER,
+            sakinaTr(lang, "الأدعية والعبادات", "Duas & Worship", "Invocations", "Dualar", "Doa & Ibadah", "دعائیں اور عبادات"),
+            sakinaTr(lang, "أدعية نبوية مأثورة", "Prophetic Duas", "Douas prophétiques", "Nebevî Dualar", "Doa Nabawi", "مسنون دعائیں"),
+            progressForCat(2),
+            false
+        )
+    )
+
+    val activeCat = selectedCategoryIndex?.let { ADHKAR_CATEGORIES.getOrNull(it) }
+    val activeItems = remember(selectedCategoryIndex, itemCounts.size, itemCounts.values.sum()) {
+        if (activeCat == null) emptyList()
+        else activeCat.items.mapIndexed { idx, it ->
+            val key = "${activeCat.title}_$idx"
+            DhikrCardItem(
+                id = idx,
+                text = it.text.toWesternDigits(),
+                reference = it.source.toWesternDigits(),
+                targetCount = it.targetCount,
+                currentCount = (itemCounts[key] ?: 0).coerceAtMost(it.targetCount)
+            )
+        }
+    }
+
+    val oasisStrings = SakinaAdhkarStrings(
+        oasisTitle = sakinaTr(lang, "واحة الذكر", "Adhkar Oasis", "Oasis du Dhikr", "Zikir Bahçesi", "Oase Dzikir", "ذکر و اذکار"),
+        backDesc = sakinaTr(lang, "رجوع", "Back", "Retour", "Geri", "Kembali", "واپس"),
+        searchDesc = sakinaTr(lang, "بحث في الأذكار", "Search Adhkar", "Rechercher", "Ara", "Cari", "تلاش کریں"),
+        roundFormat = sakinaTr(lang, "الجولة %d", "Round %d", "Tour %d", "Tur %d", "Putaran %d", "دور %d"),
+        offlineAudioLabel = sakinaTr(lang, "استماع أوفلاين · أذكار", "Offline Audio · Adhkar", "Audio hors-ligne", "Çevrimdışı Ses", "Audio Offline", "آف لائن آڈیو"),
+        reciterLabel = sakinaTr(lang, "بصوت الشيخ مشاري العفاسي", "Recited by Mishary Al-Afasy", "Mishary Al-Afasy", "Mişari El-Afasi", "Syekh Misyari Al-Afasy", "مشاري راشد العفاسي")
+    )
+
+    val oasisState = SakinaAdhkarOasisState(
+        tasbih = TasbihState(
+            dhikrText = TASBIH_PHRASES[phraseIdx],
+            count = count,
+            target = 33,
+            round = round
+        ),
+        portals = portals,
+        activeCategoryTitle = selectedCategoryIndex?.let { s.adhkarCatTitles.getOrElse(it) { activeCat?.title } },
+        activeCategoryHasAudio = audioRawNameForCat(selectedCategoryIndex)?.let {
+            ctx.resources.getIdentifier(it, "raw", ctx.packageName) != 0
+        } ?: false,
+        isAudioPlaying = isAudioPlaying,
+        activeDhikrItems = activeItems
+    )
+
+    SakinaAdhkarOasisScreen(
+        state = oasisState,
+        strings = oasisStrings,
+        headingFontFamily = SakinaHeadingFont,
+        bodyFontFamily = SakinaBodyFont,
+        showBottomDock = false,
+        hostBottomBarReserve = 24.dp,
+        onBackClick = onBackClick,
+        onSearchClick = { showSearchDialog = true },
+        onTasbihTap = {
+            if (count + 1 >= 33) {
+                count = 0
+                round++
+            } else {
+                count++
+            }
+            sp.edit().putInt("tasbih_count", count).putInt("tasbih_round", round).apply()
+        },
+        onTasbihReset = {
+            count = 0
+            round = 1
+            sp.edit().putInt("tasbih_count", 0).putInt("tasbih_round", 1).apply()
+        },
+        onPrevDhikr = { phraseIdx = (phraseIdx - 1 + TASBIH_PHRASES.size) % TASBIH_PHRASES.size },
+        onNextDhikr = { phraseIdx = (phraseIdx + 1) % TASBIH_PHRASES.size },
+        onPortalClick = { portal ->
+            when (portal) {
+                WorshipPortalType.MORNING_ADHKAR -> selectedCategoryIndex = 0
+                WorshipPortalType.EVENING_ADHKAR -> selectedCategoryIndex = 1
+                WorshipPortalType.SLEEP_AND_POST_PRAYER -> selectedCategoryIndex = 3
+                WorshipPortalType.RUQYAH -> onOpenSubSection(ExtraSection.RUQYAH)
+                WorshipPortalType.NAMES_OF_ALLAH -> onOpenSubSection(ExtraSection.NAMES_OF_ALLAH)
+                WorshipPortalType.DUAS_AND_TRACKER -> onOpenSubSection(ExtraSection.DUAS)
+            }
+        },
+        onCloseCategory = {
+            stopAdhkarAudio()
+            selectedCategoryIndex = null
+        },
+        onToggleAudioPlay = { toggleCategoryAudio(selectedCategoryIndex) },
+        onDhikrCardTap = { id ->
+            val cat = activeCat ?: return@SakinaAdhkarOasisScreen
+            val item = cat.items.getOrNull(id) ?: return@SakinaAdhkarOasisScreen
+            val key = "${cat.title}_$id"
+            val cur = itemCounts[key] ?: 0
+            if (cur < item.targetCount) itemCounts[key] = cur + 1
+        }
+    )
+
+    if (showSearchDialog) {
+        AlertDialog(
+            onDismissRequest = { showSearchDialog = false },
+            containerColor = theme.bgCard,
+            title = { Text(oasisStrings.searchDesc, fontFamily = SakinaHeadingFont, color = theme.accentBright) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontFamily = SakinaBodyFont, fontSize = 14.sp),
+                        cursorBrush = SolidColor(theme.accentBright),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                if (doneCount < item.targetCount) {
-                                    itemCounts[key] = doneCount + 1
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                                }
-                            },
-                        cornerRadius = 18.dp,
-                        contentPadding = PaddingValues(14.dp)
-                    ) {
-                        Text(
-                            text = item.text.toWesternDigits(),
-                            fontFamily = SakinaNaskhFontFamily,
-                            fontSize = 17.sp,
-                            lineHeight = 30.sp,
-                            color = SakinaInkDark,
-                            textAlign = TextAlign.Right,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = item.source.toWesternDigits(),
-                                fontFamily = SakinaNaskhFontFamily,
-                                fontSize = 11.5.sp,
-                                color = Color(0xFF6B5224)
-                            )
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0x22FFFFFF))
+                            .padding(10.dp)
+                    )
+                    ADHKAR_CATEGORIES.forEachIndexed { idx, cat ->
+                        val title = s.adhkarCatTitles.getOrElse(idx) { cat.title }
+                        if (searchQuery.isBlank() || title.contains(searchQuery, ignoreCase = true)) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (completed) Color(0xFF1E5631) else Color(0xFF0F3D3E))
-                                    .border(0.9.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(12.dp))
-                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0x16FFFFFF))
+                                    .clickable {
+                                        selectedCategoryIndex = idx
+                                        showSearchDialog = false
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 9.dp)
                             ) {
-                                Text(
-                                    text = "${doneCount.coerceAtMost(item.targetCount)} / ${item.targetCount}".toWesternDigits(),
-                                    fontFamily = SakinaNumeralFont,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.5.sp,
-                                    color = theme.accentBright
-                                )
+                                Text(title, fontFamily = SakinaBodyFont, color = SakinaBrandColors.LuminousIvory)
                             }
                         }
                     }
                 }
-            }
-        }
-    }
-
-    if (showAsmaDialog) {
-        AlertDialog(
-            onDismissRequest = { showAsmaDialog = false },
-            containerColor = theme.bgCard,
-            title = {
-                Text(
-                    text = "${s.asmaTitle}\n${currentAsma.nameAr}",
-                    fontFamily = SakinaNaskhFontFamily,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = theme.accentBright,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
             },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = if (isArOrUr) "المعنى: ${currentAsma.meaningAr}" else "Meaning: ${currentAsma.meaningEn}",
-                        fontFamily = SakinaBodyFont,
-                        fontSize = 14.sp,
-                        lineHeight = 22.sp,
-                        color = SakinaBrandColors.LuminousIvory
-                    )
-                    Text(
-                        text = (if (isArOrUr) currentAsma.virtueAr else currentAsma.virtueEn).toWesternDigits(),
-                        fontFamily = SakinaBodyFont,
-                        fontSize = 13.sp,
-                        lineHeight = 20.sp,
-                        color = theme.accentBright
-                    )
-                    Text(
-                        text = if (isArOrUr) "الحديث الجامع: قال رسول الله ﷺ: «إن لله تسعة وتسعين اسماً، مائة إلا واحداً، من أحصاها دخل الجنة» (متفق عليه: البخاري 2736 ومسلم 2677).".toWesternDigits()
-                        else "Hadith: The Prophet ﷺ said: 'Allah has ninety-nine Names, one hundred less one; whoever learns, understands, and acts upon them will enter Paradise.' (Sahih al-Bukhari 2736 & Sahih Muslim 2677).",
-                        fontFamily = SakinaBodyFont,
-                        fontSize = 12.sp,
-                        lineHeight = 18.sp,
-                        color = SakinaBrandColors.SoftSilver
-                    )
-                }
-            },
-            confirmButton = {
-                SakinaBackIconButton(onClick = { showAsmaDialog = false })
-            }
+            confirmButton = { SakinaBackIconButton(onClick = { showSearchDialog = false }) }
         )
-    }
-}
-
-
-// v30: Built-in 100% Offline Adhkar Audio Player (Morning, Evening, Sleep — Mishary Al-Afasy OGG)
-@Composable
-private fun SakinaAdhkarAudioPlayerBar(
-    ctx: Context,
-    rawName: String,
-    title: String,
-    lang: SakinaLang
-) {
-    val theme = LocalSakinaTheme.current
-    val rawId = remember(rawName) { ctx.resources.getIdentifier(rawName, "raw", ctx.packageName) }
-    if (rawId == 0) return
-
-    var player by remember(rawId) { mutableStateOf<MediaPlayer?>(null) }
-    var isPlaying by remember(rawId) { mutableStateOf(false) }
-    var isLooping by remember(rawId) { mutableStateOf(false) }
-    var posMs by remember(rawId) { mutableIntStateOf(0) }
-    var durMs by remember(rawId) { mutableIntStateOf(0) }
-    var speedIdx by remember(rawId) { mutableIntStateOf(0) }
-    val speeds = listOf(1.0f, 1.25f, 1.5f)
-
-    fun fmtMs(ms: Int): String {
-        val totalSec = (ms / 1000).coerceAtLeast(0)
-        val m = totalSec / 60
-        val sec = totalSec % 60
-        return SakinaAdvancedPrefs.formatDigits(ctx, String.format(java.util.Locale.US, "%02d:%02d", m, sec))
-    }
-
-    fun ensurePlayer(): MediaPlayer? {
-        player?.let { return it }
-        return try {
-            SakinaAdhanAudio.stop()
-            val mp = MediaPlayer.create(ctx.applicationContext, rawId) ?: return null
-            mp.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build()
-            )
-            mp.isLooping = isLooping
-            durMs = mp.duration.coerceAtLeast(1)
-            mp.setOnCompletionListener {
-                if (!mp.isLooping) {
-                    isPlaying = false
-                    posMs = 0
-                    try { mp.seekTo(0) } catch (_: Exception) {}
-                }
-            }
-            player = mp
-            mp
-        } catch (_: Exception) { null }
-    }
-
-    LaunchedEffect(isPlaying, player) {
-        while (isPlaying) {
-            val mp = player
-            if (mp != null) {
-                try {
-                    if (mp.isPlaying) {
-                        posMs = mp.currentPosition
-                        if (durMs <= 1) durMs = mp.duration.coerceAtLeast(1)
-                    } else {
-                        isPlaying = false
-                    }
-                } catch (_: Exception) {
-                    isPlaying = false
-                }
-            }
-            delay(400L)
-        }
-    }
-
-    DisposableEffect(rawId) {
-        onDispose {
-            try {
-                player?.let {
-                    if (it.isPlaying) it.stop()
-                    it.release()
-                }
-            } catch (_: Exception) {}
-            player = null
-            isPlaying = false
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 4.dp, bottom = 6.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Brush.horizontalGradient(listOf(Color(0xEE062920), Color(0xEE0D4435))))
-            .border(1.1.dp, Sakina3DGoldBevelBrush, RoundedCornerShape(16.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = sakinaTr(lang, "🎧 استماع أوفلاين · $title", "🎧 Offline Audio · $title", "🎧 Audio hors-ligne · $title", "🎧 Çevrimdışı Ses · $title", "🎧 Audio Offline · $title", "🎧 آف لائن آڈیو · $title"),
-                        fontFamily = SakinaHeadingFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = theme.accentBright,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = sakinaTr(lang, "بصوت الشيخ مشاري العفاسي", "Recited by Mishary Al-Afasy", "Récité par Mishary Al-Afasy", "Mişari El-Afasi", "Qari Mishary Al-Afasy", "قاری مشاری العفاسی"),
-                        fontFamily = SakinaBodyFont,
-                        fontSize = 10.sp,
-                        color = SakinaBrandColors.SoftSilver,
-                        maxLines = 1
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    // Speed toggle
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0x28FFFFFF))
-                            .clickable {
-                                speedIdx = (speedIdx + 1) % speeds.size
-                                val spd = speeds[speedIdx]
-                                if (Build.VERSION.SDK_INT >= 23) {
-                                    try {
-                                        player?.let { mp ->
-                                            val wasPlaying = mp.isPlaying
-                                            mp.playbackParams = mp.playbackParams.setSpeed(spd)
-                                            if (!wasPlaying) mp.pause()
-                                        }
-                                    } catch (_: Exception) {}
-                                }
-                            }
-                            .padding(horizontal = 7.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "${speeds[speedIdx]}x",
-                            fontFamily = SakinaNumeralFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.5.sp,
-                            color = theme.accentBright
-                        )
-                    }
-                    // Loop toggle
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isLooping) theme.accentGold else Color(0x28FFFFFF))
-                            .clickable {
-                                isLooping = !isLooping
-                                try { player?.isLooping = isLooping } catch (_: Exception) {}
-                            }
-                            .padding(horizontal = 7.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "↻",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = if (isLooping) theme.bgDeep else Color.White
-                        )
-                    }
-                    // Play / Pause main button
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(theme.accentGold)
-                            .clickable {
-                                val mp = ensurePlayer()
-                                if (mp != null) {
-                                    if (isPlaying) {
-                                        try { mp.pause() } catch (_: Exception) {}
-                                        isPlaying = false
-                                    } else {
-                                        try {
-                                            if (Build.VERSION.SDK_INT >= 23) {
-                                                mp.playbackParams = mp.playbackParams.setSpeed(speeds[speedIdx])
-                                            }
-                                            mp.start()
-                                            isPlaying = true
-                                        } catch (_: Exception) {}
-                                    }
-                                }
-                            }
-                            .padding(horizontal = 12.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            text = if (isPlaying) sakinaTr(lang, "إيقاف ❚❚", "Pause ❚❚", "Pause ❚❚", "Duraklat ❚❚", "Jeda ❚❚", "روکیں ❚❚")
-                            else sakinaTr(lang, "استمع ▶", "Play ▶", "Écouter ▶", "Dinle ▶", "Putar ▶", "سنیں ▶"),
-                            fontFamily = SakinaHeadingFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.5.sp,
-                            color = theme.bgDeep
-                        )
-                    }
-                }
-            }
-
-            if (durMs > 1) {
-                Slider(
-                    value = posMs.toFloat().coerceIn(0f, durMs.toFloat()),
-                    onValueChange = { v ->
-                        posMs = v.toInt()
-                        try { player?.seekTo(posMs) } catch (_: Exception) {}
-                    },
-                    valueRange = 0f..durMs.toFloat(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = theme.accentBright,
-                        activeTrackColor = theme.accentGold,
-                        inactiveTrackColor = Color(0x44FFFFFF)
-                    ),
-                    modifier = Modifier.fillMaxWidth().height(26.dp)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(fmtMs(posMs), fontFamily = SakinaNumeralFont, fontSize = 10.sp, color = SakinaBrandColors.SoftSilver)
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text = "-15s",
-                            fontFamily = SakinaNumeralFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
-                            color = theme.accentBright,
-                            modifier = Modifier.clickable {
-                                val next = (posMs - 15_000).coerceAtLeast(0)
-                                posMs = next
-                                try { player?.seekTo(next) } catch (_: Exception) {}
-                            }
-                        )
-                        Text(
-                            text = "+15s",
-                            fontFamily = SakinaNumeralFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
-                            color = theme.accentBright,
-                            modifier = Modifier.clickable {
-                                val next = (posMs + 15_000).coerceAtMost(durMs)
-                                posMs = next
-                                try { player?.seekTo(next) } catch (_: Exception) {}
-                            }
-                        )
-                    }
-                    Text(fmtMs(durMs), fontFamily = SakinaNumeralFont, fontSize = 10.sp, color = SakinaBrandColors.SoftSilver)
-                }
-            }
-        }
     }
 }
