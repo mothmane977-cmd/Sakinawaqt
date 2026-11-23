@@ -1643,8 +1643,8 @@ private fun SakinaQuranLuxuryMiniPlayer(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .clip(RoundedCornerShape(28.dp))
+            .height(64.dp)
+            .clip(RoundedCornerShape(32.dp))
             .background(Color(0xFF0A3328))
             .border(1.dp, Color(0x55D4AF37), RoundedCornerShape(28.dp))
             .clickable {
@@ -1745,7 +1745,8 @@ private fun SakinaQuranLuxuryMiniPlayer(
                     fontSize = 13.sp,
                     color = Color(0xFFFAF6EC),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                 )
                 val errMsg = dlErrors[dlKey]
                 Text(
@@ -1755,6 +1756,7 @@ private fun SakinaQuranLuxuryMiniPlayer(
                     color = if (errMsg != null) Color(0xFFFCA5A5) else Color(0xCCD4AF37),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false)),
                     modifier = Modifier.clickable { showReciterDialog = true }
                 )
             }
