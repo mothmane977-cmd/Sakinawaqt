@@ -60,6 +60,9 @@ jobs:
           mpath = "app/src/main/AndroidManifest.xml"
           if os.path.exists(mpath):
               mtxt = open(mpath, "r", encoding="utf-8").read()
+              if "android.permission.INTERNET" not in mtxt:
+                  mtxt = re.sub(r"(<manifest[^>]*>)", r'\1\n    <uses-permission android:name="android.permission.INTERNET"/>', mtxt, count=1)
+                  print("Added INTERNET permission to AndroidManifest.xml")
               if "SakinaQuranPlaybackService" not in mtxt:
                   svc = (
                       '        <service\n'
@@ -75,8 +78,8 @@ jobs:
                   mtxt = mtxt.replace("    </application>", svc, 1)
                   if "</application>" in mtxt and "SakinaQuranPlaybackService" not in mtxt:
                       mtxt = mtxt.replace("</application>", svc.replace("    </application>", "</application>"), 1)
-                  open(mpath, "w", encoding="utf-8").write(mtxt)
                   print("Registered SakinaQuranPlaybackService in AndroidManifest.xml")
+              open(mpath, "w", encoding="utf-8").write(mtxt)
           EOF
 
       # 1. الخطوط + المصحف العثماني + فهرس التجويد المفحوص لحفص (0% انزياح) + نص ورش الصافي
@@ -365,4 +368,3 @@ jobs:
         with:
           name: sakina-release-apk
           path: app/build/outputs/apk/release/*.apk
-          
