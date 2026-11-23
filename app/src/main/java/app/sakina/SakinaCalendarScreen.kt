@@ -457,9 +457,9 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
         monthCells = monthCells,
         selectedDayNumber = clampedSelected,
         selectedDayPrayers = prayerSummary,
-        hadithTopic = if (isArabicOrUrdu) dailyHadith.topicAr else dailyHadith.topicEn,
-        hadithText = if (isArabicOrUrdu) dailyHadith.textAr else dailyHadith.textEn,
-        hadithSource = if (isArabicOrUrdu) dailyHadith.sourceAr else dailyHadith.sourceEn
+        hadithTopic = if (isArabicOrUrdu) dailyHadith.occasionAr else dailyHadith.occasionEn,
+        hadithText = if (isArabicOrUrdu) dailyHadith.matnAr else dailyHadith.matnEn,
+        hadithSource = if (isArabicOrUrdu) dailyHadith.isnadAr else dailyHadith.isnadEn
     )
 
     SakinaLunarCalendarScreen(
