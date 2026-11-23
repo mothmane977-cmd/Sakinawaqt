@@ -497,7 +497,18 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                             SakinaBackgroundLayer(headerImageRes = headerImg, showMihrabFrame = true) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                     when (extraSection) {
-                                        ExtraSection.ADHKAR -> SakinaAdhkarScreen(ctx = ctx, initialCategoryIndex = adhkarInitCat, onBackClick = { returnFromExtra() }, onOpenSubSection = { extraSection = it })
+                                        ExtraSection.ADHKAR -> SakinaAdhkarScreen(
+                                            ctx = ctx,
+                                            initialCategoryIndex = adhkarInitCat,
+                                            onBackClick = { returnFromExtra() },
+                                            onOpenPortal = { portal ->
+                                                extraSection = when (portal) {
+                                                    WorshipPortalType.RUQYAH -> ExtraSection.RUQYAH
+                                                    WorshipPortalType.NAMES_OF_ALLAH -> ExtraSection.NAMES_OF_ALLAH
+                                                    else -> ExtraSection.DUAS
+                                                }
+                                            }
+                                        )
                                         ExtraSection.DUAS -> SakinaDuasScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.RUQYAH -> SakinaRuqyahScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.SUNNAH -> SakinaSunnahScreen(ctx = ctx, onBackClick = { returnFromExtra() })

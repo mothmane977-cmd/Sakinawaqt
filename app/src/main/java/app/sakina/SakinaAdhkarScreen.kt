@@ -164,7 +164,7 @@ fun SakinaAdhkarScreen(
     ctx: Context,
     initialCategoryIndex: Int? = null,
     onBackClick: () -> Unit = {},
-    onOpenSubSection: (ExtraSection) -> Unit = {},
+    onOpenPortal: (WorshipPortalType) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val theme = LocalSakinaTheme.current
@@ -356,9 +356,9 @@ fun SakinaAdhkarScreen(
                 WorshipPortalType.MORNING_ADHKAR -> selectedCategoryIndex = 0
                 WorshipPortalType.EVENING_ADHKAR -> selectedCategoryIndex = 1
                 WorshipPortalType.SLEEP_AND_POST_PRAYER -> selectedCategoryIndex = 3
-                WorshipPortalType.RUQYAH -> onOpenSubSection(ExtraSection.RUQYAH)
-                WorshipPortalType.NAMES_OF_ALLAH -> onOpenSubSection(ExtraSection.NAMES_OF_ALLAH)
-                WorshipPortalType.DUAS_AND_TRACKER -> onOpenSubSection(ExtraSection.DUAS)
+                WorshipPortalType.RUQYAH -> onOpenPortal(WorshipPortalType.RUQYAH)
+                WorshipPortalType.NAMES_OF_ALLAH -> onOpenPortal(WorshipPortalType.NAMES_OF_ALLAH)
+                WorshipPortalType.DUAS_AND_TRACKER -> onOpenPortal(WorshipPortalType.DUAS_AND_TRACKER)
             }
         },
         onCloseCategory = {
