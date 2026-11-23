@@ -373,6 +373,7 @@ fun SakinaLuminousQuranScreen(
         ) {
             ExpandedLuxuryAudioOverlay(
                 player = state.player,
+                bottomReserve = if (!showBottomDock) hostBottomBarReserve else 0.dp,
                 strings = strings,
                 headingFontFamily = headingFontFamily,
                 bodyFontFamily = bodyFontFamily,
@@ -1473,6 +1474,7 @@ private fun KineticWaveMiniPlayer(
 @Composable
 private fun ExpandedLuxuryAudioOverlay(
     player: QuranAudioPlayerState,
+    bottomReserve: Dp = 0.dp,
     strings: SakinaQuranStrings,
     headingFontFamily: FontFamily,
     bodyFontFamily: FontFamily,
@@ -1496,6 +1498,7 @@ private fun ExpandedLuxuryAudioOverlay(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(bottom = bottomReserve)
                 .clickable(enabled = false, onClick = {}),
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             color = SakinaOrbitalColors.DeepEmerald,

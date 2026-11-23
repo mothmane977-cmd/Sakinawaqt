@@ -596,7 +596,7 @@ private fun MonthlyCalendarGlassCard(
                                     .clickable(enabled = cell.isCurrentMonth) { onDayClick(cell) }
                             ) {
                                 Text(
-                                    text = cell.dayNumber.toString(),
+                                    text = if (cell.isCurrentMonth && cell.dayNumber > 0) cell.dayNumber.toString() else "",
                                     color = when {
                                         isSelected -> SakinaOrbitalColors.InkNavy
                                         !cell.isCurrentMonth -> SakinaOrbitalColors.WarmCream.copy(alpha = 0.28f)
