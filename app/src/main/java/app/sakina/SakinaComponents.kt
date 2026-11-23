@@ -631,44 +631,11 @@ fun SakinaBackgroundLayer(
     showMihrabFrame: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val theme = LocalSakinaTheme.current
-    val deep = theme.bgDeep
-    Box(modifier = modifier.fillMaxSize().background(deep)) {
-        Image(
-            painter = painterResource(id = headerImageRes),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.44f).align(Alignment.TopCenter)
+    Box(modifier = modifier.fillMaxSize().background(SakinaLuxuryPalette.ObsidianNavy)) {
+        SakinaAmbientLuxuryBackdrop(
+            showGeometricPattern = true,
+            showStarDust = true
         )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.46f)
-                .align(Alignment.TopCenter)
-                .background(
-                    Brush.verticalGradient(
-                        0.0f to deep.copy(alpha = 0.58f),
-                        0.55f to deep.copy(alpha = 0.48f),
-                        0.88f to deep.copy(alpha = 0.90f),
-                        1.0f to deep
-                    )
-                )
-        )
-
-        if (showMihrabFrame) {
-            Image(
-                painter = painterResource(id = R.drawable.bg_mihrab),
-                contentDescription = null,
-                contentScale = ContentScale.FillWidth,
-                alpha = 0.72f,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .align(Alignment.TopCenter)
-            )
-        }
-
-        // Render screen content ABOVE the Mihrab arch so titles & back buttons NEVER get covered by the arch (Point 2)
         content()
     }
 }
@@ -680,15 +647,17 @@ fun SakinaOrnamentCartouche(
     contentPadding: PaddingValues = PaddingValues(horizontal = 32.dp, vertical = 10.dp),
     content: @Composable BoxScope.() -> Unit
 ) {
-    val pillShape = RoundedCornerShape(24.dp)
     Box(
         modifier = modifier
             .widthIn(min = 148.dp, max = 264.dp)
             .defaultMinSize(minHeight = 46.dp)
-            .shadow(8.dp, pillShape, ambientColor = Color.Black, spotColor = Color.Black)
-            .clip(pillShape)
-            .background(SakinaDarkPlateBrush)
-            .border(1.3.dp, Sakina3DGoldBevelBrush, pillShape),
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 24.dp,
+                innerHairline = true,
+                emeraldFlare = false,
+                shimmer = true,
+                borderAlpha = 0.80f
+            ),
         contentAlignment = Alignment.Center
     ) {
         Box(modifier = Modifier.padding(contentPadding), contentAlignment = Alignment.Center, content = content)
@@ -702,50 +671,18 @@ fun SakinaParchmentPanel(
     contentPadding: PaddingValues = PaddingValues(12.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val theme = LocalSakinaTheme.current
-    val shape = RoundedCornerShape(cornerRadius)
     Box(
         modifier = modifier
-            .shadow(10.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(theme.parchmentTop, theme.parchmentBottom)))
-            .drawBehind {
-                val step = 20.dp.toPx()
-                var x = -size.height
-                while (x < size.width + size.height) {
-                    drawLine(Color(0x0FA67C2E), Offset(x, 0f), Offset(x + size.height, size.height), strokeWidth = 0.7.dp.toPx())
-                    drawLine(Color(0x0FA67C2E), Offset(x + size.height, 0f), Offset(x, size.height), strokeWidth = 0.7.dp.toPx())
-                    x += step
-                }
-            }
-            .border(1.4.dp, Sakina3DGoldBevelBrush, shape)
+            .sakinaParchmentGlowCard(
+                cornerRadius = cornerRadius,
+                haloAlpha = 0.34f,
+                doubleBorder = true
+            )
+            .sakinaCornerFiligree(
+                goldColor = SakinaLuxuryPalette.GoldRich,
+                alpha = 0.46f
+            )
     ) {
-        val cSize = 22.dp
-        Image(
-            painter = painterResource(id = R.drawable.ic_corner_arabesque),
-            contentDescription = null,
-            alpha = 0.88f,
-            modifier = Modifier.size(cSize).align(AbsoluteAlignment.TopLeft).padding(2.dp)
-        )
-        Image(
-            painter = painterResource(id = R.drawable.ic_corner_arabesque),
-            contentDescription = null,
-            alpha = 0.88f,
-            modifier = Modifier.size(cSize).align(AbsoluteAlignment.TopRight).padding(2.dp).graphicsLayer { rotationZ = 90f }
-        )
-        Image(
-            painter = painterResource(id = R.drawable.ic_corner_arabesque),
-            contentDescription = null,
-            alpha = 0.88f,
-            modifier = Modifier.size(cSize).align(AbsoluteAlignment.BottomRight).padding(2.dp).graphicsLayer { rotationZ = 180f }
-        )
-        Image(
-            painter = painterResource(id = R.drawable.ic_corner_arabesque),
-            contentDescription = null,
-            alpha = 0.88f,
-            modifier = Modifier.size(cSize).align(AbsoluteAlignment.BottomLeft).padding(2.dp).graphicsLayer { rotationZ = 270f }
-        )
-
         Column(modifier = Modifier.fillMaxWidth().padding(contentPadding), content = content)
     }
 }
@@ -758,16 +695,16 @@ fun SakinaGlassCard(
     contentPadding: PaddingValues = PaddingValues(12.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val theme = LocalSakinaTheme.current
-    val shape: Shape = RoundedCornerShape(cornerRadius)
-    val borderBrush = if (glowGold) Sakina3DGoldBevelBrush
-    else Brush.verticalGradient(listOf(theme.accentGold.copy(alpha = 0.55f), Color(0x22FFFFFF)))
-
     Column(
         modifier = modifier
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.94f), theme.bgDeep.copy(alpha = 0.97f))))
-            .border(1.dp, borderBrush, shape)
+            .sakinaLuxuryGlassCard(
+                cornerRadius = cornerRadius,
+                innerHairline = true,
+                emeraldFlare = true,
+                shimmer = glowGold,
+                borderAlpha = if (glowGold) 0.84f else 0.62f
+            )
+            .then(if (glowGold) Modifier.sakinaCornerFiligree(alpha = 0.48f) else Modifier)
             .padding(contentPadding),
         content = content
     )
@@ -779,16 +716,20 @@ fun SakinaDrawerPillItem(
     title: String,
     onClick: () -> Unit
 ) {
-    val theme = LocalSakinaTheme.current
     val textColor = LocalSakinaTextColor.current
     val pillShape = RoundedCornerShape(22.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 22.dp,
+                innerHairline = false,
+                emeraldFlare = true,
+                shimmer = false,
+                borderAlpha = 0.68f
+            )
             .clip(pillShape)
-            .background(Brush.verticalGradient(listOf(theme.bgCard, theme.bgDeep)))
-            .border(0.9.dp, Sakina3DGoldBevelBrush, pillShape)
             .clickable { onClick() }
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically

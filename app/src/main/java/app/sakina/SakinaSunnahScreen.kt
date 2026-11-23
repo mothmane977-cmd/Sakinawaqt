@@ -132,9 +132,14 @@ fun SakinaSunnahScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .sakinaLuxuryGlassCard(
+                        cornerRadius = 16.dp,
+                        innerHairline = done,
+                        emeraldFlare = done,
+                        shimmer = false,
+                        borderAlpha = if (done) 0.85f else 0.58f
+                    )
                     .clip(shape)
-                    .background(Brush.verticalGradient(listOf(theme.bgCard.copy(alpha = 0.94f), theme.bgDeep.copy(alpha = 0.97f))))
-                    .border(1.dp, if (done) Brush.linearGradient(listOf(SakinaBrandColors.StableEmerald, theme.accentBright)) else Sakina3DGoldBevelBrush, shape)
                     .clickable {
                         SakinaAdvancedPrefs.toggleSunnahToday(ctx, item.id)
                         tick++
