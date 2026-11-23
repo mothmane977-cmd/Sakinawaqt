@@ -403,7 +403,7 @@ fun SakinaSettingsScreen(
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SakinaAdhanAudio.VOICES.forEach { voice ->
+                    AdhanVoice.entries.forEach { voice ->
                         val selected = selectedVoice == voice
                         val isPlaying = playingVoiceKey == voice.key
                         Row(
