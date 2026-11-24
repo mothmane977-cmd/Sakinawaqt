@@ -429,7 +429,9 @@ private fun SevenDaySelectorStrip(
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        days.take(7).forEachIndexed { index, day ->
+        val visibleDays = days.take(7)
+        for (index in visibleDays.indices) {
+            val day = visibleDays[index]
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -608,7 +610,8 @@ private fun OrbitalPrayerDial(
             modifier = Modifier.size(72.dp)
         )
 
-        prayers.forEachIndexed { index, node ->
+        for (index in prayers.indices) {
+            val node = prayers[index]
             val angle = animatedRotation.toDouble() + index * (2.0 * PI / count)
             val rawX = cos(angle) * rxPx
             val rawY = sin(angle) * ryPx
@@ -944,7 +947,8 @@ fun LiquidDynamicDock(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            labels.forEachIndexed { index, label ->
+            for (index in labels.indices) {
+                val label = labels[index]
                 val isSelected = index == selectedIndex
                 val tint = if (isSelected) {
                     SakinaOrbitalColors.SoftGoldGlow
