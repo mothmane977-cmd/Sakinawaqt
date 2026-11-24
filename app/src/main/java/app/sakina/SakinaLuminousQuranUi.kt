@@ -862,7 +862,7 @@ private fun SurahIndexRow(
                         }
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = "${surah.sizeMb} MB",
+                            text = "${String.format(java.util.Locale.US, "%.1f", surah.audioSizeMb)} MB",
                             color = SakinaOrbitalColors.MutedGoldText,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
