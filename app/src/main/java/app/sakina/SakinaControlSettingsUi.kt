@@ -68,6 +68,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 
 // ============================================================================
 // 1. نماذج بيانات الإعدادات والتشخيص الحي (Settings & Diagnostics Models)
@@ -639,8 +642,19 @@ private fun ExpandableControlModule(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Canvas(modifier = Modifier.size(22.dp)) {
-                        iconDraw()
+                    Box(
+                        modifier = Modifier.size(36.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_gold_medallion_btn),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Canvas(modifier = Modifier.size(18.dp)) {
+                            iconDraw()
+                        }
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {

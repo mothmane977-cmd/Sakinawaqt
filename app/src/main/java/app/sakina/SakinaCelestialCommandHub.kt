@@ -80,9 +80,9 @@ fun SakinaCelestialCommandHub(
     ) {
         val activeItems = if (mode == CelestialHubMode.SETTINGS) settingsPortals else worshipPortals
         val hubTitle = if (mode == CelestialHubMode.SETTINGS) {
-            sakinaTr(lang, "قبة التحكم والإعدادات", "Control & Settings Dome", "Dôme des Paramètres", "Kontrol ve Ayarlar", "Pusat Pengaturan", "کنٹرول اور ترتیبات")
+            sakinaTr(lang, "التحكم والإعدادات", "Control & Settings", "Paramètres", "Kontrol ve Ayarlar", "Pengaturan", "کنٹرول اور ترتیبات")
         } else {
-            sakinaTr(lang, "قبة الأذكار والعبادات", "Worship & Adhkar Dome", "Dôme des Adorations", "Zikir ve İbadetler", "Pusat Ibadah & Dzikir", "اذکار اور عبادات")
+            sakinaTr(lang, "الأذكار والعبادات", "Adhkar & Worship", "Adorations", "Zikir ve İbadetler", "Ibadah & Dzikir", "اذکار اور عبادات")
         }
 
         Box(
@@ -154,26 +154,13 @@ fun SakinaCelestialCommandHub(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Central luminous 3D emblem + metallic gold title
-                Box(
-                    modifier = Modifier.size(68.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_star_medallion_gold),
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    Icon(
-                        painter = painterResource(
-                            id = if (mode == CelestialHubMode.SETTINGS) R.drawable.ic_sakina_settings else R.drawable.ic_sakina_lantern
-                        ),
-                        contentDescription = null,
-                        tint = SakinaLuxuryColors.SoftGoldGlow,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
+                // شعار القبة الإسلامية ثلاثية الأبعاد المرصّعة بالذهب (بنفس خامة النجمة المثمنة)
+                Image(
+                    painter = painterResource(id = R.drawable.ic_golden_dome_3d),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(86.dp)
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 

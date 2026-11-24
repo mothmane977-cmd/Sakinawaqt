@@ -571,21 +571,29 @@ private fun MonthlyCalendarGlassCard(
                                     style = TextStyle(fontFeatureSettings = "tnum")
                                 )
 
-                                // مؤشر نقطي للأيام البيض أو المناسبات الدينية
+                                // شارة «صيام» المذهّبة الواضحة بدل النقطة المبهمة
                                 if (cell.isCurrentMonth && (cell.isWhiteDay || cell.hasOccasion)) {
                                     Box(
                                         modifier = Modifier
                                             .padding(top = 1.dp)
-                                            .size(4.dp)
+                                            .clip(RoundedCornerShape(6.dp))
                                             .background(
-                                                color = when {
-                                                    isSelected -> SakinaOrbitalColors.InkNavy
-                                                    cell.hasOccasion -> Color(0xFF34D399)
-                                                    else -> SakinaOrbitalColors.SoftGoldGlow
-                                                },
-                                                shape = CircleShape
+                                                if (isSelected) SakinaOrbitalColors.InkNavy.copy(alpha = 0.85f)
+                                                else SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.88f)
                                             )
-                                    )
+                                            .border(0.6.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.85f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 3.dp, vertical = 0.5.dp)
+                                    ) {
+                                        Text(
+                                            text = "صيام",
+                                            color = SakinaLuxuryColors.SoftGoldGlow,
+                                            fontSize = 7.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            fontFamily = bodyFontFamily
+                                        )
+                                    }
                                 }
                             }
                         }

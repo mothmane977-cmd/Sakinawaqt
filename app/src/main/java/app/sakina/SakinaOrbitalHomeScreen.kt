@@ -203,6 +203,7 @@ fun SakinaOrbitalHomeScreen(
 ) {
     val haptic = LocalHapticFeedback.current
     var focusedIndex by remember(state.nextPrayerIndex) { mutableIntStateOf(state.nextPrayerIndex) }
+    var showFivePrayersSheet by remember { mutableStateOf(false) }
 
     val focusedPrayer = state.prayers.getOrElse(focusedIndex) {
         state.prayers.firstOrNull() ?: OrbitalPrayerNode(PrayerType.FAJR, "الفجر", "06:00")
@@ -337,147 +338,136 @@ private fun MinimalistOrbitalHeader(
     appTitle: String,
     cityName: String,
     hijriDate: String,
-    languageCode: String,
-    menuDesc: String,
-    settingsDesc: String,
+    langCode: String,
     headingFontFamily: FontFamily,
     bodyFontFamily: FontFamily,
     onMenuClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onCityClick: () -> Unit,
     onLanguageClick: () -> Unit,
-    onToggleClassicLayout: () -> Unit
+    onClassicToggleClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onLocationClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Rounded.Menu,
-                    contentDescription = menuDesc,
-                    tint = SakinaOrbitalColors.ChampagneGold
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .border(1.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.45f), CircleShape)
-                    .clickable(onClick = onLanguageClick)
-                    .padding(horizontal = 7.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = languageCode,
-                    color = SakinaOrbitalColors.SoftGoldGlow,
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = bodyFontFamily
-                )
-            }
+        // زر القائمة الموحّدة الوحيد
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .sakinaLuxuryGlassCard(cornerRadius = 19.dp, borderAlpha = 0.75f)
+                .clip(CircleShape)
+                .clickable(onClick = onMenuClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Menu,
+                contentDescription = null,
+                tint = SakinaLuxuryColors.SoftGoldGlow,
+                modifier = Modifier.size(20.dp)
+            )
         }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .weight(1f)
-                .clip(RoundedCornerShape(16.dp))
-                .clickable(onClick = onCityClick)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onLocationClick)
                 .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {
             Text(
                 text = appTitle,
                 style = TextStyle(
                     brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                    fontSize = 24.sp,
+                    fontSize = 23.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = headingFontFamily
                 )
             )
             Text(
                 text = "$cityName · $hijriDate",
-                color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.88f),
+                color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.90f),
                 fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
                 fontFamily = bodyFontFamily,
-                maxLines = 1
+                maxLines = 1,
+                style = TextStyle(fontFeatureSettings = "tnum")
             )
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // 1-tap toggle to Classic List layout anytime
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .border(1.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.40f), CircleShape)
-                    .clickable(onClick = onToggleClassicLayout)
-                    .padding(horizontal = 7.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "☰",
-                    color = SakinaOrbitalColors.SoftGoldGlow,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Outlined.Settings,
-                    contentDescription = settingsDesc,
-                    tint = SakinaOrbitalColors.ChampagneGold
-                )
-            }
+        // زر تبديل اللغة وحده في الجهة المقابلة
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .sakinaLuxuryGlassCard(cornerRadius = 19.dp, borderAlpha = 0.75f)
+                .clip(CircleShape)
+                .clickable(onClick = onLanguageClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = langCode.uppercase(),
+                color = SakinaLuxuryColors.SoftGoldGlow,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = bodyFontFamily
+            )
         }
     }
 }
 
 @Composable
 private fun SevenDaySelectorStrip(
-    days: List<DayChipItem>,
+    days: List<DayPillItem>,
     bodyFontFamily: FontFamily,
     onDaySelected: (Int) -> Unit
 ) {
-    LazyRow(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-        contentPadding = PaddingValues(horizontal = 4.dp)
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        itemsIndexed(days) { index, day ->
+        days.take(7).forEachIndexed { index, day ->
             Column(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(14.dp))
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(
-                        if (day.isSelected) {
-                            SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.92f)
+                        color = if (day.isSelected) {
+                            SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.94f)
                         } else {
-                            SakinaOrbitalColors.GlassNavy.copy(alpha = 0.55f)
+                            SakinaOrbitalColors.GlassNavy.copy(alpha = 0.58f)
                         }
                     )
                     .border(
-                        width = 0.8.dp,
+                        width = if (day.isSelected) 1.1.dp else 0.7.dp,
                         color = if (day.isSelected) {
-                            SakinaOrbitalColors.SoftGoldGlow
+                            SakinaLuxuryColors.SoftGoldGlow
                         } else {
-                            SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.22f)
+                            SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.25f)
                         },
-                        shape = RoundedCornerShape(14.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
                     .clickable { onDaySelected(index) }
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                    .padding(horizontal = 2.dp, vertical = 5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = day.dayLabel,
-                    color = if (day.isSelected) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.72f),
-                    fontSize = 10.sp,
+                    color = if (day.isSelected) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.75f),
+                    fontSize = 8.5.sp,
+                    maxLines = 1,
+                    softWrap = false,
                     fontFamily = bodyFontFamily
                 )
                 Text(
                     text = day.dayNumber,
                     color = if (day.isSelected) SakinaLuxuryColors.WarmCream else SakinaOrbitalColors.SoftGoldGlow,
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 1,
                     fontFamily = bodyFontFamily,
                     style = TextStyle(fontFeatureSettings = "tnum")
                 )
@@ -486,7 +476,6 @@ private fun SevenDaySelectorStrip(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun OrbitalPrayerDial(
     prayers: List<OrbitalPrayerNode>,
@@ -736,11 +725,12 @@ private fun FocalSpotlightCard(
                 .fillMaxWidth(0.95f)
                 .padding(bottom = 18.dp)
                 .sakinaParchmentGlowCard(
-                    cornerRadius = 24.dp,
+                    cornerRadius = 22.dp,
                     haloAlpha = 0.38f,
                     doubleBorder = false
                 )
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(22.dp))
+                .clickable(onClick = onTodayStatsClick)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.bg_parchment_card),

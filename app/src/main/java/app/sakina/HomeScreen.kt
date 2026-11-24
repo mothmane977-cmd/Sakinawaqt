@@ -55,7 +55,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-private enum class ExtraSection { NONE, ADHKAR, DUAS, RUQYAH, ALARM, NOTIFICATIONS, APPEARANCE, SETTINGS, SUNNAH, NAMES_OF_ALLAH }
+private enum class ExtraSection { NONE, ADHKAR, DUAS, RUQYAH, ALARM, NOTIFICATIONS, APPEARANCE, SETTINGS, SUNNAH, NAMES_OF_ALLAH, WORSHIP_STATS }
 
 private data class BrandPrayerRow(
     val keyNameAr: String,
@@ -233,6 +233,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     var useOrbitalHome by remember { mutableStateOf(sp.getBoolean("v33_orbital_home", true)) }
     var showOnboarding by remember { mutableStateOf(!sp.getBoolean("v43_onboarding_done", false)) }
     var celestialHubMode by remember { mutableStateOf(CelestialHubMode.NONE) }
+    var lastHubMode by remember { mutableStateOf(CelestialHubMode.NONE) }
     var extraSection by remember { mutableStateOf(if (openAfterPrayer) ExtraSection.ADHKAR else ExtraSection.NONE) }
     var showRatingDialog by remember { mutableStateOf(SakinaAdvancedPrefs.shouldShowRatingPrompt(ctx)) }
     var adhkarInitCat by remember { mutableStateOf<Int?>(if (openAfterPrayer) 2 else null) }
@@ -259,19 +260,15 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     }
 
     fun returnFromExtra() {
+        val prevHub = lastHubMode
         extraSection = ExtraSection.NONE
-        when {
-            openedFromRightDrawer -> {
-                openedFromRightDrawer = false
-                scope.launch { rightDrawerState.open() }
-            }
-            openedFromLeftDrawer -> {
-                openedFromLeftDrawer = false
-                scope.launch { leftDrawerState.open() }
-            }
+        openedFromRightDrawer = false
+        openedFromLeftDrawer = false
+        lastHubMode = CelestialHubMode.NONE
+        if (prevHub != CelestialHubMode.NONE) {
+            celestialHubMode = prevHub
         }
     }
-
     val headerImg = when (extraSection) {
         ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH, ExtraSection.SUNNAH, ExtraSection.NAMES_OF_ALLAH -> R.drawable.bg_header_adhkar
         ExtraSection.ALARM, ExtraSection.NOTIFICATIONS, ExtraSection.APPEARANCE, ExtraSection.SETTINGS -> R.drawable.bg_header_mosque
@@ -540,6 +537,16 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         ExtraSection.DUAS -> SakinaDuasScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.RUQYAH -> SakinaRuqyahScreen(onBackToHome = { returnFromExtra() })
                                         ExtraSection.SUNNAH -> SakinaSunnahScreen(ctx = ctx, onBackClick = { returnFromExtra() })
+                                        ExtraSection.WORSHIP_STATS -> SakinaWorshipStatsScreen(
+                                            ctx = ctx,
+                                            onBack = { returnFromExtra() },
+                                            onOpenQuranPage = { targetPage ->
+                                                ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+                                                    .edit().putInt("quran_last_page", targetPage).apply()
+                                                extraSection = ExtraSection.NONE
+                                                currentTab = SakinaNavTab.QURAN
+                                            }
+                                        )
                                         ExtraSection.NAMES_OF_ALLAH -> SakinaNamesOfAllahScreen(ctx = ctx, onBack = { returnFromExtra() })
                                         ExtraSection.ALARM -> SakinaAlarmScreen(ctx = ctx, initialSection = 0, onBackClick = { returnFromExtra() })
                                         ExtraSection.NOTIFICATIONS -> SakinaAlarmScreen(ctx = ctx, initialSection = 1, onBackClick = { returnFromExtra() })
@@ -689,7 +696,10 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             CelestialPortalItem(sakinaTr(currentLang, "أسماء الله الحسنى", "99 Names", "99 Noms", "Esmaül Hüsna", "Asmaul Husna", "اسماء الحسنیٰ"), R.drawable.ic_sakina_lantern) {
                                                 extraSection = ExtraSection.NAMES_OF_ALLAH
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "متتبع العبادات", "Worship Tracker", "Adorations", "İbadetler", "Ibadah", "عبادات"), R.drawable.ic_sakina_calendar) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "إنجازي والصيام", "My Progress & Fast", "Progrès & Jeûne", "İlerleme & Oruç", "Progres & Puasa", "عبادات اور روزہ"), R.drawable.ic_sakina_calendar) {
+                                                extraSection = ExtraSection.WORSHIP_STATS
+                                            },
+                                            CelestialPortalItem(sakinaTr(currentLang, "السنن اليومية", "Daily Sunnah", "Sunna", "Sünnetler", "Sunnah", "سنن"), R.drawable.ic_sakina_clock) {
                                                 extraSection = ExtraSection.SUNNAH
                                             },
                                             CelestialPortalItem(sakinaTr(currentLang, "أقرب المساجد", "Nearby Mosques", "Mosquées", "Camiler", "Masjid", "قریبی مساجد"), R.drawable.ic_sakina_mosque) {
@@ -701,24 +711,16 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         ),
                                         settingsPortals = listOf(
                                             CelestialPortalItem(sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres", "Ayarlar", "Pengaturan", "ترتیبات"), R.drawable.ic_sakina_settings) {
-                                                extraSection = ExtraSection.SETTINGS
+                                                lastHubMode = CelestialHubMode.SETTINGS; extraSection = ExtraSection.SETTINGS
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "المنبهات والأذان", "Adhan Alarms", "Alarmes Adhan", "Ezan Alarmları", "Alarm Adzan", "اذان الارم"), R.drawable.ic_sakina_clock) {
-                                                extraSection = ExtraSection.ALARM
+                                            CelestialPortalItem(sakinaTr(currentLang, "الأذان والمنبهات", "Adhan & Alarms", "Adhan & Alarmes", "Ezan Alarmları", "Adzan & Alarm", "اذان الارم"), R.drawable.ic_sakina_clock) {
+                                                lastHubMode = CelestialHubMode.SETTINGS; extraSection = ExtraSection.ALARM
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "التنبيهات الهادئة", "Quiet Alerts", "Alertes", "Bildirimler", "Notifikasi", "اطلاعات"), R.drawable.ic_sakina_lantern) {
-                                                extraSection = ExtraSection.NOTIFICATIONS
+                                            CelestialPortalItem(sakinaTr(currentLang, "الإشعارات الصامتة", "Quiet Notifications", "Notifications", "Bildirimler", "Notifikasi", "اطلاعات"), R.drawable.ic_sakina_lantern) {
+                                                lastHubMode = CelestialHubMode.SETTINGS; extraSection = ExtraSection.NOTIFICATIONS
                                             },
                                             CelestialPortalItem(sakinaTr(currentLang, "تشخيص الموثوقية", "Diagnostics", "Diagnostic", "Tanılama", "Diagnostik", "تشخیص"), R.drawable.ic_sakina_shield) {
                                                 showDiagnostics = true
-                                            },
-                                            CelestialPortalItem(
-                                                if (useOrbitalHome) sakinaTr(currentLang, "الواجهة الكلاسيكية", "Classic Home", "Classique", "Klasik", "Klasik", "کلاسک")
-                                                else sakinaTr(currentLang, "الواجهة المدارية", "Orbital Home", "Orbital", "Yörünge", "Orbital", "آربیٹل"),
-                                                R.drawable.ic_sakina_home
-                                            ) {
-                                                useOrbitalHome = !useOrbitalHome
-                                                sp.edit().putBoolean("v33_orbital_home", useOrbitalHome).apply()
                                             },
                                             CelestialPortalItem(sakinaTr(currentLang, "مشاركة سَكِينة", "Share Sakina", "Partager", "Paylaş", "Bagikan", "شیئر کریں"), R.drawable.ic_sakina_share) {
                                                 SakinaAdvancedPrefs.shareApp(ctx, currentLang)

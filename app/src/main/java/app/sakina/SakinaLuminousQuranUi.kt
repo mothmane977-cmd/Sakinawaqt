@@ -106,6 +106,8 @@ import kotlin.math.roundToInt
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
 
 // ============================================================================
 // 1. نماذج البيانات، الروايات، التجويد/أصول ورش، وحالة الصوت الدائم
@@ -267,11 +269,19 @@ fun SakinaLuminousQuranScreen(
     onToggleRepeatClick: () -> Unit = {},
     onSleepTimerClick: () -> Unit = {},
     onReciterClick: () -> Unit = {},
+    isCurrentPageBookmarked: Boolean = false,
+    onToggleBookmark: () -> Unit = {},
     pageAyahsProvider: (Int) -> List<MushafAyahUi> = { state.currentPageAyahs },
     onTabSelected: (Int) -> Unit = {}
 ) {
+    val hostView = LocalView.current
+    DisposableEffect(state.isReaderOpen) {
+        hostView.keepScreenOn = state.isReaderOpen
+        onDispose { hostView.keepScreenOn = false }
+    }
     val haptic = LocalHapticFeedback.current
     var isPlayerExpanded by remember { mutableStateOf(false) }
+    var readerBarsVisible by remember { mutableStateOf(true) }
 
     Box(
         modifier = Modifier
@@ -284,8 +294,11 @@ fun SakinaLuminousQuranScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 14.dp)
-                .padding(top = 46.dp, bottom = if (!showBottomDock) hostBottomBarReserve else 0.dp)
+                .padding(horizontal = if (state.isReaderOpen) 4.dp else 14.dp)
+                .padding(
+                    top = if (state.isReaderOpen) 4.dp else 46.dp,
+                    bottom = if (state.isReaderOpen) 4.dp else if (!showBottomDock) hostBottomBarReserve else 0.dp
+                )
         ) {
             if (!state.isReaderOpen) {
                 QuranIndexPortalContent(
@@ -327,12 +340,15 @@ fun SakinaLuminousQuranScreen(
                     },
                     onToggleTajweed = onToggleTajweed,
                     onToggleReaderTheme = onToggleReaderTheme,
+                    isCurrentPageBookmarked = isCurrentPageBookmarked,
+                    onToggleBookmark = onToggleBookmark,
                     pageAyahsProvider = pageAyahsProvider,
                     onPageChanged = onPageChanged
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            if (!state.isReaderOpen || readerBarsVisible) {
+            Spacer(modifier = Modifier.height(6.dp))
 
             KineticWaveMiniPlayer(
                 player = state.player,
@@ -348,6 +364,7 @@ fun SakinaLuminousQuranScreen(
                     onDownloadSurahClick(state.player.selectedSurahNumber)
                 }
             )
+            }
 
             if (showBottomDock && !state.isReaderOpen) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -447,7 +464,7 @@ private fun QuranIndexPortalContent(
                 ) {
                     Text(
                         text = label,
-                        color = if (selected) SakinaOrbitalColors.InkNavy else SakinaOrbitalColors.WarmCream.copy(alpha = 0.8f),
+                        color = if (selected) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.85f),
                         fontSize = 12.sp,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         fontFamily = bodyFontFamily
@@ -901,6 +918,8 @@ private fun QuranMushafReaderContent(
     onRiwayahToggle: () -> Unit,
     onToggleTajweed: () -> Unit,
     onToggleReaderTheme: () -> Unit,
+    isCurrentPageBookmarked: Boolean = false,
+    onToggleBookmark: () -> Unit = {},
     pageAyahsProvider: (Int) -> List<MushafAyahUi>,
     onPageChanged: (Int) -> Unit
 ) {
@@ -980,6 +999,28 @@ private fun QuranMushafReaderContent(
                     }
                 )
                 Spacer(modifier = Modifier.width(5.dp))
+                // زر حفظ المرجعية (🔖) لصفحة المصحف الحالية
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(if (isCurrentPageBookmarked) SakinaLuxuryColors.DeepEmerald else SakinaOrbitalColors.GlassNavy)
+                        .border(
+                            width = if (isCurrentPageBookmarked) 1.1.dp else 0.8.dp,
+                            color = if (isCurrentPageBookmarked) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.5f),
+                            shape = CircleShape
+                        )
+                        .clickable(onClick = onToggleBookmark),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isCurrentPageBookmarked) "★" else "☆",
+                        color = SakinaLuxuryColors.SoftGoldGlow,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 // زر تبديل الثيم المستقل (ورقي دافئ / زمردي ليلي)
                 Box(
                     modifier = Modifier
@@ -1051,11 +1092,15 @@ private fun QuranMushafReaderContent(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { /* tap toggles bars via host */ }
                                 .padding(
-                                    start = if (isParchment) 50.dp else 16.dp,
-                                    end = if (isParchment) 50.dp else 16.dp,
-                                    top = if (isParchment) 54.dp else 16.dp,
-                                    bottom = if (isParchment) 36.dp else 14.dp
+                                    start = if (isParchment) 54.dp else 16.dp,
+                                    end = if (isParchment) 54.dp else 16.dp,
+                                    top = if (isParchment) 60.dp else 16.dp,
+                                    bottom = if (isParchment) 40.dp else 14.dp
                                 )
                         ) {
                             val combinedAyahs = buildAnnotatedString {

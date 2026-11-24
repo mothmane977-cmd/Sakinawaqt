@@ -350,12 +350,13 @@ fun SakinaBrushedGoldButton(
     @DrawableRes pillBgRes: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    height: Dp = 50.dp
+    height: Dp = 58.dp
 ) {
+    val safeHeight = if (height < 54.dp) 54.dp else height
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(height)
+            .height(safeHeight)
             .clip(RoundedCornerShape(50))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
@@ -369,10 +370,11 @@ fun SakinaBrushedGoldButton(
         Text(
             text = text,
             color = SakinaLuxuryColors.InkNavy,
-            fontSize = 15.sp,
+            fontSize = 14.5.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 18.dp, end = 18.dp, bottom = 11.dp)
         )
     }
 }
