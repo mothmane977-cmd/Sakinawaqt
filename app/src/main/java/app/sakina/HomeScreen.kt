@@ -231,6 +231,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     }
     var currentTab by remember { mutableStateOf(SakinaNavTab.HOME) }
     var useOrbitalHome by remember { mutableStateOf(sp.getBoolean("v33_orbital_home", true)) }
+    var showOnboarding by remember { mutableStateOf(!sp.getBoolean("v43_onboarding_done", false)) }
     var extraSection by remember { mutableStateOf(if (openAfterPrayer) ExtraSection.ADHKAR else ExtraSection.NONE) }
     var showRatingDialog by remember { mutableStateOf(SakinaAdvancedPrefs.shouldShowRatingPrompt(ctx)) }
     var adhkarInitCat by remember { mutableStateOf<Int?>(if (openAfterPrayer) 2 else null) }
@@ -310,6 +311,40 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
         val isArOrUr = currentLang == SakinaLang.AR || currentLang == SakinaLang.UR
 
         val appDir = if (currentLang.isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
+
+        if (showOnboarding) {
+            CompositionLocalProvider(LocalLayoutDirection provides appDir) {
+                SakinaOnboardingScreen(
+                    ctx = ctx,
+                    currentLang = currentLang,
+                    onLangSelected = { nextLang ->
+                        currentLang = nextLang
+                        sp.edit().putString("app_lang", nextLang.code).apply()
+                    },
+                    onRequestGpsDetect = {
+                        try {
+                            val lm = ctx.getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
+                            val loc = lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+                                ?: lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
+                            if (loc != null) {
+                                Place.save(ctx, loc.latitude, loc.longitude, Place.name(ctx))
+                                SakinaLiveNotifier.update(ctx)
+                            }
+                        } catch (_: Exception) {}
+                    },
+                    onOpenCityPicker = {
+                        sp.edit().putBoolean("v43_onboarding_done", true).apply()
+                        showOnboarding = false
+                        extraSection = ExtraSection.SETTINGS
+                    },
+                    onFinish = {
+                        sp.edit().putBoolean("v43_onboarding_done", true).apply()
+                        showOnboarding = false
+                    }
+                )
+            }
+            return@SakinaBrandTheme
+        }
 
         // Outer Drawer: Physical RIGHT edge (Settings, Alarms, Duas, Ruqyah, Diagnostics)
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {

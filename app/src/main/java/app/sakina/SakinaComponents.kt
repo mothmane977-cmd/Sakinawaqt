@@ -684,10 +684,16 @@ fun SakinaParchmentPanel(
             .sakinaParchmentGlowCard(
                 cornerRadius = cornerRadius,
                 haloAlpha = 0.44f,
-                doubleBorder = true
+                doubleBorder = false
             )
+            .clip(RoundedCornerShape(cornerRadius))
     ) {
-        SakinaLuxuryCornerOverlay(cornerSize = 26.dp, alpha = 0.82f)
+        Image(
+            painter = painterResource(id = R.drawable.bg_parchment_card),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.matchParentSize()
+        )
         Column(modifier = Modifier.fillMaxWidth().padding(contentPadding), content = content)
     }
 }

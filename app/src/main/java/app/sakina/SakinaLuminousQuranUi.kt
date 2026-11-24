@@ -103,6 +103,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 
 // ============================================================================
 // 1. نماذج البيانات، الروايات، التجويد/أصول ورش، وحالة الصوت الدائم
@@ -408,11 +411,13 @@ private fun QuranIndexPortalContent(
 
         Text(
             text = strings.screenTitle,
-            color = SakinaOrbitalColors.WarmCream,
-            fontSize = 23.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = headingFontFamily,
-            textAlign = TextAlign.Center,
+            style = TextStyle(
+                brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = headingFontFamily,
+                textAlign = TextAlign.Center
+            ),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -847,30 +852,11 @@ private fun SurahIndexRow(
 
 @Composable
 private fun OctagonalNumberBadge(number: Int, bodyFontFamily: FontFamily) {
-    Box(
-        modifier = Modifier.size(34.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawCircle(
-                color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.20f),
-                radius = size.minDimension * 0.48f
-            )
-            drawCircle(
-                color = SakinaOrbitalColors.ChampagneGold,
-                radius = size.minDimension * 0.44f,
-                style = Stroke(width = 1.2.dp.toPx())
-            )
-        }
-        Text(
-            text = number.toString(),
-            color = SakinaOrbitalColors.InkNavy,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = bodyFontFamily,
-            style = TextStyle(fontFeatureSettings = "tnum")
-        )
-    }
+    SakinaStarMedallionBadge(
+        numberText = number.toString(),
+        starBgRes = R.drawable.ic_star_medallion_gold,
+        size = 40.dp
+    )
 }
 
 // ============================================================================
@@ -1018,6 +1004,14 @@ private fun QuranMushafReaderContent(
                     )
                     .clip(RoundedCornerShape(22.dp))
             ) {
+                if (isParchment) {
+                    Image(
+                        painter = painterResource(id = R.drawable.bg_mushaf_page_ornate),
+                        contentDescription = null,
+                        contentScale = ContentScale.FillBounds,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 Column(modifier = Modifier.fillMaxSize()) {
                     // تقليب الصفحات بالسحب الأفقي الحقيقي (HorizontalPager)
                     HorizontalPager(
@@ -1031,7 +1025,12 @@ private fun QuranMushafReaderContent(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
-                                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 14.dp)
+                                .padding(
+                                    start = if (isParchment) 26.dp else 16.dp,
+                                    end = if (isParchment) 26.dp else 16.dp,
+                                    top = if (isParchment) 26.dp else 16.dp,
+                                    bottom = if (isParchment) 22.dp else 14.dp
+                                )
                         ) {
                             val combinedAyahs = buildAnnotatedString {
                                 ayahsForThisPage.forEach { ayah ->
@@ -1379,7 +1378,7 @@ private fun KineticWaveMiniPlayer(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(68.dp)
+            .height(80.dp)
             .sakinaLuxuryGlassCard(
                 cornerRadius = 30.dp,
                 innerHairline = false,
@@ -1401,20 +1400,15 @@ private fun KineticWaveMiniPlayer(
 
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(SakinaOrbitalColors.SoftGoldGlow, SakinaOrbitalColors.ChampagneGold)
-                            )
-                        )
                         .clickable {
                             when (player.audioStatus) {
                                 SurahAudioStatus.DOWNLOADED -> onPlayPauseClick()
@@ -1424,6 +1418,12 @@ private fun KineticWaveMiniPlayer(
                         },
                     contentAlignment = Alignment.Center
                 ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_gold_medallion_btn),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
                     when (player.audioStatus) {
                         SurahAudioStatus.DOWNLOADING -> {
                             CircularProgressIndicator(

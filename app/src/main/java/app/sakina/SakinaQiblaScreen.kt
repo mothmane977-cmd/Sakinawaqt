@@ -580,7 +580,7 @@ fun SakinaSpatialQiblaScreen(
             .navigationBarsPadding()
     ) {
         Image(
-            painter = painterResource(id = R.drawable.bg_qibla_horizon),
+            painter = painterResource(id = R.drawable.bg_qibla_horizon_grid),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             alpha = 0.95f,
@@ -786,7 +786,7 @@ private fun SpatialHorizonCanvas(
         // الكعبة ثابتة دائماً في منتصف الأفق (تعمل في جميع اللغات RTL و LTR بدون اختفاء)
         val kaabaXUi = boxW * 0.5f
         val kaabaYUi = boxH * 0.24f - with(density) { 4.dp.toPx() }
-        val kaabaImgPx = with(density) { 74.dp.toPx() }
+        val kaabaImgPx = with(density) { 94.dp.toPx() }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width
@@ -883,15 +883,24 @@ private fun SpatialHorizonCanvas(
             center = kaabaCenter
         )
 
-        val dxBeam = kaabaCenter.x - reticleCenter.x
-        val dyBeam = kaabaCenter.y - reticleCenter.y
+        // الشعاع الذهبي الدوّار الحيّ: يدور فعلياً مع اتجاه هاتفك ويصطفّ مع الكعبة الثابتة في المنتصف عند المحاذاة!
+        val liveRad = (deltaDeg - 90f) * (PI / 180.0)
+        val liveTip = if (isAligned) {
+            kaabaCenter
+        } else {
+            val reachX = (reticleCenter.x + cos(liveRad) * (reticleRx * 1.48f)).toFloat()
+            val reachY = (reticleCenter.y + sin(liveRad) * (reticleRy * 2.15f)).toFloat()
+            Offset(reachX, reachY.coerceAtLeast(horizonY + 6.dp.toPx()))
+        }
+        val dxBeam = liveTip.x - reticleCenter.x
+        val dyBeam = liveTip.y - reticleCenter.y
         val beamLen = kotlin.math.hypot(dxBeam.toDouble(), dyBeam.toDouble()).toFloat().coerceAtLeast(1f)
         val perpX = -dyBeam / beamLen
         val perpY = dxBeam / beamLen
-        val baseSpread = 16.dp.toPx()
+        val baseSpread = 15.dp.toPx()
         val beamCone = Path().apply {
             moveTo(reticleCenter.x + perpX * baseSpread, reticleCenter.y + perpY * baseSpread)
-            lineTo(kaabaCenter.x, kaabaCenter.y)
+            lineTo(liveTip.x, liveTip.y)
             lineTo(reticleCenter.x - perpX * baseSpread, reticleCenter.y - perpY * baseSpread)
             close()
         }
@@ -899,40 +908,27 @@ private fun SpatialHorizonCanvas(
             path = beamCone,
             brush = Brush.linearGradient(
                 colors = listOf(
-                    beamColor.copy(alpha = 0.22f),
-                    SakinaLuxuryPalette.GoldBright.copy(alpha = 0.36f),
-                    SakinaLuxuryPalette.GoldSpecular.copy(alpha = 0.60f)
+                    beamColor.copy(alpha = 0.24f),
+                    SakinaLuxuryPalette.GoldBright.copy(alpha = 0.38f),
+                    SakinaLuxuryPalette.GoldSpecular.copy(alpha = 0.65f)
                 ),
                 start = reticleCenter,
-                end = kaabaCenter
+                end = liveTip
             )
         )
-        val steps = 6
-        for (s in 1 until steps) {
-            val t = s.toFloat() / steps
-            val cx = reticleCenter.x + dxBeam * t
-            val cy = reticleCenter.y + dyBeam * t
-            val halfW = baseSpread * (1f - t)
-            drawLine(
-                color = SakinaLuxuryPalette.GoldSpecular.copy(alpha = 0.45f),
-                start = Offset(cx + perpX * halfW, cy + perpY * halfW),
-                end = Offset(cx - perpX * halfW, cy - perpY * halfW),
-                strokeWidth = 0.9.dp.toPx()
-            )
-            drawGlowingLuxuryOrb(
-                center = Offset(cx, cy),
-                coreRadiusPx = (1.6f + (1f - t) * 1.2f).dp.toPx(),
-                coreColor = SakinaLuxuryPalette.GoldSpecular,
-                haloColor = beamColor,
-                haloScale = 2.6f,
-                intensity = 0.85f
-            )
-        }
         drawGlowingGoldLine(
             start = reticleCenter,
-            end = kaabaCenter,
-            coreStrokePx = if (isAligned) 3.4.dp.toPx() else 2.4.dp.toPx(),
+            end = liveTip,
+            coreStrokePx = if (isAligned) 3.8.dp.toPx() else 2.8.dp.toPx(),
             glowColor = beamColor
+        )
+        drawGlowingLuxuryOrb(
+            center = liveTip,
+            coreRadiusPx = if (isAligned) 5.5.dp.toPx() else 4.2.dp.toPx(),
+            coreColor = SakinaLuxuryPalette.GoldSpecular,
+            haloColor = beamColor,
+            haloScale = 3.0f,
+            intensity = 1.0f
         )
 
         drawLuxuryKaabaEmblem(
@@ -965,8 +961,9 @@ private fun SpatialHorizonCanvas(
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
             )
         )
+        // تدريجات البوصلة تدور حيّاً مع اتجاه الهاتف!
         for (deg in 0 until 360 step 15) {
-            val a = deg * (PI / 180.0)
+            val a = (deg + deltaDeg) * (PI / 180.0)
             val isMajor = deg % 90 == 0
             val innerScale = if (isMajor) 0.88f else 0.94f
             val p1 = Offset(
@@ -1014,12 +1011,12 @@ private fun SpatialHorizonCanvas(
         )
     }
 
-        // مجسّم الكعبة ثلاثي الأبعاد ثابت دائماً في منتصف الأفق
+        // مجسّم الكعبة ثلاثي الأبعاد الكبير والوحيد ثابت في منتصف الأفق
         Image(
-            painter = painterResource(id = R.drawable.ic_kaaba_3d),
+            painter = painterResource(id = R.drawable.ic_kaaba_3d_glow),
             contentDescription = null,
             modifier = Modifier
-                .size(74.dp)
+                .size(94.dp)
                 .absoluteOffset {
                     IntOffset(
                         x = (kaabaXUi - kaabaImgPx / 2f).roundToInt(),

@@ -90,6 +90,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 
 // ============================================================================
 // 1. لوحة ألوان سَكِينة المعتمدة (Sakina Identity Palette - v33 Orbital Horizon)
@@ -387,11 +388,12 @@ private fun MinimalistOrbitalHeader(
         ) {
             Text(
                 text = appTitle,
-                color = SakinaOrbitalColors.WarmCream,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = headingFontFamily,
-                maxLines = 1
+                style = TextStyle(
+                    brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = headingFontFamily
+                )
             )
             Text(
                 text = "$cityName · $hijriDate",
@@ -735,10 +737,17 @@ private fun FocalSpotlightCard(
                 .padding(bottom = 20.dp)
                 .sakinaParchmentGlowCard(
                     cornerRadius = 24.dp,
-                    haloAlpha = 0.36f,
-                    doubleBorder = true
+                    haloAlpha = 0.38f,
+                    doubleBorder = false
                 )
+                .clip(RoundedCornerShape(24.dp))
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.bg_parchment_card),
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier.matchParentSize()
+            )
             Column(
                 modifier = Modifier.padding(top = 12.dp, bottom = 26.dp, start = 16.dp, end = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -845,28 +854,18 @@ private fun FocalSpotlightCard(
             }
         }
 
-        Surface(
-            modifier = Modifier
-                .size(44.dp)
-                .clickable(onClick = onToggleCompleted)
-                .semantics { contentDescription = "${strings.toggleCompleteDesc} ${prayer.localizedName}" },
-            shape = CircleShape,
-            color = badgeBg,
-            border = BorderStroke(2.dp, SakinaOrbitalColors.ChampagneGold),
-            shadowElevation = 6.dp
+        SakinaGoldMedallionButton(
+            medallionBgRes = R.drawable.ic_gold_medallion_btn,
+            onClick = onToggleCompleted,
+            size = 48.dp,
+            modifier = Modifier.semantics { contentDescription = "${strings.toggleCompleteDesc} ${prayer.localizedName}" }
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = null,
-                    tint = if (prayer.isCompleted) {
-                        SakinaOrbitalColors.SoftGoldGlow
-                    } else {
-                        SakinaOrbitalColors.InkNavy
-                    },
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = null,
+                tint = if (prayer.isCompleted) SakinaLuxuryColors.EmeraldGlow else SakinaLuxuryColors.SoftGoldGlow,
+                modifier = Modifier.size(22.dp)
+            )
         }
     }
 }

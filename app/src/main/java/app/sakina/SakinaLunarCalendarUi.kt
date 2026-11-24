@@ -69,6 +69,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 
 // ============================================================================
 // 1. نماذج البيانات، التوطين، وحالة التقويم الهجري والقمر الفلكي
@@ -678,10 +679,17 @@ private fun HadithParchmentCard(
             .fillMaxWidth()
             .sakinaParchmentGlowCard(
                 cornerRadius = 20.dp,
-                haloAlpha = 0.34f,
-                doubleBorder = true
+                haloAlpha = 0.38f,
+                doubleBorder = false
             )
+            .clip(RoundedCornerShape(20.dp))
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_parchment_card),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.matchParentSize()
+        )
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
