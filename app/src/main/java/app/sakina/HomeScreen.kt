@@ -270,7 +270,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
         }
     }
     val headerImg = when (extraSection) {
-        ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH, ExtraSection.SUNNAH, ExtraSection.NAMES_OF_ALLAH -> R.drawable.bg_header_adhkar
+        ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH, ExtraSection.SUNNAH, ExtraSection.NAMES_OF_ALLAH, ExtraSection.WORSHIP_STATS -> R.drawable.bg_header_adhkar
         ExtraSection.ALARM, ExtraSection.NOTIFICATIONS, ExtraSection.APPEARANCE, ExtraSection.SETTINGS -> R.drawable.bg_header_mosque
         ExtraSection.NONE -> when (currentTab) {
             SakinaNavTab.HOME -> {
