@@ -530,7 +530,7 @@ object SakinaLiveNotifier {
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setColor(0xFFD4AF37.toInt())
+                .setColor(listOf(0xFFD4AF37.toInt(), 0xFFF3D47E.toInt(), 0xFF22E3A1.toInt(), 0xFFE5B94C.toInt())[(calNow.get(Calendar.MINUTE)) % 4])
                 .setContentIntent(openPi)
                 .setDeleteIntent(refreshPi)
                 .apply {

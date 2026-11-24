@@ -440,7 +440,7 @@ private fun QuranIndexPortalContent(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(19.dp))
-                        .background(if (selected) SakinaOrbitalColors.ChampagneGold else Color.Transparent)
+                        .background(if (selected) SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.92f) else Color.Transparent)
                         .clickable { onRiwayahChange(riwayah) }
                         .padding(vertical = 7.dp),
                     contentAlignment = Alignment.Center
@@ -742,9 +742,12 @@ private fun SurahIndexRow(
     onDownloadClick: () -> Unit,
     onLongPressDelete: () -> Unit
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.1.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(16.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = {
@@ -753,97 +756,120 @@ private fun SurahIndexRow(
                     }
                 }
             )
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_parchment_card),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.matchParentSize()
+        )
         Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.weight(1f)
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            OctagonalNumberBadge(number = surah.number, bodyFontFamily = bodyFontFamily)
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = surah.arabicName,
-                    color = SakinaOrbitalColors.InkNavy,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = headingFontFamily
-                )
-                Text(
-                    text = "${surah.revelationType} · ${surah.ayahCount} آية",
-                    color = SakinaOrbitalColors.InkNavy.copy(alpha = 0.62f),
-                    fontSize = 11.sp,
-                    fontFamily = bodyFontFamily,
-                    style = TextStyle(fontFeatureSettings = "tnum")
-                )
-            }
-        }
-
-        when (surah.audioStatus) {
-            SurahAudioStatus.DOWNLOADED -> {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.12f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Check,
-                        contentDescription = null,
-                        tint = SakinaOrbitalColors.DeepEmerald,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(3.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                OctagonalNumberBadge(number = surah.number, bodyFontFamily = bodyFontFamily)
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
-                        text = strings.offlineReadyLabel,
-                        color = SakinaOrbitalColors.DeepEmerald,
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = bodyFontFamily
+                        text = surah.arabicName,
+                        color = SakinaOrbitalColors.InkNavy,
+                        fontSize = 15.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = headingFontFamily
                     )
-                }
-            }
-            SurahAudioStatus.DOWNLOADING -> {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(
-                        progress = { surah.downloadProgress.coerceIn(0f, 1f) },
-                        color = SakinaOrbitalColors.ChampagneGold,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = "${(surah.downloadProgress * 100).roundToInt()}%",
-                        color = SakinaOrbitalColors.MutedGoldText,
-                        fontSize = 11.sp,
-                        style = TextStyle(fontFeatureSettings = "tnum")
-                    )
-                }
-            }
-            SurahAudioStatus.NOT_DOWNLOADED -> {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .border(0.8.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
-                        .clickable(onClick = onDownloadClick)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Canvas(modifier = Modifier.size(13.dp)) {
-                        drawDownloadVector(SakinaOrbitalColors.MutedGoldText)
+                    // كرتوشة زمردية مذهّبة لعدد الآيات ومكية/مدنية بنفس تصميم النجمة المثمنة
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.92f))
+                            .border(0.8.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.85f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${surah.revelationType} · ${surah.ayahCount} آية",
+                            color = SakinaLuxuryColors.SoftGoldGlow,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = bodyFontFamily,
+                            style = TextStyle(fontFeatureSettings = "tnum")
+                        )
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = strings.mbFormat.format(surah.audioSizeMb),
-                        color = SakinaOrbitalColors.MutedGoldText,
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = bodyFontFamily,
-                        style = TextStyle(fontFeatureSettings = "tnum")
-                    )
+                }
+            }
+
+            when (surah.audioStatus) {
+                SurahAudioStatus.DOWNLOADED -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.14f))
+                            .border(0.7.dp, SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 7.dp, vertical = 3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = null,
+                            tint = SakinaOrbitalColors.DeepEmerald,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = strings.offlineReadyLabel,
+                            color = SakinaOrbitalColors.DeepEmerald,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = bodyFontFamily
+                        )
+                    }
+                }
+                SurahAudioStatus.DOWNLOADING -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            progress = { surah.downloadProgress.coerceIn(0f, 1f) },
+                            color = SakinaOrbitalColors.ChampagneGold,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${(surah.downloadProgress * 100).roundToInt()}%",
+                            color = SakinaOrbitalColors.MutedGoldText,
+                            fontSize = 9.5.sp,
+                            style = TextStyle(fontFeatureSettings = "tnum")
+                        )
+                    }
+                }
+                SurahAudioStatus.NOT_DOWNLOADED -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.08f))
+                            .border(0.7.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.65f), RoundedCornerShape(10.dp))
+                            .clickable(onClick = onDownloadClick)
+                            .padding(horizontal = 7.dp, vertical = 3.dp)
+                    ) {
+                        Canvas(modifier = Modifier.size(11.dp)) {
+                            drawDownloadVector(SakinaOrbitalColors.MutedGoldText)
+                        }
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "${surah.sizeMb} MB",
+                            color = SakinaOrbitalColors.MutedGoldText,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = bodyFontFamily,
+                            style = TextStyle(fontFeatureSettings = "tnum")
+                        )
+                    }
                 }
             }
         }
@@ -1026,10 +1052,10 @@ private fun QuranMushafReaderContent(
                                 .fillMaxSize()
                                 .verticalScroll(rememberScrollState())
                                 .padding(
-                                    start = if (isParchment) 26.dp else 16.dp,
-                                    end = if (isParchment) 26.dp else 16.dp,
-                                    top = if (isParchment) 26.dp else 16.dp,
-                                    bottom = if (isParchment) 22.dp else 14.dp
+                                    start = if (isParchment) 50.dp else 16.dp,
+                                    end = if (isParchment) 50.dp else 16.dp,
+                                    top = if (isParchment) 54.dp else 16.dp,
+                                    bottom = if (isParchment) 36.dp else 14.dp
                                 )
                         ) {
                             val combinedAyahs = buildAnnotatedString {
@@ -1428,26 +1454,26 @@ private fun KineticWaveMiniPlayer(
                         SurahAudioStatus.DOWNLOADING -> {
                             CircularProgressIndicator(
                                 progress = { player.downloadProgress.coerceIn(0f, 1f) },
-                                color = SakinaOrbitalColors.InkNavy,
+                                color = SakinaLuxuryColors.SoftGoldGlow,
                                 strokeWidth = 2.5.dp,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
                         SurahAudioStatus.NOT_DOWNLOADED -> {
                             Canvas(modifier = Modifier.size(20.dp)) {
-                                drawDownloadVector(SakinaOrbitalColors.InkNavy)
+                                drawDownloadVector(SakinaLuxuryColors.SoftGoldGlow)
                             }
                         }
                         SurahAudioStatus.DOWNLOADED -> {
                             if (player.isPlaying) {
                                 Canvas(modifier = Modifier.size(16.dp)) {
-                                    drawPauseVector(SakinaOrbitalColors.InkNavy)
+                                    drawPauseVector(SakinaLuxuryColors.SoftGoldGlow)
                                 }
                             } else {
                                 Icon(
                                     imageVector = Icons.Rounded.PlayArrow,
                                     contentDescription = null,
-                                    tint = SakinaOrbitalColors.InkNavy,
+                                    tint = SakinaLuxuryColors.SoftGoldGlow,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -1686,36 +1712,34 @@ private fun ExpandedLuxuryAudioOverlay(
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     )
 
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.radialGradient(
-                                    colors = listOf(SakinaOrbitalColors.SoftGoldGlow, SakinaOrbitalColors.ChampagneGold)
-                                )
-                            )
-                            .clickable {
-                                if (player.audioStatus == SurahAudioStatus.DOWNLOADED) onPlayPauseClick()
-                                else if (player.audioStatus == SurahAudioStatus.NOT_DOWNLOADED) onDownloadClick()
-                            },
-                        contentAlignment = Alignment.Center
+                    SakinaGoldMedallionButton(
+                        medallionBgRes = R.drawable.ic_gold_medallion_btn,
+                        onClick = {
+                            when (player.audioStatus) {
+                                SurahAudioStatus.DOWNLOADED -> onPlayPauseClick()
+                                SurahAudioStatus.NOT_DOWNLOADED -> onDownloadClick()
+                                SurahAudioStatus.DOWNLOADING -> Unit
+                            }
+                        },
+                        size = 68.dp
                     ) {
-                        if (player.audioStatus == SurahAudioStatus.NOT_DOWNLOADED) {
-                            Canvas(modifier = Modifier.size(26.dp)) {
-                                drawDownloadVector(SakinaOrbitalColors.InkNavy)
-                            }
-                        } else if (player.isPlaying) {
-                            Canvas(modifier = Modifier.size(22.dp)) {
-                                drawPauseVector(SakinaOrbitalColors.InkNavy)
-                            }
-                        } else {
-                            Icon(
-                                imageVector = Icons.Rounded.PlayArrow,
-                                contentDescription = null,
-                                tint = SakinaOrbitalColors.InkNavy,
-                                modifier = Modifier.size(34.dp)
+                        when (player.audioStatus) {
+                            SurahAudioStatus.DOWNLOADING -> CircularProgressIndicator(
+                                progress = { player.downloadProgress.coerceIn(0f, 1f) },
+                                color = SakinaLuxuryColors.SoftGoldGlow,
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(30.dp)
                             )
+                            SurahAudioStatus.NOT_DOWNLOADED -> Canvas(modifier = Modifier.size(24.dp)) {
+                                drawDownloadVector(SakinaLuxuryColors.SoftGoldGlow)
+                            }
+                            SurahAudioStatus.DOWNLOADED -> {
+                                if (player.isPlaying) {
+                                    Canvas(modifier = Modifier.size(22.dp)) { drawPauseVector(SakinaLuxuryColors.SoftGoldGlow) }
+                                } else {
+                                    Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = SakinaLuxuryColors.SoftGoldGlow, modifier = Modifier.size(34.dp))
+                                }
+                            }
                         }
                     }
 

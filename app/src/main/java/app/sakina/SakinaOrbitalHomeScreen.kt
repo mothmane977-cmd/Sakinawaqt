@@ -560,8 +560,8 @@ private fun OrbitalPrayerDial(
         val widthPx = with(density) { maxWidth.toPx() }
         val heightPx = with(density) { maxHeight.toPx() }
         val dotCenterOffsetPx = with(density) { 14.dp.toPx() }
-        val rxPx = (widthPx * 0.38f).coerceAtMost(with(density) { 155.dp.toPx() })
-        val ryPx = (heightPx * 0.30f).coerceAtMost(with(density) { 82.dp.toPx() })
+        val rxPx = (widthPx * 0.38f).coerceAtMost(with(density) { 152.dp.toPx() })
+        val ryPx = (heightPx * 0.25f).coerceAtMost(with(density) { 70.dp.toPx() })
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2f, size.height / 2f)
@@ -732,9 +732,9 @@ private fun FocalSpotlightCard(
     ) {
         Box(
             modifier = Modifier
-                .widthIn(max = 320.dp)
-                .fillMaxWidth(0.86f)
-                .padding(bottom = 20.dp)
+                .widthIn(max = 380.dp)
+                .fillMaxWidth(0.95f)
+                .padding(bottom = 18.dp)
                 .sakinaParchmentGlowCard(
                     cornerRadius = 24.dp,
                     haloAlpha = 0.38f,
@@ -749,7 +749,7 @@ private fun FocalSpotlightCard(
                 modifier = Modifier.matchParentSize()
             )
             Column(
-                modifier = Modifier.padding(top = 12.dp, bottom = 26.dp, start = 16.dp, end = 16.dp),
+                modifier = Modifier.padding(top = 9.dp, bottom = 20.dp, start = 18.dp, end = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
@@ -834,7 +834,7 @@ private fun FocalSpotlightCard(
                 Text(
                     text = if (isNextPrayer) countdownText else prayer.timeText,
                     color = SakinaOrbitalColors.InkNavy,
-                    fontSize = 33.sp,
+                    fontSize = 29.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = bodyFontFamily,
                     style = TextStyle(fontFeatureSettings = "tnum"),

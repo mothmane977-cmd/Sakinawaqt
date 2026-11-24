@@ -322,13 +322,13 @@ private fun LunarCalendarHeroHeader(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(15.dp))
-                            .background(if (selected) SakinaOrbitalColors.ChampagneGold else Color.Transparent)
+                            .background(if (selected) SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.92f) else Color.Transparent)
                             .clickable { onDisplayModeChange(mode) }
                             .padding(horizontal = 12.dp, vertical = 5.dp)
                     ) {
                         Text(
                             text = label,
-                            color = if (selected) SakinaOrbitalColors.InkNavy else SakinaOrbitalColors.WarmCream.copy(alpha = 0.8f),
+                            color = if (selected) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.8f),
                             fontSize = 11.5.sp,
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                             fontFamily = bodyFontFamily
@@ -646,10 +646,12 @@ private fun SelectedDayPrayerBar(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = label,
-                        color = SakinaOrbitalColors.ChampagneGold,
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = bodyFontFamily
+                        style = TextStyle(
+                            brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = bodyFontFamily
+                        )
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(

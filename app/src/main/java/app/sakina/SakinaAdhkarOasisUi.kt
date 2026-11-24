@@ -74,6 +74,9 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 
 // ============================================================================
 // 1. نماذج بيانات واحة الذكر والتسبيح والعبادات
@@ -159,6 +162,8 @@ fun SakinaAdhkarOasisScreen(
     onPortalClick: (WorshipPortalType) -> Unit = {},
     onCloseCategory: () -> Unit = {},
     onToggleAudioPlay: () -> Unit = {},
+    playingDhikrId: Int? = null,
+    onSpeakDhikr: (Int, String) -> Unit = { _, _ -> },
     onDhikrCardTap: (Int) -> Unit = {},
     onTabSelected: (Int) -> Unit = {}
 ) {
@@ -273,6 +278,8 @@ fun SakinaAdhkarOasisScreen(
                         headingFontFamily = headingFontFamily,
                         bodyFontFamily = bodyFontFamily,
                         onToggleAudioPlay = onToggleAudioPlay,
+                        playingDhikrId = playingDhikrId,
+                        onSpeakDhikr = onSpeakDhikr,
                         onDhikrCardTap = { id ->
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onDhikrCardTap(id)
@@ -321,11 +328,18 @@ private fun LuminousOrbitalTasbihRing(
     ) {
         Box(
             modifier = Modifier
-                .size(214.dp)
+                .size(230.dp)
                 .clip(CircleShape)
                 .clickable(onClick = onTap),
             contentAlignment = Alignment.Center
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.bg_tasbih_ring),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alpha = 0.88f,
+                modifier = Modifier.fillMaxSize()
+            )
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val center = Offset(size.width / 2f, size.height / 2f)
                 val outerR = size.minDimension * 0.44f
@@ -419,10 +433,12 @@ private fun LuminousOrbitalTasbihRing(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${tasbih.count}",
-                    color = SakinaOrbitalColors.SoftGoldGlow,
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Bold,
-                    style = TextStyle(fontFeatureSettings = "tnum")
+                    style = TextStyle(
+                        brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFeatureSettings = "tnum"
+                    )
                 )
                 Text(
                     text = "/ ${tasbih.target} · ${strings.roundFormat.format(tasbih.round)}",
@@ -591,6 +607,8 @@ private fun DhikrCategoryReaderContent(
     headingFontFamily: FontFamily,
     bodyFontFamily: FontFamily,
     onToggleAudioPlay: () -> Unit,
+    playingDhikrId: Int? = null,
+    onSpeakDhikr: (Int, String) -> Unit = { _, _ -> },
     onDhikrCardTap: (Int) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -659,19 +677,50 @@ private fun DhikrCategoryReaderContent(
         ) {
             itemsIndexed(items, key = { _, it -> it.id }) { _, dhikr ->
                 val done = dhikr.currentCount >= dhikr.targetCount
-                Surface(
+                val isSpeakingThis = playingDhikrId == dhikr.id
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = SakinaOrbitalColors.ChampagneGold)
-                        .clickable { onDhikrCardTap(dhikr.id) },
-                    shape = RoundedCornerShape(20.dp),
-                    color = SakinaOrbitalColors.WarmCream,
-                    border = BorderStroke(
-                        width = if (done) 1.6.dp else 1.dp,
-                        color = if (done) SakinaOrbitalColors.DeepEmerald else SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.6f)
-                    )
+                        .sakinaParchmentGlowCard(
+                            cornerRadius = 20.dp,
+                            haloAlpha = if (isSpeakingThis) 0.55f else 0.34f,
+                            doubleBorder = false
+                        )
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { onDhikrCardTap(dhikr.id) }
                 ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.bg_parchment_card),
+                        contentDescription = null,
+                        contentScale = ContentScale.FillBounds,
+                        modifier = Modifier.matchParentSize()
+                    )
                     Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(
+                                        if (isSpeakingThis) SakinaLuxuryColors.DeepEmerald
+                                        else SakinaLuxuryColors.MidnightNavy.copy(alpha = 0.85f)
+                                    )
+                                    .border(0.9.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.8f), RoundedCornerShape(14.dp))
+                                    .clickable { onSpeakDhikr(dhikr.id, dhikr.text) }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = if (isSpeakingThis) "■ إيقاف" else "🔊 استماع للذكر",
+                                    color = SakinaLuxuryColors.SoftGoldGlow,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = bodyFontFamily
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = dhikr.text,
                             color = SakinaOrbitalColors.InkNavy,
