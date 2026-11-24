@@ -235,16 +235,12 @@ fun SakinaOrbitalHomeScreen(
                 appTitle = strings.appTitle,
                 cityName = state.cityName,
                 hijriDate = state.hijriDate,
-                languageCode = state.languageCode,
-                menuDesc = strings.menuDesc,
-                settingsDesc = strings.settingsDesc,
+                langCode = state.languageCode,
                 headingFontFamily = headingFontFamily,
                 bodyFontFamily = bodyFontFamily,
                 onMenuClick = onMenuClick,
-                onSettingsClick = onSettingsClick,
-                onCityClick = onCityClick,
                 onLanguageClick = onLanguageClick,
-                onToggleClassicLayout = onToggleClassicLayout
+                onLocationClick = onCityClick
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -343,8 +339,6 @@ private fun MinimalistOrbitalHeader(
     bodyFontFamily: FontFamily,
     onMenuClick: () -> Unit,
     onLanguageClick: () -> Unit,
-    onClassicToggleClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     onLocationClick: () -> Unit
 ) {
     Row(
