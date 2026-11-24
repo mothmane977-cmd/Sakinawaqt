@@ -749,7 +749,7 @@ private fun FocalSpotlightCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "$completedCount/$totalPrayers ${strings.todaySuffix}",
+                        text = strings.todayProgressFormat.format(completedCount, totalPrayers),
                         color = SakinaOrbitalColors.DeepEmerald,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
