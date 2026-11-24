@@ -420,7 +420,7 @@ private fun MinimalistOrbitalHeader(
 
 @Composable
 private fun SevenDaySelectorStrip(
-    days: List<DayPillItem>,
+    days: List<DayChipItem>,
     bodyFontFamily: FontFamily,
     onDaySelected: (Int) -> Unit
 ) {
