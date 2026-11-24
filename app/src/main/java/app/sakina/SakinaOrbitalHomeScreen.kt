@@ -476,6 +476,7 @@ private fun SevenDaySelectorStrip(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun OrbitalPrayerDial(
     prayers: List<OrbitalPrayerNode>,

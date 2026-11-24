@@ -275,9 +275,11 @@ object SakinaLiveNotifier {
         val textAnchorX = if (isRtl) w - 42f else 42f
         val textAlign = if (isRtl) Paint.Align.RIGHT else Paint.Align.LEFT
 
-        // Metallic 3-stop brushed gold gradient for prayer name & time (v43)
+        // Metallic 3-stop brushed gold gradient for prayer name & time (v46 auto-fit width)
+        val maxTextW = w * 0.45f
+        val headerLine = "$nextBadge · $nextName"
         val namePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = 35f
+            textSize = 34f
             this.textAlign = textAlign
             typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
             shader = LinearGradient(
@@ -286,7 +288,10 @@ object SakinaLiveNotifier {
                 null, Shader.TileMode.CLAMP
             )
         }
-        c.drawText("$nextBadge · $nextName", textAnchorX, 82f, namePaint)
+        while (namePaint.textSize > 21f && namePaint.measureText(headerLine) > maxTextW) {
+            namePaint.textSize -= 1.5f
+        }
+        c.drawText(headerLine, textAnchorX, 82f, namePaint)
 
         val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize = 76f
@@ -309,14 +314,18 @@ object SakinaLiveNotifier {
         }
         c.drawText(remStr, textAnchorX, 232f, remPaint)
 
-        // City + Hijri Date
+        // City + Hijri Date (auto-fit so it never touches the solar arc)
+        val metaLine = "$place · $hijriStr"
         val metaPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFD1D5DB.toInt()
             textSize = 25f
             this.textAlign = textAlign
             typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
         }
-        c.drawText("$place · $hijriStr", textAnchorX, 294f, metaPaint)
+        while (metaPaint.textSize > 18f && metaPaint.measureText(metaLine) > maxTextW) {
+            metaPaint.textSize -= 1f
+        }
+        c.drawText(metaLine, textAnchorX, 294f, metaPaint)
 
         return bmp
     }
@@ -439,7 +448,7 @@ object SakinaLiveNotifier {
             val isApproachingWindow = !isPostAdhanWindow && remMinTotal in 1L..15L
 
             val nextBadge = when {
-                isPostAdhanWindow -> sakinaTr(lang, "وقت الصلاة · الإقامة", "Prayer Time · Iqama", "Temps de prière · Iqama", "Namaz Vakti · Kamet", "Waktu Sholat · Iqamah", "نماز کا وقت · اقامت")
+                isPostAdhanWindow -> sakinaTr(lang, "وقت الإقامة", "Iqama Window", "Temps d'Iqama", "Kamet Vakti", "Waktu Iqamah", "وقت اقامت")
                 isApproachingWindow -> sakinaTr(lang, "تهيّأ للسكينة", "Prepare in Peace", "Préparez-vous", "Huzurla Hazırlanın", "Bersiap Sholat", "تیاری کریں")
                 else -> sakinaTr(lang, "التالي", "Next", "Suivant", "Sonraki", "Berikutnya", "اگلی")
             }
@@ -500,15 +509,16 @@ object SakinaLiveNotifier {
 
             val styledTitle = goldSpan(collapsedTitle, titleGoldColor, bold = true)
             val styledSub = goldSpan(collapsedSub, subGoldColor, bold = false)
+            // دون StyleSpan(BOLD) على أزرار الإشعار لمنع تداخل القياس في HyperOS/RTL
             val openActionLabel = goldSpan(
-                sakinaTr(lang, "افتح سَكِينة", "Open Sakina", "Ouvrir Sakina", "Sakina'yı Aç", "Buka Sakina", "سکینہ کھولیں"),
+                sakinaTr(lang, "سَكِينة", "Sakina", "Sakina", "Sakina", "Sakina", "سکینہ"),
                 titleGoldColor,
-                bold = true
+                bold = false
             )
             val refreshActionLabel = goldSpan(
-                sakinaTr(lang, "تحديث ↻", "Refresh ↻", "Actualiser ↻", "Yenile ↻", "Segarkan ↻", "تازہ ↻"),
+                sakinaTr(lang, "تحديث", "Refresh", "Actualiser", "Yenile", "Segarkan", "تازہ"),
                 titleGoldColor,
-                bold = true
+                bold = false
             )
 
             val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
@@ -548,8 +558,8 @@ object SakinaLiveNotifier {
                             ctx, 779, adhkarIntent,
                             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                         )
-                        addAction(0, goldSpan(sakinaTr(lang, "صلّيت ✓", "Prayed ✓", "Prié ✓", "Kıldım ✓", "Sudah Sholat ✓", "نماز ادا کی ✓"), titleGoldColor, bold = true), markPi)
-                        addAction(0, goldSpan(sakinaTr(lang, "أذكار بعد الصلاة", "Post-Prayer Adhkar", "Adhkar après prière", "Namaz Sonrası Zikir", "Dzikir Ba'da Sholat", "نماز کے بعد اذکار"), titleGoldColor, bold = true), adhkarPi)
+                        addAction(0, goldSpan(sakinaTr(lang, "✓ صلّيت", "✓ Prayed", "✓ Prié", "✓ Kıldım", "✓ Sholat", "✓ ادا کی"), titleGoldColor, bold = false), markPi)
+                        addAction(0, goldSpan(sakinaTr(lang, "الأذكار", "Adhkar", "Adhkar", "Zikirler", "Dzikir", "اذکار"), titleGoldColor, bold = false), adhkarPi)
                     } else {
                         addAction(0, openActionLabel, openPi)
                         addAction(0, refreshActionLabel, refreshPi)
