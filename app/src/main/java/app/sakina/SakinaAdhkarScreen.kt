@@ -400,7 +400,7 @@ fun SakinaAdhkarScreen(
         playingDhikrId = speakingDhikrId,
         onSpeakDhikr = { id, text ->
             if (isAudioPlaying) {
-                try { mediaPlayer?.pause() } catch (_: Exception) {}
+                try { audioPlayer?.pause() } catch (_: Exception) {}
                 isAudioPlaying = false
             }
             ttsEngine.toggleSpeak(id, text)
