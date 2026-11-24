@@ -44,8 +44,8 @@ object SakinaLiveNotifier {
                             val idx = intent.getIntExtra("prayer_idx", -1)
                             if (idx in 0..4) {
                                 val todayKey = SakinaAdvancedPrefs.dateKeyOffset(0)
-                                if (!SakinaAdvancedPrefs.isPrayerCompleted(context, todayKey, idx)) {
-                                    SakinaAdvancedPrefs.togglePrayerCompleted(context, todayKey, idx)
+                                if (!SakinaAdvancedPrefs.isPrayerLogged(context, todayKey, idx)) {
+                                    SakinaAdvancedPrefs.togglePrayerLogged(context, todayKey, idx)
                                 }
                             }
                         }

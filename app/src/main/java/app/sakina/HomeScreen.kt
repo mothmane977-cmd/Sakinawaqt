@@ -327,7 +327,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                             val loc = lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
                                 ?: lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
                             if (loc != null) {
-                                Place.save(ctx, loc.latitude, loc.longitude, Place.name(ctx))
+                                Place.set(ctx, loc.latitude, loc.longitude, Place.name(ctx))
                                 SakinaLiveNotifier.update(ctx)
                             }
                         } catch (_: Exception) {}
