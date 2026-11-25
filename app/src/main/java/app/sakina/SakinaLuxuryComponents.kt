@@ -156,7 +156,15 @@ fun SakinaGlowingGlassCard(
         }
         .let { if (onClick != null) it.clickable(onClick = onClick) else it }
 
-    Box(modifier = cardMod, content = content)
+    Box(modifier = cardMod) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_glass_gold_card),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.matchParentSize()
+        )
+        content()
+    }
 }
 
 /**
@@ -449,6 +457,12 @@ fun SakinaLuxuryFloatingDock(
                 shape = RoundedCornerShape(33.dp)
             )
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_luxury_floating_dock),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.matchParentSize()
+        )
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,

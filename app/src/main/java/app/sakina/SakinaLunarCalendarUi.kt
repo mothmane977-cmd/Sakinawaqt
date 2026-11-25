@@ -198,7 +198,7 @@ fun SakinaLunarCalendarScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // 2. بطاقة الشبكة الشهرية الزجاجية
                 MonthlyCalendarGlassCard(
@@ -238,7 +238,7 @@ fun SakinaLunarCalendarScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // 3. شريط مواقيت اليوم المختار
                 SelectedDayPrayerBar(
@@ -247,7 +247,7 @@ fun SakinaLunarCalendarScreen(
                     bodyFontFamily = bodyFontFamily
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // 4. بطاقة حديث اليوم على الورق الكريمي
                 HadithParchmentCard(

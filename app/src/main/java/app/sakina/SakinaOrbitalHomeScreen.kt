@@ -380,7 +380,7 @@ private fun MinimalistOrbitalHeader(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Rounded.Menu,
+                imageVector = Icons.Outlined.Settings,
                 contentDescription = null,
                 tint = SakinaLuxuryColors.SoftGoldGlow,
                 modifier = Modifier.size(20.dp)
@@ -742,19 +742,14 @@ private fun FocalSpotlightCard(
     ) {
         Box(
             modifier = Modifier
-                .widthIn(max = 380.dp)
-                .fillMaxWidth(0.95f)
-                .padding(bottom = 18.dp)
-                .sakinaParchmentGlowCard(
-                    cornerRadius = 22.dp,
-                    haloAlpha = 0.38f,
-                    doubleBorder = false
-                )
+                .widthIn(max = 360.dp)
+                .fillMaxWidth(0.92f)
+                .padding(bottom = 16.dp)
                 .clip(RoundedCornerShape(22.dp))
                 .clickable(onClick = onExpandFivePrayers)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.bg_parchment_card),
+                painter = painterResource(id = R.drawable.bg_glass_gold_card),
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier.matchParentSize()
@@ -770,7 +765,7 @@ private fun FocalSpotlightCard(
                 ) {
                     Text(
                         text = strings.todayProgressFormat.format(completedCount, totalPrayers),
-                        color = SakinaOrbitalColors.DeepEmerald,
+                        color = SakinaLuxuryColors.SoftGoldGlow,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = bodyFontFamily,
@@ -779,14 +774,15 @@ private fun FocalSpotlightCard(
                         style = TextStyle(fontFeatureSettings = "tnum"),
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
-                            .background(SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.10f))
+                            .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.72f))
+                            .border(0.6.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
                             .clickable(onClick = onTodayStatsClick)
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     )
 
                     Text(
                         text = "الصلوات الخمس ▾",
-                        color = SakinaOrbitalColors.MutedGoldText,
+                        color = SakinaLuxuryColors.SoftGoldGlow,
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = bodyFontFamily,
@@ -819,8 +815,8 @@ private fun FocalSpotlightCard(
                             imageVector = Icons.Outlined.Notifications,
                             contentDescription = null,
                             tint = when (prayer.alarmMode) {
-                                PrayerAlarmMode.ADHAN -> SakinaOrbitalColors.MutedGoldText
-                                PrayerAlarmMode.NOTIFICATION -> SakinaOrbitalColors.DeepEmerald
+                                PrayerAlarmMode.ADHAN -> SakinaLuxuryColors.SoftGoldGlow
+                                PrayerAlarmMode.NOTIFICATION -> SakinaLuxuryColors.EmeraldGlow
                                 PrayerAlarmMode.SILENT -> Color.Gray
                             },
                             modifier = Modifier.size(14.dp)
@@ -834,8 +830,8 @@ private fun FocalSpotlightCard(
                             maxLines = 1,
                             softWrap = false,
                             color = when (prayer.alarmMode) {
-                                PrayerAlarmMode.ADHAN -> SakinaOrbitalColors.MutedGoldText
-                                PrayerAlarmMode.NOTIFICATION -> SakinaOrbitalColors.DeepEmerald
+                                PrayerAlarmMode.ADHAN -> SakinaLuxuryColors.SoftGoldGlow
+                                PrayerAlarmMode.NOTIFICATION -> SakinaLuxuryColors.EmeraldGlow
                                 PrayerAlarmMode.SILENT -> Color.Gray
                             }
                         )
@@ -846,7 +842,7 @@ private fun FocalSpotlightCard(
 
                 Text(
                     text = "${prayer.localizedName} · ${prayer.timeText}",
-                    color = SakinaOrbitalColors.MutedGoldText,
+                    color = SakinaLuxuryColors.SoftGoldGlow,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = headingFontFamily,
@@ -858,8 +854,8 @@ private fun FocalSpotlightCard(
 
                 Text(
                     text = if (isNextPrayer) countdownText else prayer.timeText,
-                    color = SakinaOrbitalColors.InkNavy,
-                    fontSize = 25.sp,
+                    color = Color.White,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = bodyFontFamily,
                     style = TextStyle(fontFeatureSettings = "tnum"),
@@ -872,8 +868,8 @@ private fun FocalSpotlightCard(
                     } else {
                         "${strings.prayerTimePrefix} ${prayer.localizedName}"
                     },
-                    color = SakinaOrbitalColors.InkNavy.copy(alpha = 0.65f),
-                    fontSize = 12.sp,
+                    color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.78f),
+                    fontSize = 11.5.sp,
                     fontFamily = bodyFontFamily
                 )
             }

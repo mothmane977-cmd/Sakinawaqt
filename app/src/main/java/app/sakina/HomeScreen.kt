@@ -599,19 +599,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     }
 
                                     if (extraSection == ExtraSection.NONE && !(currentTab == SakinaNavTab.HOME && useOrbitalHome) && !(currentTab == SakinaNavTab.QURAN && isMushafReadingFullScreen)) {
-                                        // v48 #1: شريط علوي موحّد بزرّين متوازنين فقط (زر القائمة الموحّدة + زر تبديل اللغة AR)
-                                        Box(
-                                            modifier = Modifier
-                                                .align(AbsoluteAlignment.TopLeft)
-                                                .statusBarsPadding()
-                                                .padding(start = 16.dp, top = 12.dp)
-                                        ) {
-                                            SakinaGraduatedMenuIcon(
-                                                mirror = true,
-                                                onClick = { celestialHubMode = CelestialHubMode.WORSHIP }
-                                            )
-                                        }
-
+                                        // v49 #2: توحيد موضع وشكل الزرّين في كل الشاشات: الترس الذهبي يميناً وزر AR يساراً
                                         Box(
                                             modifier = Modifier
                                                 .align(AbsoluteAlignment.TopRight)
@@ -623,7 +611,32 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                                     innerHairline = false,
                                                     emeraldFlare = false,
                                                     shimmer = false,
-                                                    borderAlpha = 0.72f
+                                                    borderAlpha = 0.75f
+                                                )
+                                                .clip(CircleShape)
+                                                .clickable { celestialHubMode = CelestialHubMode.SETTINGS },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Settings,
+                                                contentDescription = sakinaTr(currentLang, "التحكم والإعدادات", "Settings", "Paramètres", "Ayarlar", "Pengaturan", "ترتیبات"),
+                                                tint = SakinaLuxuryColors.SoftGoldGlow,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .align(AbsoluteAlignment.TopLeft)
+                                                .statusBarsPadding()
+                                                .padding(start = 16.dp, top = 12.dp)
+                                                .size(38.dp)
+                                                .sakinaLuxuryGlassCard(
+                                                    cornerRadius = 19.dp,
+                                                    innerHairline = false,
+                                                    emeraldFlare = false,
+                                                    shimmer = false,
+                                                    borderAlpha = 0.75f
                                                 )
                                                 .clip(CircleShape)
                                                 .clickable {
@@ -638,7 +651,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                                 fontFamily = SakinaNumeralFont,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 11.sp,
-                                                color = SakinaLuxuryPalette.GoldSpecular,
+                                                color = SakinaLuxuryColors.SoftGoldGlow,
                                                 style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                                             )
                                         }

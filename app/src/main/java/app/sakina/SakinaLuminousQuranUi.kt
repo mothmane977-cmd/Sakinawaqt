@@ -348,6 +348,8 @@ fun SakinaLuminousQuranScreen(
                     onToggleReaderTheme = onToggleReaderTheme,
                     isCurrentPageBookmarked = isCurrentPageBookmarked,
                     onToggleBookmark = onToggleBookmark,
+                    barsVisible = readerBarsVisible,
+                    onToggleBars = { readerBarsVisible = !readerBarsVisible },
                     pageAyahsProvider = pageAyahsProvider,
                     onPageChanged = onPageChanged
                 )
@@ -705,40 +707,71 @@ private fun QuranIndexPortalContent(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         itemsIndexed(itemsList) { idx, item ->
-                            Row(
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(1.1.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(16.dp))
                                     .clickable { onDivisionSelected(item) }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    OctagonalNumberBadge(number = item.number, bodyFontFamily = bodyFontFamily)
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
+                                Image(
+                                    painter = painterResource(id = R.drawable.bg_parchment_card),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.FillBounds,
+                                    modifier = Modifier.matchParentSize()
+                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 9.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        OctagonalNumberBadge(number = item.number, bodyFontFamily = bodyFontFamily)
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = item.title,
+                                                color = SakinaOrbitalColors.InkNavy,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                fontFamily = headingFontFamily
+                                            )
+                                            Text(
+                                                text = item.subtitle,
+                                                color = SakinaOrbitalColors.InkNavy.copy(alpha = 0.70f),
+                                                fontSize = 11.sp,
+                                                fontFamily = bodyFontFamily
+                                            )
+                                        }
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(Color(0xFF0E4436), SakinaLuxuryColors.DeepEmerald, Color(0xFF07251D))
+                                                )
+                                            )
+                                            .border(1.1.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(12.dp))
+                                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Text(
-                                            text = item.title,
-                                            color = SakinaOrbitalColors.InkNavy,
-                                            fontSize = 15.sp,
+                                            text = "✦ ص ${item.startPage}",
+                                            color = SakinaLuxuryColors.SoftGoldGlow,
+                                            fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
-                                            fontFamily = headingFontFamily
-                                        )
-                                        Text(
-                                            text = item.subtitle,
-                                            color = SakinaOrbitalColors.InkNavy.copy(alpha = 0.65f),
-                                            fontSize = 11.5.sp,
-                                            fontFamily = bodyFontFamily
+                                            fontFamily = bodyFontFamily,
+                                            style = TextStyle(fontFeatureSettings = "tnum")
                                         )
                                     }
                                 }
-                                Text(
-                                    text = "ص ${item.startPage}",
-                                    color = SakinaOrbitalColors.MutedGoldText,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    style = TextStyle(fontFeatureSettings = "tnum")
-                                )
                             }
                             if (idx < itemsList.lastIndex) {
                                 HorizontalDivider(
@@ -939,11 +972,13 @@ private fun QuranMushafReaderContent(
     onToggleReaderTheme: () -> Unit,
     isCurrentPageBookmarked: Boolean = false,
     onToggleBookmark: () -> Unit = {},
+    barsVisible: Boolean = true,
+    onToggleBars: () -> Unit = {},
     pageAyahsProvider: (Int) -> List<MushafAyahUi>,
     onPageChanged: (Int) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    var localBarsVisible by remember { mutableStateOf(true) }
+    val localBarsVisible = barsVisible
     val isParchment = state.readerTheme == QuranReaderTheme.WARM_PARCHMENT
     val pageBg = if (isParchment) SakinaOrbitalColors.WarmCream else Color(0xFF0A1F1A)
     val pageTextColor = if (isParchment) SakinaOrbitalColors.InkNavy else SakinaOrbitalColors.WarmCream
@@ -1093,14 +1128,7 @@ private fun QuranMushafReaderContent(
                     )
                     .clip(RoundedCornerShape(22.dp))
             ) {
-                if (isParchment) {
-                    Image(
-                        painter = painterResource(id = R.drawable.bg_mushaf_page_ornate),
-                        contentDescription = null,
-                        contentScale = ContentScale.FillBounds,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                // v49 #4: إزالة الإطار المتداخل واستغلال 100% من عرض الشاشة بهوامش آمنة
                 Column(modifier = Modifier.fillMaxSize()) {
                     // تقليب الصفحات بالسحب الأفقي الحقيقي (HorizontalPager)
                     HorizontalPager(
@@ -1117,12 +1145,12 @@ private fun QuranMushafReaderContent(
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
-                                ) { localBarsVisible = !localBarsVisible }
+                                ) { onToggleBars() }
                                 .padding(
-                                    start = if (isParchment) 54.dp else 16.dp,
-                                    end = if (isParchment) 54.dp else 16.dp,
-                                    top = if (isParchment) 60.dp else 16.dp,
-                                    bottom = if (isParchment) 40.dp else 14.dp
+                                    start = 14.dp,
+                                    end = 14.dp,
+                                    top = 12.dp,
+                                    bottom = 10.dp
                                 )
                         ) {
                             val combinedAyahs = buildAnnotatedString {
@@ -1188,6 +1216,8 @@ private fun QuranMushafReaderContent(
                         }
                     }
 
+                    AnimatedVisibility(visible = localBarsVisible) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                     // الشريط السفلي العلمي المفصول: ألوان تجويد حفص vs شريط أصول ورش التفاعلي
                     if (state.riwayah == QuranRiwayah.HAFS && state.isTajweedEnabled) {
                         HafsTajweedLegendStrip(
@@ -1212,7 +1242,7 @@ private fun QuranMushafReaderContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(if (isParchment) Color(0xFFF0E9D8) else Color(0xFF071713))
-                            .padding(horizontal = 14.dp, vertical = 7.dp),
+                            .padding(horizontal = 12.dp, vertical = 3.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1254,8 +1284,10 @@ private fun QuranMushafReaderContent(
                                         pagerState.animateScrollToPage((state.currentReaderPage).coerceAtMost(state.totalPages - 1))
                                     }
                                 }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
                         )
+                    }
+                    }
                     }
                 }
             }
@@ -1471,17 +1503,16 @@ private fun KineticWaveMiniPlayer(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp)
-            .sakinaLuxuryGlassCard(
-                cornerRadius = 30.dp,
-                innerHairline = false,
-                emeraldFlare = true,
-                shimmer = true,
-                borderAlpha = 0.78f
-            )
+            .height(78.dp)
             .clip(RoundedCornerShape(30.dp))
             .clickable(onClick = onExpandClick)
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_luxury_audio_player_capsule),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.matchParentSize()
+        )
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
