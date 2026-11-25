@@ -420,10 +420,10 @@ fun SakinaLuxuryFloatingDock(
 ) {
     Box(
         modifier = modifier
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
             .fillMaxWidth()
-            .height(74.dp)
-            .clip(RoundedCornerShape(37.dp))
+            .height(66.dp)
+            .clip(RoundedCornerShape(33.dp))
             .background(
                 Brush.verticalGradient(
                     listOf(
@@ -507,30 +507,18 @@ fun SakinaLuxuryFloatingDock(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(if (selected) 38.dp else 32.dp)
-                                .clip(CircleShape)
-                                .border(
-                                    width = if (selected) 1.4.dp else 0.7.dp,
-                                    color = if (selected) SakinaLuxuryColors.SoftGoldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.45f),
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = tab.iconRes),
-                                contentDescription = tab.label,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
+                        Icon(
+                            painter = painterResource(id = tab.iconRes),
+                            contentDescription = tab.label,
+                            tint = iconTint,
+                            modifier = Modifier.size(21.dp)
+                        )
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
                             text = tab.label,
                             color = iconTint,
-                            fontSize = 10.5.sp,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 10.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                             maxLines = 1
                         )
                     }
@@ -574,19 +562,22 @@ fun SakinaMihrabRibbonItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // v54-2: الميدالية الذهبية ثلاثية الأبعاد الحقيقية الخاصة بكل وظيفة
+            // الميدالية الذهبية المصقولة بالأيقونة الدلالية الخاصة بكل وظيفة
             Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .border(1.0.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.72f), CircleShape),
+                modifier = Modifier.size(44.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = iconRes),
+                    painter = painterResource(id = R.drawable.ic_gold_medallion_btn),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
+                )
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = SakinaLuxuryColors.SoftGoldGlow,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 

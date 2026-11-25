@@ -1349,25 +1349,27 @@ private fun ReaderTopChip(
 ) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(50))
             .background(
-                if (isActive) SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.90f)
-                else SakinaLuxuryColors.MidnightNavy.copy(alpha = 0.78f)
+                if (isActive) Brush.horizontalGradient(listOf(Color(0xEE0D3B30), Color(0xFF155344), Color(0xEE0D3B30)))
+                else Brush.horizontalGradient(listOf(Color(0xCC071828), Color(0xCC0B2338)))
             )
             .border(
-                width = if (isActive) 1.1.dp else 0.8.dp,
-                color = if (isActive) SakinaLuxuryColors.SoftGoldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.35f),
-                shape = RoundedCornerShape(14.dp)
+                width = if (isActive) 1.2.dp else 0.85.dp,
+                brush = SakinaLuxuryPalette.MetallicGoldButtonBrush,
+                shape = RoundedCornerShape(50)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .padding(horizontal = 12.dp, vertical = 5.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
-            color = if (isActive) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.80f),
-            fontSize = 11.sp,
+            color = if (isActive) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.85f),
+            fontSize = 11.5.sp,
             fontWeight = FontWeight.Bold,
-            fontFamily = bodyFontFamily
+            fontFamily = bodyFontFamily,
+            maxLines = 1
         )
     }
 }

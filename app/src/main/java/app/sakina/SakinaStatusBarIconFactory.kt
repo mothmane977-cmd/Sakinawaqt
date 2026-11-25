@@ -8,13 +8,11 @@ import android.graphics.Path
 import android.graphics.Typeface
 import androidx.core.graphics.drawable.IconCompat
 
-// -----------------------------------------------------------------------------
-// Sakina Status Bar Dynamic Icon Factory ("أيقونة الإشعار الحي الدائمة")
-// - remainingMillis >= 3_600_000L (60+ min): Filled Dome + Crescent + 2 Minarets + Kufic "سكينة"
-// - remainingMillis <  3_600_000L (0..59 min): Wide Hollow Dome + Crescent +
-//   2 Solid Minarets + Large Remaining Minutes + Kufic "سكينة" underneath.
-// -----------------------------------------------------------------------------
-
+/**
+ * Sakina v54 — Architectural Status Bar Dynamic Icon Factory
+ * - remainingMillis >= 60 min: Solid pointed mosque dome + 2 sturdy tiered minarets + crescent + real bold Arabic "سكينة"
+ * - remainingMillis <  60 min: Extra-wide graceful hollow dome cradling large bold minutes + 2 tiered minarets + "سكينة"
+ */
 object SakinaStatusBarIconFactory {
 
     fun createLiveStatusIcon(remainingMillis: Long): IconCompat {
@@ -37,21 +35,21 @@ object SakinaStatusBarIconFactory {
             style = Paint.Style.FILL
         }
 
-        drawMinaret(canvas, fillPaint, cx = 11f * s, topY = 12f * s, bottomY = 71f * s, width = 8.4f * s)
-        drawMinaret(canvas, fillPaint, cx = 85f * s, topY = 12f * s, bottomY = 71f * s, width = 8.4f * s)
-        drawCrescent(canvas, cx = 48f * s, cy = 8f * s, radius = 5.4f * s)
+        drawTieredMinaret(canvas, fillPaint, cx = 11f * s, topY = 8f * s, bottomY = 64f * s, width = 9.5f * s)
+        drawTieredMinaret(canvas, fillPaint, cx = 85f * s, topY = 8f * s, bottomY = 64f * s, width = 9.5f * s)
+        drawCrescent(canvas, cx = 48f * s, cy = 7f * s, radius = 5.6f * s)
 
         val domePath = Path().apply {
-            moveTo(19f * s, 70f * s)
-            lineTo(19f * s, 45f * s)
-            cubicTo(19f * s, 24f * s, 36f * s, 18f * s, 48f * s, 12f * s)
-            cubicTo(60f * s, 18f * s, 77f * s, 24f * s, 77f * s, 45f * s)
-            lineTo(77f * s, 70f * s)
+            moveTo(19f * s, 64f * s)
+            lineTo(19f * s, 44f * s)
+            cubicTo(19f * s, 24f * s, 35f * s, 18f * s, 48f * s, 11f * s)
+            cubicTo(61f * s, 18f * s, 77f * s, 24f * s, 77f * s, 44f * s)
+            lineTo(77f * s, 64f * s)
             close()
         }
         canvas.drawPath(domePath, fillPaint)
-        canvas.drawRect(16f * s, 66f * s, 80f * s, 71f * s, fillPaint)
-        drawGeometricKuficSakina(canvas, s)
+        canvas.drawRect(8f * s, 60f * s, 88f * s, 65f * s, fillPaint)
+        drawArabicSakinaLabel(canvas, s)
         return bmp
     }
 
@@ -72,74 +70,52 @@ object SakinaStatusBarIconFactory {
             strokeJoin = Paint.Join.ROUND
         }
 
-        drawMinaret(canvas, fillPaint, cx = 7.5f * s, topY = 12f * s, bottomY = 71f * s, width = 7.4f * s)
-        drawMinaret(canvas, fillPaint, cx = 88.5f * s, topY = 12f * s, bottomY = 71f * s, width = 7.4f * s)
-        drawCrescent(canvas, cx = 48f * s, cy = 8f * s, radius = 5.4f * s)
+        // صومعتان معماريتان بارزتان على أقصى الطرفين
+        drawTieredMinaret(canvas, fillPaint, cx = 8.5f * s, topY = 8f * s, bottomY = 64f * s, width = 8.4f * s)
+        drawTieredMinaret(canvas, fillPaint, cx = 87.5f * s, topY = 8f * s, bottomY = 64f * s, width = 8.4f * s)
+        drawCrescent(canvas, cx = 48f * s, cy = 7f * s, radius = 5.4f * s)
 
+        // قبة واسعة مفرّغة تتسع لرقمين كبيرين بوضوح عالٍ (x = 15..81)
         val hollowDome = Path().apply {
-            moveTo(13f * s, 69f * s)
-            lineTo(13f * s, 44f * s)
-            cubicTo(13f * s, 23f * s, 32f * s, 18f * s, 48f * s, 12f * s)
-            cubicTo(64f * s, 18f * s, 83f * s, 23f * s, 83f * s, 44f * s)
-            lineTo(83f * s, 69f * s)
-            close()
+            moveTo(15f * s, 63f * s)
+            lineTo(15f * s, 43f * s)
+            cubicTo(15f * s, 23f * s, 32f * s, 17f * s, 48f * s, 11f * s)
+            cubicTo(64f * s, 17f * s, 81f * s, 23f * s, 81f * s, 43f * s)
+            lineTo(81f * s, 63f * s)
         }
         canvas.drawPath(hollowDome, strokePaint)
 
+        // أرقام الدقائق المتبقية بخط عريض وواضح جداً وسط القبة
         val label = minutes.toString()
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textSize = if (label.length == 1) 48f * s else 41f * s
-            letterSpacing = -0.04f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            textSize = if (label.length == 1) 46f * s else 39f * s
+            letterSpacing = -0.05f
         }
         val fm = textPaint.fontMetrics
-        val centerY = 48f * s - (fm.ascent + fm.descent) / 2f
+        val centerY = 44f * s - (fm.ascent + fm.descent) / 2f
         canvas.drawText(label, 48f * s, centerY, textPaint)
-        drawGeometricKuficSakina(canvas, s)
+
+        drawArabicSakinaLabel(canvas, s)
         return bmp
     }
 
-    private fun drawGeometricKuficSakina(canvas: Canvas, s: Float) {
-        val kufiStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    /**
+     * كتابة «سكينة» بخط عربي عريض حقيقي أسفل القبة والصومعتين لتكون مقروءة تماماً في شريط الحالة
+     */
+    private fun drawArabicSakinaLabel(canvas: Canvas, s: Float) {
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
-            style = Paint.Style.STROKE
-            strokeWidth = 4.2f * s
-            strokeCap = Paint.Cap.SQUARE
-            strokeJoin = Paint.Join.MITER
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            textSize = 27f * s
+            textScaleX = 1.08f
         }
-        val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            style = Paint.Style.FILL
-        }
-        val base = 87f * s
-        val stem = Path().apply {
-            moveTo(77f * s, 79f * s); lineTo(77f * s, base)
-            moveTo(70f * s, 79f * s); lineTo(70f * s, base)
-            moveTo(63f * s, 79f * s); lineTo(63f * s, base)
-            moveTo(77f * s, base); lineTo(34f * s, base)
-            moveTo(54f * s, base); lineTo(54f * s, 76f * s); lineTo(60f * s, 76f * s)
-            moveTo(44f * s, 80f * s); lineTo(44f * s, base)
-            moveTo(34f * s, 80f * s); lineTo(34f * s, base)
-        }
-        canvas.drawPath(stem, kufiStroke)
-
-        val taa = Path().apply {
-            moveTo(28f * s, base)
-            lineTo(19f * s, base)
-            lineTo(19f * s, 79f * s)
-            lineTo(28f * s, 79f * s)
-            close()
-        }
-        canvas.drawPath(taa, kufiStroke)
-
-        val d = 3.4f * s
-        canvas.drawRect(45.5f * s, 91f * s, 45.5f * s + d, 91f * s + d, dotPaint)
-        canvas.drawRect(41.0f * s, 91f * s, 41.0f * s + d, 91f * s + d, dotPaint)
-        canvas.drawRect(32.7f * s, 74f * s, 32.7f * s + d, 74f * s + d, dotPaint)
-        canvas.drawRect(24.5f * s, 74f * s, 24.5f * s + d, 74f * s + d, dotPaint)
-        canvas.drawRect(20.0f * s, 74f * s, 20.0f * s + d, 74f * s + d, dotPaint)
+        val fm = tp.fontMetrics
+        val y = 80f * s - (fm.ascent + fm.descent) / 2f
+        canvas.drawText("سكينة", 48f * s, y, tp)
     }
 
     private fun drawCrescent(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
@@ -155,7 +131,7 @@ object SakinaStatusBarIconFactory {
         canvas.drawPath(outer, paint)
     }
 
-    private fun drawMinaret(
+    private fun drawTieredMinaret(
         canvas: Canvas,
         paint: Paint,
         cx: Float,
@@ -164,15 +140,24 @@ object SakinaStatusBarIconFactory {
         width: Float
     ) {
         val half = width / 2f
-        val shaftTop = topY + width * 1.15f
+        val spireH = width * 1.35f
+        val balcony1Y = topY + spireH
+        val balcony2Y = topY + (bottomY - topY) * 0.56f
+
         val spire = Path().apply {
             moveTo(cx, topY)
-            lineTo(cx + half * 1.1f, shaftTop)
-            lineTo(cx - half * 1.1f, shaftTop)
+            lineTo(cx + half * 0.95f, balcony1Y)
+            lineTo(cx - half * 0.95f, balcony1Y)
             close()
         }
         canvas.drawPath(spire, paint)
-        canvas.drawRect(cx - half * 1.28f, shaftTop, cx + half * 1.28f, shaftTop + width * 0.35f, paint)
-        canvas.drawRect(cx - half, shaftTop + width * 0.35f, cx + half, bottomY, paint)
+        // الشرفة العلوية
+        canvas.drawRect(cx - half * 1.25f, balcony1Y, cx + half * 1.25f, balcony1Y + width * 0.34f, paint)
+        // العمود العلوي
+        canvas.drawRect(cx - half * 0.78f, balcony1Y + width * 0.34f, cx + half * 0.78f, balcony2Y, paint)
+        // الشرفة الوسطى
+        canvas.drawRect(cx - half * 1.28f, balcony2Y, cx + half * 1.28f, balcony2Y + width * 0.36f, paint)
+        // القاعدة السفلية المتينة
+        canvas.drawRect(cx - half, balcony2Y + width * 0.36f, cx + half, bottomY, paint)
     }
 }

@@ -582,7 +582,7 @@ class PostPrayerAdhkarReceiver : BroadcastReceiver() {
                 NotificationCompat.Builder(c, chId)
                     .setSmallIcon(R.drawable.ic_stat_sakina)
                     .setColor(0xFFC69C53.toInt())
-                    .setContentTitle("أذكار بعد صلاة $pName")
+                    .setContentTitle(if (pName.contains("صيام") || pName.contains("الكهف")) pName else "أذكار بعد صلاة $pName")
                     .setContentText("سبحان الله (33) · الحمد لله (33) · الله أكبر (33) · آية الكرسي")
                     .setContentIntent(pi)
                     .setAutoCancel(true)

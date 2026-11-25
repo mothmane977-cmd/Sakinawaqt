@@ -792,35 +792,21 @@ fun SakinaBottomPillBar(
 
 @Composable
 fun SakinaGoldSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    val theme = LocalSakinaTheme.current
-    val thumbOffset by animateDpAsState(if (checked) 36.dp else 4.dp, label = "switchThumb")
-    val borderBrush = if (checked) Sakina3DGoldBevelBrush else Brush.horizontalGradient(listOf(Color(0x55FFFFFF), Color(0x33FFFFFF)))
-
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Box(
-            modifier = modifier
-                .width(66.dp)
-                .height(30.dp)
-                .clip(CircleShape)
-                .background(if (checked) theme.accentGold.copy(alpha = 0.24f) else Color(0x331B2531))
-                .border(0.8.dp, borderBrush, CircleShape)
-                .clickable { onCheckedChange(!checked) },
-            contentAlignment = Alignment.CenterStart
-        ) {
-            if (checked) {
-                Text("ON", fontFamily = SakinaNumeralFont, fontWeight = FontWeight.Bold, fontSize = 9.5.sp, color = theme.accentBright, modifier = Modifier.padding(start = 10.dp))
-            }
-            Box(
-                modifier = Modifier
-                    .offset(x = thumbOffset)
-                    .size(22.dp)
-                    .shadow(8.dp, CircleShape, ambientColor = theme.accentGold, spotColor = theme.accentGold)
-                    .clip(CircleShape)
-                    .background(
-                        if (checked) Brush.radialGradient(listOf(Color(0xFFFFF4C2), theme.accentBright, theme.accentGold))
-                        else Brush.radialGradient(listOf(Color(0xFF8B949E), Color(0xFF4B5563)))
-                    )
-            )
-        }
+    Box(
+        modifier = modifier
+            .width(66.dp)
+            .height(31.dp)
+            .clip(RoundedCornerShape(50))
+            .clickable { onCheckedChange(!checked) },
+        contentAlignment = Alignment.Center
+    ) {
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(
+                id = if (checked) R.drawable.switch_gold_on_bg else R.drawable.switch_gold_off_bg
+            ),
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
