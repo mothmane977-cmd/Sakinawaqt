@@ -1,7 +1,18 @@
 package app.sakina
 
 import android.content.Context
+import android.content.ContentValues
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas as AndroidCanvas
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
+import android.graphics.Typeface
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -137,6 +149,15 @@ fun SakinaNamesOfAllahScreen(ctx: Context, onBack: () -> Unit) {
     val lang = LocalSakinaLang.current
     var query by remember { mutableStateOf("") }
     var gridMode by remember { mutableStateOf(false) }
+    var selectedBgIdx by remember { mutableIntStateOf(0) }
+    val cardBgs = remember {
+        listOf(
+            Triple("زمرد الليل", 0xFF06101F.toInt(), 0xFF0D3B2E.toInt()),
+            Triple("ذهب الفجر", 0xFF1A1408.toInt(), 0xFF3E2D10.toInt()),
+            Triple("سكون الغروب", 0xFF151226.toInt(), 0xFF2B2246.toInt()),
+            Triple("محراب النور", 0xFF071B24.toInt(), 0xFF114B44.toInt())
+        )
+    }
 
     val filtered = remember(query) {
         val q = query.trim().lowercase()
@@ -157,11 +178,112 @@ fun SakinaNamesOfAllahScreen(ctx: Context, onBack: () -> Unit) {
             SakinaLang.EN, SakinaLang.TR, SakinaLang.ID -> entry.meaningEn
             else -> entry.meaningAr
         }
-        val text = "✨ ${entry.arabic} (${entry.translit})\n$meaning\n\n— تطبيق سَكِينة"
+        val caption = "✨ ${entry.arabic} (${entry.translit})\n$meaning\n\n— تطبيق سَكِينة"
+        try {
+            val bg = cardBgs[selectedBgIdx.coerceIn(0, cardBgs.lastIndex)]
+            val w = 1080
+            val h = 1350
+            val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val c = AndroidCanvas(bmp)
+            val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                shader = LinearGradient(0f, 0f, w.toFloat(), h.toFloat(), bg.second, bg.third, Shader.TileMode.CLAMP)
+            }
+            c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), bgPaint)
+
+            // إطارات ذهبية مزدوجة وزخرفة هندسية هادئة
+            val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 6f
+                color = 0xFFD4AF37.toInt()
+            }
+            c.drawRoundRect(RectF(48f, 48f, w - 48f, h - 48f), 44f, 44f, borderPaint)
+            borderPaint.strokeWidth = 2.5f
+            borderPaint.color = 0x88F3DFA2.toInt()
+            c.drawRoundRect(RectF(68f, 68f, w - 68f, h - 68f), 34f, 34f, borderPaint)
+
+            // هالة دائرية ناعمة خلف الاسم الشريف
+            val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 3f
+                color = 0x44D4AF37.toInt()
+            }
+            c.drawCircle(w / 2f, h * 0.40f, 250f, haloPaint)
+            c.drawCircle(w / 2f, h * 0.40f, 210f, haloPaint)
+
+            val headerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFFF3DFA2.toInt()
+                textSize = 42f
+                textAlign = Paint.Align.CENTER
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            c.drawText("✦ من أسماء الله الحسنى ✦", w / 2f, 185f, headerPaint)
+
+            val namePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFFF7E7B4.toInt()
+                textSize = 136f
+                textAlign = Paint.Align.CENTER
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            c.drawText(entry.arabic, w / 2f, h * 0.43f, namePaint)
+
+            val meaningPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFFFAF6EC.toInt()
+                textSize = 46f
+                textAlign = Paint.Align.CENTER
+            }
+            // تقسيم المعنى إلى أسطر مرتبة
+            val words = meaning.split(" ")
+            val lines = mutableListOf<String>()
+            var cur = ""
+            for (word in words) {
+                val cand = if (cur.isEmpty()) word else "$cur $word"
+                if (meaningPaint.measureText(cand) > w - 180f && cur.isNotEmpty()) {
+                    lines.add(cur); cur = word
+                } else cur = cand
+            }
+            if (cur.isNotEmpty()) lines.add(cur)
+            var y = h * 0.62f
+            for (line in lines.take(4)) {
+                c.drawText(line, w / 2f, y, meaningPaint)
+                y += 66f
+            }
+
+            val footPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFFD4AF37.toInt()
+                textSize = 36f
+                textAlign = Paint.Align.CENTER
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            c.drawText("تطبيق سَكِينة", w / 2f, h - 115f, footPaint)
+
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, "sakina_name_${entry.number}_${System.currentTimeMillis()}.png")
+                put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Sakina")
+                }
+            }
+            val uri = ctx.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            if (uri != null) {
+                ctx.contentResolver.openOutputStream(uri)?.use { out ->
+                    bmp.compress(Bitmap.CompressFormat.PNG, 95, out)
+                }
+                bmp.recycle()
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "image/png"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_TEXT, caption)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                ctx.startActivity(Intent.createChooser(shareIntent, entry.arabic).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return
+            }
+            bmp.recycle()
+        } catch (_: Exception) {}
         try {
             val i = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, text)
+                putExtra(Intent.EXTRA_TEXT, caption)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             ctx.startActivity(Intent.createChooser(i, entry.arabic).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -238,7 +360,41 @@ fun SakinaNamesOfAllahScreen(ctx: Context, onBack: () -> Unit) {
             )
         )
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            cardBgs.forEachIndexed { idx, bg ->
+                val active = selectedBgIdx == idx
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color(bg.third))
+                        .border(
+                            width = if (active) 1.4.dp else 0.7.dp,
+                            color = if (active) SakinaLuxuryColors.SoftGoldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(50)
+                        )
+                        .clickable { selectedBgIdx = idx }
+                        .padding(vertical = 5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = bg.first,
+                        color = if (active) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.8f),
+                        fontSize = 10.sp,
+                        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                        fontFamily = SakinaBodyFont,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
 
         if (!gridMode) {
             LazyColumn(

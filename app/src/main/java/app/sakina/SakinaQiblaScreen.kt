@@ -60,6 +60,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -787,6 +788,21 @@ private fun SpatialHorizonCanvas(
         val kaabaXUi = boxW * 0.5f
         val kaabaYUi = boxH * 0.24f - with(density) { 4.dp.toPx() }
         val kaabaImgPx = with(density) { 94.dp.toPx() }
+        val astrolabeSizePx = (boxW * 0.62f).coerceAtMost(with(density) { 236.dp.toPx() })
+        val astrolabeX = boxW * 0.5f - astrolabeSizePx / 2f
+        val astrolabeY = boxH * 0.66f - astrolabeSizePx / 2f
+
+        // v54-4: إسطرلاب القبلة الذهبي ثلاثي الأبعاد يدور حياً مع اتجاه الهاتف
+        Image(
+            painter = painterResource(id = R.drawable.bg_qibla_astrolabe_3d),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            alpha = 0.88f,
+            modifier = Modifier
+                .offset { IntOffset(astrolabeX.roundToInt(), astrolabeY.roundToInt()) }
+                .size(with(density) { astrolabeSizePx.toDp() })
+                .graphicsLayer { rotationZ = deltaDeg }
+        )
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width

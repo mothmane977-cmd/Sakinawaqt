@@ -334,10 +334,10 @@ private fun LuminousOrbitalTasbihRing(
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.bg_tasbih_ring),
+                painter = painterResource(id = R.drawable.bg_tasbih_ring_3d),
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
-                alpha = 0.88f,
+                contentScale = ContentScale.Fit,
+                alpha = 0.98f,
                 modifier = Modifier.fillMaxSize()
             )
             Canvas(modifier = Modifier.fillMaxSize()) {

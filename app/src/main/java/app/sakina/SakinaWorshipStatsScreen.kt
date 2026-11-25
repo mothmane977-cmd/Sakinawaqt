@@ -3,6 +3,7 @@ package app.sakina
 import android.content.Context
 import android.icu.util.IslamicCalendar
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -51,9 +52,12 @@ fun SakinaWorshipStatsScreen(
     val isFastedToday = remember(tick) { SakinaV45StatsPrefs.isFastedToday(ctx) }
     val totalFasted = remember(tick) { SakinaV45StatsPrefs.totalFastedDays(ctx) }
     val pagesToday = remember(tick) { SakinaV45StatsPrefs.pagesReadToday(ctx) }
-    val dailyGoal = remember(tick) { SakinaV45StatsPrefs.dailyPageGoal(ctx) }
+    val khatmahPages = remember(tick) { SakinaV45StatsPrefs.khatmahCurrentPages(ctx) }
+    val completedKhatmahs = remember(tick) { SakinaV45StatsPrefs.completedKhatmahCount(ctx) }
     val streakDays = remember(tick) { SakinaV45StatsPrefs.readingStreakDays(ctx) }
     val bookmarks = remember(tick) { SakinaV45StatsPrefs.bookmarks(ctx) }
+    val deedsDone = remember(tick) { SakinaV45StatsPrefs.goodDeedsDoneToday(ctx) }
+    var showKhatmDua by remember { mutableStateOf(false) }
 
     // Detect today's fasting occasion (Mon/Thu or White Days 13-14-15 or Ramadan)
     val fastingBadge = remember {
@@ -309,7 +313,7 @@ fun SakinaWorshipStatsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = sakinaTr(lang, "ختمتي اليومية للقرآن", "Daily Quran Khatmah", "Ma Khatma Quotidienne", "Günlük Hatim Hedefi", "Target Khatam Harian", "روزانہ تلاوتِ قرآن"),
                                     style = TextStyle(
@@ -320,17 +324,83 @@ fun SakinaWorshipStatsScreen(
                                     )
                                 )
                                 Text(
-                                    text = sakinaTr(lang, "سلسلة القراءة: $streakDays يوم متتالي", "Reading Streak: $streakDays days", "Série : $streakDays jours", "Seri: $streakDays gün", "Beruntun: $streakDays hari", "مسلسل تلاوت: $streakDays دن"),
+                                    text = "اليوم: $pagesToday ص · السلسلة: $streakDays يوم · الختمات: $completedKhatmahs",
                                     color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.78f),
-                                    fontSize = 11.5.sp,
-                                    fontFamily = SakinaBodyFont
+                                    fontSize = 11.sp,
+                                    fontFamily = SakinaBodyFont,
+                                    style = TextStyle(fontFeatureSettings = "tnum")
                                 )
                             }
                             SakinaCircularProgressRing(
-                                progress = (pagesToday.toFloat() / dailyGoal.coerceAtLeast(1)).coerceIn(0f, 1f),
-                                centerLabel = "$pagesToday/$dailyGoal",
-                                size = 58.dp,
+                                progress = (khatmahPages / 604f).coerceIn(0f, 1f),
+                                centerLabel = "$khatmahPages/604",
+                                size = 62.dp,
                                 strokeWidth = 4.5.dp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(1, 5, 10, 20).forEach { delta ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
+                                        .clickable {
+                                            SakinaV45StatsPrefs.logKhatmahPages(ctx, delta)
+                                            tick++
+                                        }
+                                        .padding(vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "+$delta ص",
+                                        color = SakinaOrbitalColors.InkNavy,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = SakinaBodyFont
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.85f))
+                                .border(0.85.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
+                                .clickable { showKhatmDua = !showKhatmDua }
+                                .padding(horizontal = 12.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                text = if (showKhatmDua) "إخفاء دعاء ختم القرآن ▴" else "✦ دعاء ختم القرآن الكريم",
+                                color = SakinaLuxuryColors.SoftGoldGlow,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SakinaBodyFont
+                            )
+                        }
+
+                        AnimatedVisibility(visible = showKhatmDua) {
+                            Text(
+                                text = "اللهم ارحمني بالقرآن واجعله لي إماماً ونوراً وهدىً ورحمة، اللهم ذكّرني منه ما نُسّيت وعلّمني منه ما جهلت، وارزقني تلاوته آناء الليل وأطراف النهار، واجعله لي حجةً يا رب العالمين.",
+                                color = SakinaOrbitalColors.WarmCream,
+                                fontSize = 12.sp,
+                                lineHeight = 21.sp,
+                                fontFamily = SakinaBodyFont,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0x7706101F))
+                                    .padding(10.dp)
                             )
                         }
 
@@ -364,6 +434,112 @@ fun SakinaWorshipStatsScreen(
                                             fontWeight = FontWeight.SemiBold,
                                             fontFamily = SakinaBodyFont,
                                             style = TextStyle(fontFeatureSettings = "tnum")
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                // 4. حصيلة يومي للأعمال الصالحة (12 عملاً صالحاً نبوياً)
+                val dailyDeedsList = remember {
+                    listOf(
+                        "duha" to "صلاة الضحى",
+                        "rawatib" to "السنن الرواتب",
+                        "qiyam" to "قيام الليل والوتر",
+                        "sadaqah" to "صدقة اليوم ولو بالقليل",
+                        "kind_word" to "الكلمة الطيبة والتبسّم",
+                        "harm_road" to "إماطة الأذى عن الطريق",
+                        "neighbor" to "الإحسان إلى الجار",
+                        "kinship" to "برّ الوالدين وصلة الرحم",
+                        "ease_debt" to "التجاوز عن معسر أو تفريج كربة",
+                        "orphan_sick" to "مسح رأس يتيم أو عيادة مريض",
+                        "salawat" to "الصلاة على النبي ﷺ (100×)",
+                        "istighfar" to "الاستغفار والتوبة (100×)"
+                    )
+                }
+                SakinaGlowingGlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 22.dp,
+                    emeraldIntensity = 0.36f
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "حصيلة يومي للأعمال الصالحة",
+                                    style = TextStyle(
+                                        brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = SakinaHeadingFont
+                                    )
+                                )
+                                Text(
+                                    text = "سجّل ما وفّقك الله إليه من أبواب الخير اليوم",
+                                    color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.72f),
+                                    fontSize = 11.sp,
+                                    fontFamily = SakinaBodyFont
+                                )
+                            }
+                            Text(
+                                text = "${deedsDone.size} / ${dailyDeedsList.size}",
+                                color = SakinaLuxuryColors.EmeraldGlow,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SakinaBodyFont,
+                                style = TextStyle(fontFeatureSettings = "tnum")
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        dailyDeedsList.chunked(2).forEach { pair ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                pair.forEach { (id, label) ->
+                                    val done = deedsDone.contains(id)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(
+                                                if (done) SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.92f)
+                                                else Color(0x5506101F)
+                                            )
+                                            .border(
+                                                width = if (done) 1.1.dp else 0.7.dp,
+                                                color = if (done) SakinaLuxuryColors.EmeraldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.42f),
+                                                shape = RoundedCornerShape(14.dp)
+                                            )
+                                            .clickable {
+                                                SakinaV45StatsPrefs.toggleGoodDeedToday(ctx, id)
+                                                tick++
+                                            }
+                                            .padding(horizontal = 9.dp, vertical = 8.dp),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        Text(
+                                            text = if (done) "✓ $label" else "○ $label",
+                                            color = if (done) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.85f),
+                                            fontSize = 11.sp,
+                                            fontWeight = if (done) FontWeight.Bold else FontWeight.Medium,
+                                            fontFamily = SakinaBodyFont,
+                                            maxLines = 2
                                         )
                                     }
                                 }

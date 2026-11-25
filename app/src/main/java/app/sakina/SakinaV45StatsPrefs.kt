@@ -158,4 +158,27 @@ object SakinaV45StatsPrefs {
     fun monthlyPrayerGoal(ctx: Context): Int = sp(ctx).getInt("monthly_prayer_goal", 150).coerceIn(30, 155)
     fun setMonthlyPrayerGoal(ctx: Context, target: Int) =
         sp(ctx).edit().putInt("monthly_prayer_goal", target.coerceIn(30, 155)).apply()
+
+    // ---- Daily Good Deeds Tracker (حصيلة يومي للأعمال الصالحة — 12 عملاً نبوياً) ----
+    fun goodDeedsDoneToday(ctx: Context): Set<String> {
+        val p = sp(ctx)
+        if (p.getString("deeds_last_day", "") != todayKey()) return emptySet()
+        val raw = p.getString("deeds_done_csv", "") ?: ""
+        if (raw.isBlank()) return emptySet()
+        return raw.split(",").filter { it.isNotBlank() }.toSet()
+    }
+
+    fun toggleGoodDeedToday(ctx: Context, deedId: String): Boolean {
+        val set = goodDeedsDoneToday(ctx).toMutableSet()
+        val nowDone = if (set.contains(deedId)) {
+            set.remove(deedId); false
+        } else {
+            set.add(deedId); true
+        }
+        sp(ctx).edit()
+            .putString("deeds_last_day", todayKey())
+            .putString("deeds_done_csv", set.joinToString(","))
+            .apply()
+        return nowDone
+    }
 }
