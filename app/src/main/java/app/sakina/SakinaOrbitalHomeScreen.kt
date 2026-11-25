@@ -1,7 +1,9 @@
 package app.sakina
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -286,7 +288,10 @@ fun SakinaOrbitalHomeScreen(
             // 4. بطاقة التركيز المضيئة (الورق الكريمي + العداد + التنبيه الثلاثي + التسجيل)
             FocalSpotlightCard(
                 prayer = focusedPrayer,
+                prayers = state.prayers,
+                nextPrayerIndex = state.nextPrayerIndex,
                 isNextPrayer = focusedIndex == state.nextPrayerIndex,
+                isExpanded = showFivePrayersSheet,
                 countdownText = state.countdownText,
                 completedCount = completedCount,
                 totalPrayers = state.prayers.size.coerceAtLeast(5),
@@ -294,7 +299,15 @@ fun SakinaOrbitalHomeScreen(
                 headingFontFamily = headingFontFamily,
                 bodyFontFamily = bodyFontFamily,
                 onTodayStatsClick = onTodayStatsClick,
-                onExpandFivePrayers = { showFivePrayersSheet = true },
+                onExpandFivePrayers = { showFivePrayersSheet = !showFivePrayersSheet },
+                onSelectPrayerFromList = { idx ->
+                    focusedIndex = idx
+                    showFivePrayersSheet = false
+                },
+                onCyclePrayerAlarmModeByType = { pType ->
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onCyclePrayerAlarmMode(pType)
+                },
                 onToggleCompleted = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onTogglePrayerCompleted(focusedPrayer.type)
@@ -325,25 +338,7 @@ fun SakinaOrbitalHomeScreen(
             }
         }
 
-        // v48 #4: البطاقة الموسّعة المنبثقة للصلوات الخمس فوق الرئيسية دون التأثير على تنظيم الشاشة
-        if (showFivePrayersSheet && state.prayers.isNotEmpty()) {
-            FivePrayersExpandedModal(
-                prayers = state.prayers,
-                nextPrayerIndex = state.nextPrayerIndex,
-                countdownText = state.countdownText,
-                headingFontFamily = headingFontFamily,
-                bodyFontFamily = bodyFontFamily,
-                onCycleAlarmMode = { pType ->
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onCyclePrayerAlarmMode(pType)
-                },
-                onSelectPrayer = { idx ->
-                    focusedIndex = idx
-                    showFivePrayersSheet = false
-                },
-                onDismiss = { showFivePrayersSheet = false }
-            )
-        }
+
     }
 }
 
@@ -709,7 +704,10 @@ private fun OrbitalPrayerDial(
 @Composable
 private fun FocalSpotlightCard(
     prayer: OrbitalPrayerNode,
+    prayers: List<OrbitalPrayerNode>,
+    nextPrayerIndex: Int,
     isNextPrayer: Boolean,
+    isExpanded: Boolean,
     countdownText: String,
     completedCount: Int,
     totalPrayers: Int,
@@ -718,33 +716,39 @@ private fun FocalSpotlightCard(
     bodyFontFamily: FontFamily,
     onTodayStatsClick: () -> Unit,
     onExpandFivePrayers: () -> Unit = {},
+    onSelectPrayerFromList: (Int) -> Unit = {},
+    onCyclePrayerAlarmModeByType: (PrayerType) -> Unit = {},
     onToggleCompleted: () -> Unit,
     onCycleAlarmMode: () -> Unit
 ) {
-    val badgeBg by animateColorAsState(
-        targetValue = if (prayer.isCompleted) {
-            SakinaOrbitalColors.DeepEmerald
-        } else {
-            SakinaOrbitalColors.WarmCream
-        },
-        label = "checkBg"
-    )
-
     val alarmLabel = when (prayer.alarmMode) {
         PrayerAlarmMode.ADHAN -> strings.alarmAdhanLabel
         PrayerAlarmMode.NOTIFICATION -> strings.alarmNotifLabel
         PrayerAlarmMode.SILENT -> strings.alarmSilentLabel
     }
 
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.BottomCenter
+    val quadModes = remember(prayers) {
+        androidx.compose.runtime.mutableStateMapOf<PrayerType, Int>().apply {
+            for (p in prayers) {
+                this[p.type] = when (p.alarmMode) {
+                    PrayerAlarmMode.ADHAN -> 0
+                    PrayerAlarmMode.NOTIFICATION -> 1
+                    PrayerAlarmMode.SILENT -> 3
+                }
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .widthIn(max = 360.dp)
-                .fillMaxWidth(0.92f)
-                .padding(bottom = 16.dp)
+                .widthIn(max = 368.dp)
+                .fillMaxWidth(0.93f)
                 .clip(RoundedCornerShape(22.dp))
                 .clickable(onClick = onExpandFivePrayers)
         ) {
@@ -755,145 +759,225 @@ private fun FocalSpotlightCard(
                 modifier = Modifier.matchParentSize()
             )
             Column(
-                modifier = Modifier.padding(top = 12.dp, bottom = 18.dp, start = 24.dp, end = 24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp, bottom = 10.dp, start = 20.dp, end = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // شريط علوي رفيع مدمج بفواصل ذهبية شعرية بدل الأزرار البيضاوية المنفصلة
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = strings.todayProgressFormat.format(completedCount, totalPrayers),
-                        color = SakinaLuxuryColors.SoftGoldGlow,
+                        color = SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.90f),
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         fontFamily = bodyFontFamily,
-                        maxLines = 1,
-                        softWrap = false,
                         style = TextStyle(fontFeatureSettings = "tnum"),
                         modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xDD0B2438), Color(0xEE0E3B33))
-                                )
-                            )
-                            .border(1.0.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable(onClick = onTodayStatsClick)
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
                     )
 
                     Text(
-                        text = "الصلوات الخمس ▾",
+                        text = if (isExpanded) "الصلوات الخمس ▴" else "الصلوات الخمس ▾",
                         color = SakinaLuxuryColors.SoftGoldGlow,
-                        fontSize = 10.5.sp,
+                        fontSize = 11.5.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = bodyFontFamily,
+                        fontFamily = headingFontFamily,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xEE0E3E33), Color(0xFF165242), Color(0xEE0E3E33))
-                                )
-                            )
-                            .border(1.15.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable(onClick = onExpandFivePrayers)
-                            .padding(horizontal = 12.dp, vertical = 4.5.dp)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
                     )
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xDD0B2438), Color(0xEE0E3B33))
-                                )
-                            )
-                            .border(1.0.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable(onClick = onCycleAlarmMode)
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                            .semantics {
-                                contentDescription = "${strings.toggleAlarmDesc} ${prayer.localizedName}"
-                            }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
                             contentDescription = null,
-                            tint = when (prayer.alarmMode) {
-                                PrayerAlarmMode.ADHAN -> SakinaLuxuryColors.SoftGoldGlow
-                                PrayerAlarmMode.NOTIFICATION -> SakinaLuxuryColors.EmeraldGlow
-                                PrayerAlarmMode.SILENT -> Color.Gray
-                            },
-                            modifier = Modifier.size(14.dp)
+                            tint = SakinaLuxuryColors.SoftGoldGlow,
+                            modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.size(3.dp))
                         Text(
                             text = alarmLabel,
-                            fontSize = 10.5.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             fontFamily = bodyFontFamily,
-                            maxLines = 1,
-                            softWrap = false,
-                            color = when (prayer.alarmMode) {
-                                PrayerAlarmMode.ADHAN -> SakinaLuxuryColors.SoftGoldGlow
-                                PrayerAlarmMode.NOTIFICATION -> SakinaLuxuryColors.EmeraldGlow
-                                PrayerAlarmMode.SILENT -> Color.Gray
-                            }
+                            color = SakinaLuxuryColors.SoftGoldGlow
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "${prayer.localizedName} · ${prayer.timeText}",
-                    color = SakinaLuxuryColors.SoftGoldGlow,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = headingFontFamily,
-                    maxLines = 1,
-                    style = TextStyle(fontFeatureSettings = "tnum")
+                // خط فاصل ذهبي رفيع جداً
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.88f)
+                        .padding(vertical = 5.dp)
+                        .height(0.7.dp)
+                        .background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                // عرض مضغوط وأنيق لاسم الصلاة والعداد في ارتفاع أصغر
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${prayer.localizedName} · ${prayer.timeText}",
+                        color = SakinaLuxuryColors.SoftGoldGlow,
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = headingFontFamily,
+                        style = TextStyle(fontFeatureSettings = "tnum")
+                    )
+                    Spacer(modifier = Modifier.size(12.dp))
+                    Text(
+                        text = if (isNextPrayer) countdownText else prayer.timeText,
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = bodyFontFamily,
+                        style = TextStyle(fontFeatureSettings = "tnum")
+                    )
+                }
 
-                Text(
-                    text = if (isNextPrayer) countdownText else prayer.timeText,
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = bodyFontFamily,
-                    style = TextStyle(fontFeatureSettings = "tnum"),
-                    textAlign = TextAlign.Center
-                )
+                Spacer(modifier = Modifier.height(5.dp))
 
-                Text(
-                    text = if (isNextPrayer) {
-                        "${strings.remainingPrefix} ${prayer.localizedName}"
-                    } else {
-                        "${strings.prayerTimePrefix} ${prayer.localizedName}"
-                    },
-                    color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.78f),
-                    fontSize = 11.5.sp,
-                    fontFamily = bodyFontFamily
-                )
+                // زر تسجيل أداء الصلاة بوضوح تام للمستخدم (سجّل: صلّيت ✓ / تمّت الصلاة ✓)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            if (prayer.isCompleted) SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.92f)
+                            else Color(0x6606101F)
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = SakinaLuxuryPalette.MetallicGoldButtonBrush,
+                            shape = RoundedCornerShape(50)
+                        )
+                        .clickable(onClick = onToggleCompleted)
+                        .padding(horizontal = 14.dp, vertical = 4.dp)
+                        .semantics { contentDescription = "${strings.toggleCompleteDesc} ${prayer.localizedName}" }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Check,
+                        contentDescription = null,
+                        tint = if (prayer.isCompleted) SakinaLuxuryColors.EmeraldGlow else SakinaLuxuryColors.SoftGoldGlow,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.size(5.dp))
+                    Text(
+                        text = if (prayer.isCompleted) "تمّت صلاة ${prayer.localizedName} ✓" else "سجّل أداء ${prayer.localizedName}",
+                        color = if (prayer.isCompleted) SakinaLuxuryColors.EmeraldGlow else SakinaLuxuryColors.SoftGoldGlow,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = bodyFontFamily
+                    )
+                }
+
+                // الانبساط المتّصل لنفس البطاقة وكأنها كانت مطويّة وانفتحت (Unfolding 5-Prayer Scroll)
+                AnimatedVisibility(visible = isExpanded && prayers.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(0.8.dp)
+                                .background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        for (idx in prayers.indices) {
+                            val item = prayers[idx]
+                            val isNext = idx == nextPrayerIndex
+                            val qMode = quadModes[item.type] ?: 0
+                            val modeLabel = when (qMode) {
+                                0 -> "أذان كامل"
+                                1 -> "تكبير"
+                                2 -> "اهتزاز"
+                                else -> "صامت"
+                            }
+                            val modeColor = when (qMode) {
+                                0 -> SakinaLuxuryColors.SoftGoldGlow
+                                1 -> SakinaLuxuryColors.EmeraldGlow
+                                2 -> SakinaOrbitalColors.ChampagneGold
+                                else -> Color(0xFF9CA3AF)
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(if (isNext) 14.dp else 11.dp))
+                                    .background(
+                                        if (isNext) SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.88f)
+                                        else Color(0x4406101F)
+                                    )
+                                    .border(
+                                        width = if (isNext) 1.2.dp else 0.7.dp,
+                                        brush = SakinaLuxuryPalette.MetallicGoldButtonBrush,
+                                        shape = RoundedCornerShape(if (isNext) 14.dp else 11.dp)
+                                    )
+                                    .clickable { onSelectPrayerFromList(idx) }
+                                    .padding(horizontal = 10.dp, vertical = if (isNext) 9.dp else 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = if (isNext) "✦ ${item.localizedName}" else item.localizedName,
+                                    color = if (isNext) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream,
+                                    fontSize = if (isNext) 14.sp else 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = headingFontFamily,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = item.timeText,
+                                    color = if (isNext) Color.White else SakinaLuxuryColors.SoftGoldGlow,
+                                    fontSize = if (isNext) 14.5.sp else 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = bodyFontFamily,
+                                    style = TextStyle(fontFeatureSettings = "tnum"),
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                )
+                                Text(
+                                    text = modeLabel,
+                                    color = modeColor,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = bodyFontFamily,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(50))
+                                        .border(0.7.dp, modeColor.copy(alpha = 0.7f), RoundedCornerShape(50))
+                                        .clickable {
+                                            quadModes[item.type] = (qMode + 1) % 4
+                                            onCyclePrayerAlarmModeByType(item.type)
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
-        }
-
-        SakinaGoldMedallionButton(
-            medallionBgRes = R.drawable.ic_gold_medallion_btn,
-            onClick = onToggleCompleted,
-            size = 48.dp,
-            modifier = Modifier.semantics { contentDescription = "${strings.toggleCompleteDesc} ${prayer.localizedName}" }
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Check,
-                contentDescription = null,
-                tint = if (prayer.isCompleted) SakinaLuxuryColors.EmeraldGlow else SakinaLuxuryColors.SoftGoldGlow,
-                modifier = Modifier.size(22.dp)
-            )
         }
     }
 }

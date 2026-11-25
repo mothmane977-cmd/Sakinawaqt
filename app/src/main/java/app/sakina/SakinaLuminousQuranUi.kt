@@ -992,6 +992,28 @@ private fun QuranMushafReaderContent(
         pageCount = { state.totalPages.coerceAtLeast(1) }
     )
 
+    // v51 #2: التقليب الآلي للصفحات متزامناً مع تقدم المشغّل الصوتي
+    LaunchedEffect(state.player.isPlaying, state.player.currentPositionSec, state.player.totalDurationSec, state.player.surahNumber) {
+        if (state.player.isPlaying && state.player.totalDurationSec > 10) {
+            val sIdx = (state.player.surahNumber - 1).coerceIn(0, state.surahs.lastIndex.coerceAtLeast(0))
+            val curSurah = state.surahs.getOrNull(sIdx)
+            val nextSurah = state.surahs.getOrNull(sIdx + 1)
+            if (curSurah != null) {
+                val startP = curSurah.startPage.coerceIn(1, state.totalPages)
+                val endP = (nextSurah?.startPage?.minus(1) ?: state.totalPages).coerceIn(startP, state.totalPages)
+                val pageSpan = (endP - startP + 1).coerceAtLeast(1)
+                if (pageSpan > 1) {
+                    val progress = (state.player.currentPositionSec.toFloat() / state.player.totalDurationSec.toFloat()).coerceIn(0f, 0.999f)
+                    val targetPage = (startP + (progress * pageSpan).toInt()).coerceIn(startP, endP)
+                    val targetIdx = (targetPage - 1).coerceIn(0, (state.totalPages - 1).coerceAtLeast(0))
+                    if (pagerState.currentPage != targetIdx) {
+                        pagerState.animateScrollToPage(targetIdx)
+                    }
+                }
+            }
+        }
+    }
+
     // مزامنة تقليب الإصبع مع الحالة الخارجية والعكس
     LaunchedEffect(pagerState.currentPage) {
         val target = pagerState.currentPage + 1
@@ -1167,11 +1189,26 @@ private fun QuranMushafReaderContent(
                                 }
                             }
 
+                            val charCount = combinedAyahs.length
+                            val autoFontSp = when {
+                                charCount < 280 -> 25.sp
+                                charCount < 480 -> 21.sp
+                                charCount < 700 -> 18.5.sp
+                                charCount < 950 -> 16.5.sp
+                                else -> 15.sp
+                            }
+                            val autoLineSp = when {
+                                charCount < 280 -> 44.sp
+                                charCount < 480 -> 36.sp
+                                charCount < 700 -> 31.sp
+                                charCount < 950 -> 27.sp
+                                else -> 24.sp
+                            }
                             Text(
                                 text = combinedAyahs,
                                 color = pageTextColor,
-                                fontSize = 23.sp,
-                                lineHeight = 42.sp,
+                                fontSize = autoFontSp,
+                                lineHeight = autoLineSp,
                                 fontFamily = quranFontFamily,
                                 textAlign = TextAlign.Center
                             )
@@ -1294,13 +1331,7 @@ private fun QuranMushafReaderContent(
 
             Spacer(modifier = Modifier.width(6.dp))
 
-            VerticalSpineScrubber(
-                currentPage = state.currentReaderPage,
-                totalPages = state.totalPages,
-                onPageChanged = { target ->
-                    onPageChanged(target)
-                }
-            )
+            // v51: removed VerticalSpineScrubber for 100% centered Mushaf
         }
     }
 }

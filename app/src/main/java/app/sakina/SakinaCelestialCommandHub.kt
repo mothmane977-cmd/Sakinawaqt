@@ -92,15 +92,7 @@ fun SakinaCelestialCommandHub(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xEE0B2A24),
-                            Color(0xF4061221),
-                            Color(0xFA030912)
-                        )
-                    )
-                )
+                .background(SakinaLuxuryPalette.ObsidianNavy.copy(alpha = 0.96f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -109,6 +101,8 @@ fun SakinaCelestialCommandHub(
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
+            SakinaAmbientLuxuryBackdrop(showGeometricPattern = true, showStarDust = true)
+
             // v49 #6: قوس محراب إسلامي منقوش بالذهب الخالص عالي الدقة (مطابق للمعاينة)
             Image(
                 painter = painterResource(id = R.drawable.bg_mihrab_arch_ornate),
@@ -185,75 +179,32 @@ fun SakinaCelestialCommandHub(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Constellation 2-column floating glass portal grid
+                // v51 Option 3: مشكاة الأشرطة المقوّسة (مطابقة للمعاينة الثالثة بعرض متدرّج داخل باب المحراب)
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth(0.90f)
+                        .fillMaxWidth()
                         .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    val rows = activeItems.chunked(2)
-                    rows.forEach { pair ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            pair.forEach { item ->
-                                SakinaGlowingGlassCard(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(86.dp),
-                                    cornerRadius = 20.dp,
-                                    emeraldIntensity = 0.36f,
-                                    onClick = {
-                                        onDismiss()
-                                        item.onClick()
-                                    }
-                                ) {
-                                    SakinaLuxuryCornerOverlay(cornerSize = 18.dp, alpha = 0.65f)
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(horizontal = 10.dp, vertical = 10.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.size(40.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Image(
-                                                painter = painterResource(id = R.drawable.ic_gold_medallion_btn),
-                                                contentDescription = null,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize()
-                                            )
-                                            Icon(
-                                                painter = painterResource(id = item.iconRes),
-                                                contentDescription = null,
-                                                tint = SakinaLuxuryColors.SoftGoldGlow,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = item.title,
-                                            color = SakinaOrbitalColors.WarmCream,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontFamily = SakinaBodyFont,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            textAlign = TextAlign.Center
-                                        )
-                                    }
-                                }
-                            }
-                            if (pair.size == 1) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
+                    for (idx in activeItems.indices) {
+                        val item = activeItems[idx]
+                        // تدرّج عرض رشيق يتبع انحناء قوس المحراب من القمة نحو الوسط
+                        val widthFraction = when (idx) {
+                            0 -> 0.84f
+                            activeItems.lastIndex -> 0.86f
+                            else -> 0.88f
                         }
+                        SakinaMihrabRibbonItem(
+                            title = item.title,
+                            iconRes = item.iconRes,
+                            onClick = {
+                                onDismiss()
+                                item.onClick()
+                            },
+                            modifier = Modifier.fillMaxWidth(widthFraction)
+                        )
                     }
                 }
 

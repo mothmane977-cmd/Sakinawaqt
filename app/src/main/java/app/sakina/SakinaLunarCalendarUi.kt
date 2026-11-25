@@ -172,7 +172,7 @@ fun SakinaLunarCalendarScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(top = 50.dp, bottom = if (!showBottomDock) hostBottomBarReserve else 0.dp)
+                .padding(top = 54.dp, bottom = if (!showBottomDock) hostBottomBarReserve else 0.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -182,21 +182,7 @@ fun SakinaLunarCalendarScreen(
             ) {
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // 1. الترويسة العلوية: طور القمر الفلكي + مبدّل هجري/ميلادي + زر PNG
-                LunarCalendarHeroHeader(
-                    state = state,
-                    strings = strings,
-                    headingFontFamily = headingFontFamily,
-                    bodyFontFamily = bodyFontFamily,
-                    onDisplayModeChange = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onDisplayModeChange(it)
-                    },
-                    onShareMonthlyPngClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onShareMonthlyPngClick()
-                    }
-                )
+// v51 #3: حذف الترويسة المكررة لتتسع شاشة التقويم كاملة في صفحة واحدة
 
                 Spacer(modifier = Modifier.height(4.dp))
 
