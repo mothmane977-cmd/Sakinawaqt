@@ -67,22 +67,68 @@ object SakinaV45StatsPrefs {
 
     fun readingStreakDays(ctx: Context): Int = sp(ctx).getInt("khatmah_streak", 0)
 
-    fun logPageRead(ctx: Context) {
+    fun khatmahCurrentPages(ctx: Context): Int =
+        sp(ctx).getInt("khatmah_total_pages", 0).coerceIn(0, 604)
+
+    fun completedKhatmahCount(ctx: Context): Int =
+        sp(ctx).getInt("khatmah_completed_count", 0).coerceAtLeast(0)
+
+    fun justCompletedKhatmah(ctx: Context): Boolean =
+        sp(ctx).getBoolean("khatmah_just_completed", false)
+
+    fun clearKhatmahCelebration(ctx: Context) {
+        sp(ctx).edit().putBoolean("khatmah_just_completed", false).apply()
+    }
+
+    /** Logs [deltaPages] toward the 604-page Mushaf Khatmah; returns true when a Khatmah completes. */
+    fun logKhatmahPages(ctx: Context, deltaPages: Int): Boolean {
+        if (deltaPages <= 0) return false
         val p = sp(ctx)
         val today = todayKey()
         val lastDay = p.getString("khatmah_last_day", "")
-        val newPages = if (lastDay == today) p.getInt("khatmah_pages_today", 0) + 1 else 1
+        val newPagesToday = if (lastDay == today) p.getInt("khatmah_pages_today", 0) + deltaPages else deltaPages
         var streak = p.getInt("khatmah_streak", 0)
         if (lastDay != today) {
             val yestCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
             val yestKey = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(yestCal.time)
             streak = if (lastDay == yestKey) streak + 1 else 1
         }
+        val prevTotal = p.getInt("khatmah_total_pages", 0).coerceAtLeast(0)
+        val rawTotal = prevTotal + deltaPages
+        var completed = p.getInt("khatmah_completed_count", 0).coerceAtLeast(0)
+        val reachedFinish = rawTotal >= 604
+        val nextTotal = if (reachedFinish) {
+            completed += rawTotal / 604
+            rawTotal % 604
+        } else {
+            rawTotal
+        }
         p.edit()
             .putString("khatmah_last_day", today)
-            .putInt("khatmah_pages_today", newPages)
+            .putInt("khatmah_pages_today", newPagesToday)
             .putInt("khatmah_streak", streak)
+            .putInt("khatmah_total_pages", nextTotal)
+            .putInt("khatmah_completed_count", completed)
+            .putBoolean("khatmah_just_completed", reachedFinish || p.getBoolean("khatmah_just_completed", false))
             .apply()
+        return reachedFinish
+    }
+
+    fun stepBackKhatmahPages(ctx: Context, deltaPages: Int = 1) {
+        val p = sp(ctx)
+        val cur = (p.getInt("khatmah_total_pages", 0) - deltaPages).coerceAtLeast(0)
+        val today = todayKey()
+        val todayCur = if (p.getString("khatmah_last_day", "") == today) {
+            (p.getInt("khatmah_pages_today", 0) - deltaPages).coerceAtLeast(0)
+        } else 0
+        p.edit()
+            .putInt("khatmah_total_pages", cur)
+            .putInt("khatmah_pages_today", todayCur)
+            .apply()
+    }
+
+    fun logPageRead(ctx: Context) {
+        logKhatmahPages(ctx, 1)
     }
 
     // ---- Fasting Tracker (Ramadan, Mon/Thu, White Days) ----

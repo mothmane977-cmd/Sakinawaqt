@@ -68,6 +68,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -589,6 +590,13 @@ private fun QuranIndexPortalContent(
             }
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        QuranIndexKhatmahCard(
+            headingFontFamily = headingFontFamily,
+            bodyFontFamily = bodyFontFamily
+        )
+
         if (state.quickSurahs.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
             LazyRow(
@@ -663,10 +671,12 @@ private fun QuranIndexPortalContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .sakinaParchmentGlowCard(
+                .sakinaLuxuryGlassCard(
                     cornerRadius = 22.dp,
-                    haloAlpha = 0.32f,
-                    doubleBorder = false
+                    innerHairline = false,
+                    emeraldFlare = true,
+                    shimmer = false,
+                    borderAlpha = 0.65f
                 )
                 .clip(RoundedCornerShape(22.dp))
         ) {
@@ -714,13 +724,13 @@ private fun QuranIndexPortalContent(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(1.1.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(16.dp))
-                                    .clickable { onDivisionSelected(item) }
+                                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                                    .heightIn(min = 58.dp)
+                                    .clickable { onDivisionSelected(item) },
+                                contentAlignment = Alignment.Center
                             ) {
                                 Image(
-                                    painter = painterResource(id = R.drawable.bg_parchment_card),
+                                    painter = painterResource(id = R.drawable.bg_prayer_row_gold_3d),
                                     contentDescription = null,
                                     contentScale = ContentScale.FillBounds,
                                     modifier = Modifier.matchParentSize()
@@ -728,7 +738,7 @@ private fun QuranIndexPortalContent(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 10.dp, vertical = 9.dp),
+                                        .padding(horizontal = 24.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
@@ -741,14 +751,14 @@ private fun QuranIndexPortalContent(
                                         Column {
                                             Text(
                                                 text = item.title,
-                                                color = SakinaOrbitalColors.InkNavy,
+                                                color = SakinaLuxuryColors.SoftGoldGlow,
                                                 fontSize = 15.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 fontFamily = headingFontFamily
                                             )
                                             Text(
                                                 text = item.subtitle,
-                                                color = SakinaOrbitalColors.InkNavy.copy(alpha = 0.70f),
+                                                color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.76f),
                                                 fontSize = 11.sp,
                                                 fontFamily = bodyFontFamily
                                             )
@@ -805,9 +815,8 @@ private fun SurahIndexRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .border(1.1.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(16.dp))
+            .padding(horizontal = 6.dp, vertical = 4.dp)
+            .heightIn(min = 58.dp)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = {
@@ -815,10 +824,11 @@ private fun SurahIndexRow(
                         onLongPressDelete()
                     }
                 }
-            )
+            ),
+        contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.bg_parchment_card),
+            painter = painterResource(id = R.drawable.bg_prayer_row_gold_3d),
             contentDescription = null,
             contentScale = ContentScale.FillBounds,
             modifier = Modifier.matchParentSize()
@@ -826,7 +836,7 @@ private fun SurahIndexRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 9.dp),
+                .padding(horizontal = 24.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -839,7 +849,7 @@ private fun SurahIndexRow(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = surah.arabicName,
-                    color = SakinaOrbitalColors.InkNavy,
+                    color = SakinaLuxuryColors.SoftGoldGlow,
                     fontSize = 15.5.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = headingFontFamily,
@@ -847,9 +857,9 @@ private fun SurahIndexRow(
                 )
             }
 
-            // 2. في الوسط: أيقونة التحميل وحجم الملف مصغّرين وأنيقين
+            // 2. في الوسط: أيقونة التحميل وحجم الملف بلون زمردي وذهبي واضح فوق الزجاج الداكن
             Box(
-                modifier = Modifier.padding(horizontal = 6.dp),
+                modifier = Modifier.padding(horizontal = 5.dp),
                 contentAlignment = Alignment.Center
             ) {
                 when (surah.audioStatus) {
@@ -858,20 +868,20 @@ private fun SurahIndexRow(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.12f))
-                                .border(0.6.dp, SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                                .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.85f))
+                                .border(0.7.dp, SakinaLuxuryColors.EmeraldGlow.copy(alpha = 0.65f), RoundedCornerShape(8.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Check,
                                 contentDescription = null,
-                                tint = SakinaOrbitalColors.DeepEmerald,
+                                tint = SakinaLuxuryColors.EmeraldGlow,
                                 modifier = Modifier.size(11.dp)
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
                                 text = strings.offlineReadyLabel,
-                                color = SakinaOrbitalColors.DeepEmerald,
+                                color = SakinaLuxuryColors.EmeraldGlow,
                                 fontSize = 8.5.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 fontFamily = bodyFontFamily
@@ -882,14 +892,14 @@ private fun SurahIndexRow(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(
                                 progress = { surah.downloadProgress.coerceIn(0f, 1f) },
-                                color = SakinaOrbitalColors.ChampagneGold,
+                                color = SakinaLuxuryColors.SoftGoldGlow,
                                 strokeWidth = 1.8.dp,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = "${(surah.downloadProgress * 100).roundToInt()}%",
-                                color = SakinaOrbitalColors.MutedGoldText,
+                                color = SakinaLuxuryColors.SoftGoldGlow,
                                 fontSize = 8.5.sp,
                                 style = TextStyle(fontFeatureSettings = "tnum")
                             )
@@ -900,18 +910,18 @@ private fun SurahIndexRow(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.08f))
-                                .border(0.6.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.65f), RoundedCornerShape(8.dp))
+                                .background(Color(0x6606101F))
+                                .border(0.7.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.65f), RoundedCornerShape(8.dp))
                                 .clickable(onClick = onDownloadClick)
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Canvas(modifier = Modifier.size(10.dp)) {
-                                drawDownloadVector(SakinaOrbitalColors.MutedGoldText)
+                                drawDownloadVector(SakinaLuxuryColors.SoftGoldGlow)
                             }
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = "${String.format(java.util.Locale.US, "%.1f", surah.audioSizeMb)} MB",
-                                color = SakinaOrbitalColors.MutedGoldText,
+                                color = SakinaLuxuryColors.SoftGoldGlow,
                                 fontSize = 8.5.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 fontFamily = bodyFontFamily,
@@ -944,6 +954,245 @@ private fun SurahIndexRow(
                     maxLines = 1,
                     style = TextStyle(fontFeatureSettings = "tnum")
                 )
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun QuranIndexKhatmahCard(
+    headingFontFamily: FontFamily,
+    bodyFontFamily: FontFamily
+) {
+    val ctx = LocalContext.current
+    var tick by remember { mutableIntStateOf(0) }
+    var showControls by remember { mutableStateOf(false) }
+    var showKhatmDua by remember { mutableStateOf(false) }
+
+    val currentPages = remember(tick) { SakinaV45StatsPrefs.khatmahCurrentPages(ctx) }
+    val pagesToday = remember(tick) { SakinaV45StatsPrefs.pagesReadToday(ctx) }
+    val completedCount = remember(tick) { SakinaV45StatsPrefs.completedKhatmahCount(ctx) }
+    val streak = remember(tick) { SakinaV45StatsPrefs.readingStreakDays(ctx) }
+    val celebrate = remember(tick) { SakinaV45StatsPrefs.justCompletedKhatmah(ctx) }
+    val progress = (currentPages / 604f).coerceIn(0f, 1f)
+    val percent = (progress * 100f).roundToInt()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .sakinaLuxuryGlassCard(
+                cornerRadius = 18.dp,
+                innerHairline = false,
+                emeraldFlare = true,
+                shimmer = celebrate,
+                borderAlpha = 0.78f
+            )
+            .clip(RoundedCornerShape(18.dp))
+            .clickable { showControls = !showControls }
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_3d_quran_stand),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .border(0.9.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.7f), CircleShape)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "ختمتي اليومية · $currentPages / 604 ص ($percent%)",
+                            color = SakinaLuxuryColors.SoftGoldGlow,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = headingFontFamily,
+                            style = TextStyle(fontFeatureSettings = "tnum")
+                        )
+                        Text(
+                            text = "اليوم: $pagesToday ص · السلسلة: $streak يوم · الختمات: $completedCount",
+                            color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.76f),
+                            fontSize = 10.5.sp,
+                            fontFamily = bodyFontFamily,
+                            style = TextStyle(fontFeatureSettings = "tnum")
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.90f))
+                        .border(0.9.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
+                        .clickable { showControls = !showControls }
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (showControls) "إخفاء ▴" else "سجّل ▾",
+                        color = SakinaLuxuryColors.SoftGoldGlow,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = bodyFontFamily
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(7.dp))
+
+            // شريط تقدم زمردي متوهج لختمة الـ 604 صفحة
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(Color(0x5506101F))
+                    .border(0.5.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.35f), CircleShape)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress.coerceAtLeast(0.02f))
+                        .fillMaxHeight()
+                        .clip(CircleShape)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(SakinaLuxuryColors.DeepEmerald, SakinaLuxuryColors.EmeraldGlow, SakinaLuxuryColors.SoftGoldGlow)
+                            )
+                        )
+                )
+            }
+
+            if (celebrate) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.92f))
+                        .border(1.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "✦ مبارك! أتممت ختمة للقرآن الكريم، تقبّل الله منك",
+                        color = SakinaLuxuryColors.SoftGoldGlow,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = bodyFontFamily,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "تم",
+                        color = SakinaLuxuryColors.EmeraldGlow,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clickable {
+                                SakinaV45StatsPrefs.clearKhatmahCelebration(ctx)
+                                tick++
+                            }
+                            .padding(horizontal = 6.dp)
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = showControls) {
+                Column(modifier = Modifier.fillMaxWidth().padding(top = 9.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(1, 5, 10, 20).forEach { pages ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(50))
+                                    .background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
+                                    .clickable {
+                                        SakinaV45StatsPrefs.logKhatmahPages(ctx, pages)
+                                        tick++
+                                    }
+                                    .padding(vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "+$pages ص",
+                                    color = SakinaOrbitalColors.InkNavy,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = bodyFontFamily,
+                                    style = TextStyle(fontFeatureSettings = "tnum")
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(7.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.85f))
+                                .border(0.85.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
+                                .clickable { showKhatmDua = !showKhatmDua }
+                                .padding(horizontal = 12.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                text = if (showKhatmDua) "إخفاء دعاء الختم ▴" else "✦ دعاء ختم القرآن الكريم",
+                                color = SakinaLuxuryColors.SoftGoldGlow,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = bodyFontFamily
+                            )
+                        }
+                        if (currentPages > 0) {
+                            Text(
+                                text = "تراجع -1 ص",
+                                color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.72f),
+                                fontSize = 10.5.sp,
+                                fontFamily = bodyFontFamily,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .clickable {
+                                        SakinaV45StatsPrefs.stepBackKhatmahPages(ctx, 1)
+                                        tick++
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(visible = showKhatmDua) {
+                        Text(
+                            text = "اللهم ارحمني بالقرآن واجعله لي إماماً ونوراً وهدىً ورحمة، اللهم ذكّرني منه ما نُسّيت وعلّمني منه ما جهلت، وارزقني تلاوته آناء الليل وأطراف النهار، واجعله لي حجةً يا رب العالمين. اللهم أصلح لي ديني الذي هو عصمة أمري، وأصلح لي دنياي التي فيها معاشي، وأصلح لي آخرتي التي فيها معادي، واجعل الحياة زيادةً لي في كل خير واجعل الموت راحةً لي من كل شر.",
+                            color = SakinaOrbitalColors.WarmCream,
+                            fontSize = 12.sp,
+                            lineHeight = 21.sp,
+                            fontFamily = bodyFontFamily,
+                            textAlign = TextAlign.Justify,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0x8806101F))
+                                .border(0.8.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                                .padding(12.dp)
+                        )
+                    }
+                }
             }
         }
     }
