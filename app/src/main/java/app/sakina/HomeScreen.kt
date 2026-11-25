@@ -256,9 +256,6 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     BackHandler(enabled = celestialHubMode != CelestialHubMode.NONE) {
         celestialHubMode = CelestialHubMode.NONE
     }
-    BackHandler(enabled = extraSection != ExtraSection.NONE) {
-        returnFromExtra()
-    }
     BackHandler(enabled = rightDrawerState.isOpen || leftDrawerState.isOpen) {
         scope.launch {
             rightDrawerState.close()
@@ -275,6 +272,9 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
         if (prevHub != CelestialHubMode.NONE) {
             celestialHubMode = prevHub
         }
+    }
+    BackHandler(enabled = extraSection != ExtraSection.NONE) {
+        returnFromExtra()
     }
     val headerImg = when (extraSection) {
         ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH, ExtraSection.SUNNAH, ExtraSection.NAMES_OF_ALLAH, ExtraSection.WORSHIP_STATS, ExtraSection.HEART_CARD -> R.drawable.bg_header_adhkar
