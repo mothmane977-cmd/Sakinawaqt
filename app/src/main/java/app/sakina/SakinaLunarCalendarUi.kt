@@ -532,7 +532,7 @@ private fun MonthlyCalendarGlassCard(
                                 verticalArrangement = Arrangement.Center,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(44.dp)
+                                    .height(48.dp)
                                     .padding(2.dp)
                                     .clip(RoundedCornerShape(10.dp))
                                     .then(
@@ -563,12 +563,12 @@ private fun MonthlyCalendarGlassCard(
                                     Text(
                                         text = "صيام",
                                         color = if (isSelected) SakinaOrbitalColors.InkNavy else SakinaLuxuryColors.SoftGoldGlow,
-                                        fontSize = 8.5.sp,
-                                        lineHeight = 10.sp,
+                                        fontSize = 9.sp,
+                                        lineHeight = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         softWrap = false,
-                                        fontFamily = bodyFontFamily,
+                                        fontFamily = FontFamily.SansSerif,
                                         style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                                     )
                                 }

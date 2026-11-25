@@ -59,12 +59,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -1926,6 +1930,51 @@ private fun ExpandedLuxuryAudioOverlay(
                         color = SakinaOrbitalColors.SoftGoldGlow,
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.SemiBold,
+                        style = TextStyle(fontFeatureSettings = "tnum")
+                    )
+                }
+
+                // v53 #3: شريط أنيق واحترافي للتحكم المباشر في درجة صوت التلاوة
+                val audioCtx = LocalContext.current
+                val audioMgr = remember(audioCtx) { audioCtx.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager }
+                val maxVol = remember(audioMgr) { audioMgr.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC).coerceAtLeast(1) }
+                var volLevel by remember { mutableFloatStateOf(audioMgr.getStreamVolume(android.media.AudioManager.STREAM_MUSIC).toFloat() / maxVol.toFloat()) }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(SakinaOrbitalColors.DeepSpaceNavy.copy(alpha = 0.45f))
+                        .border(0.7.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                        .padding(horizontal = 10.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (volLevel <= 0.02f) "🔇" else "🔊",
+                        fontSize = 14.sp,
+                        modifier = Modifier.clickable {
+                            volLevel = if (volLevel > 0.02f) 0f else 0.7f
+                            audioMgr.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, (volLevel * maxVol).toInt(), 0)
+                        }
+                    )
+                    Slider(
+                        value = volLevel,
+                        onValueChange = { nv ->
+                            volLevel = nv
+                            audioMgr.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, (nv * maxVol).toInt(), 0)
+                        },
+                        modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = SakinaLuxuryColors.SoftGoldGlow,
+                            activeTrackColor = SakinaLuxuryColors.ChampagneGold,
+                            inactiveTrackColor = Color.White.copy(alpha = 0.22f)
+                        )
+                    )
+                    Text(
+                        text = "${(volLevel * 100).toInt()}%",
+                        color = SakinaLuxuryColors.SoftGoldGlow,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
                         style = TextStyle(fontFeatureSettings = "tnum")
                     )
                 }

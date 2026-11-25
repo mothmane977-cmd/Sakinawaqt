@@ -37,8 +37,8 @@ object SakinaStatusBarIconFactory {
             style = Paint.Style.FILL
         }
 
-        drawMinaret(canvas, fillPaint, cx = 11f * s, topY = 12f * s, bottomY = 71f * s, width = 6.8f * s)
-        drawMinaret(canvas, fillPaint, cx = 85f * s, topY = 12f * s, bottomY = 71f * s, width = 6.8f * s)
+        drawMinaret(canvas, fillPaint, cx = 11f * s, topY = 12f * s, bottomY = 71f * s, width = 8.4f * s)
+        drawMinaret(canvas, fillPaint, cx = 85f * s, topY = 12f * s, bottomY = 71f * s, width = 8.4f * s)
         drawCrescent(canvas, cx = 48f * s, cy = 8f * s, radius = 5.4f * s)
 
         val domePath = Path().apply {
@@ -67,13 +67,13 @@ object SakinaStatusBarIconFactory {
         val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             style = Paint.Style.STROKE
-            strokeWidth = 3.5f * s
+            strokeWidth = 4.6f * s
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
         }
 
-        drawMinaret(canvas, fillPaint, cx = 7.5f * s, topY = 12f * s, bottomY = 71f * s, width = 5.6f * s)
-        drawMinaret(canvas, fillPaint, cx = 88.5f * s, topY = 12f * s, bottomY = 71f * s, width = 5.6f * s)
+        drawMinaret(canvas, fillPaint, cx = 7.5f * s, topY = 12f * s, bottomY = 71f * s, width = 7.4f * s)
+        drawMinaret(canvas, fillPaint, cx = 88.5f * s, topY = 12f * s, bottomY = 71f * s, width = 7.4f * s)
         drawCrescent(canvas, cx = 48f * s, cy = 8f * s, radius = 5.4f * s)
 
         val hollowDome = Path().apply {
@@ -91,7 +91,7 @@ object SakinaStatusBarIconFactory {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textSize = if (label.length == 1) 43f * s else 36f * s
+            textSize = if (label.length == 1) 48f * s else 41f * s
             letterSpacing = -0.04f
         }
         val fm = textPaint.fontMetrics
@@ -105,7 +105,7 @@ object SakinaStatusBarIconFactory {
         val kufiStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             style = Paint.Style.STROKE
-            strokeWidth = 3.2f * s
+            strokeWidth = 4.2f * s
             strokeCap = Paint.Cap.SQUARE
             strokeJoin = Paint.Join.MITER
         }
@@ -134,7 +134,7 @@ object SakinaStatusBarIconFactory {
         }
         canvas.drawPath(taa, kufiStroke)
 
-        val d = 2.6f * s
+        val d = 3.4f * s
         canvas.drawRect(45.5f * s, 91f * s, 45.5f * s + d, 91f * s + d, dotPaint)
         canvas.drawRect(41.0f * s, 91f * s, 41.0f * s + d, 91f * s + d, dotPaint)
         canvas.drawRect(32.7f * s, 74f * s, 32.7f * s + d, 74f * s + d, dotPaint)

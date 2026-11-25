@@ -280,7 +280,7 @@ object SakinaLuxuryNotifications {
     }
 
     private fun actionPi(context: Context, action: String, requestCode: Int): PendingIntent {
-        val intent = Intent(action).setPackage(context.packageName)
+        val intent = Intent(context, AlarmReceiver::class.java).apply { this.action = action }
         return PendingIntent.getBroadcast(
             context,
             requestCode,

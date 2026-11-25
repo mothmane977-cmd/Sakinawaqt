@@ -104,6 +104,60 @@ object SakinaLiveNotifier {
         } catch (_: Exception) {}
     }
 
+
+    fun handleNotificationAction(c: Context, action: String?): Boolean {
+        if (action == null) return false
+        val sp = c.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        when (action) {
+            ACTION_REFRESH -> { update(c); return true }
+            SakinaLuxuryNotifications.ACTION_MARK_PRAYED -> {
+                val todayKey = SakinaAdvancedPrefs.dateKeyOffset(0)
+                val idx = sp.getInt("live_active_prayer_idx", 0).coerceIn(0, 4)
+                if (!SakinaAdvancedPrefs.isPrayerLogged(c, todayKey, idx)) {
+                    SakinaAdvancedPrefs.togglePrayerLogged(c, todayKey, idx)
+                }
+                SakinaLuxuryNotifications.dismissStageNotification(c)
+            }
+            SakinaLuxuryNotifications.ACTION_CYCLE_ALERT -> {
+                val cur = sp.getInt("live_quick_alert_mode", 0)
+                sp.edit().putInt("live_quick_alert_mode", (cur + 1) % 3).apply()
+            }
+            SakinaLuxuryNotifications.ACTION_TASBIH_TAP -> {
+                val cnt = (sp.getInt("live_notif_tasbih", 0) + 1) % 34
+                sp.edit().putInt("live_notif_tasbih", cnt).apply()
+            }
+            SakinaLuxuryNotifications.ACTION_PREPARED,
+            SakinaLuxuryNotifications.ACTION_SNOOZE_5M,
+            SakinaLuxuryNotifications.ACTION_POST_DHIKR_DONE -> {
+                SakinaLuxuryNotifications.dismissStageNotification(c)
+            }
+            SakinaLuxuryNotifications.ACTION_STOP_ADHAN -> {
+                try { c.stopService(Intent(c, SakinaAdhanForegroundService::class.java)) } catch (_: Exception) {}
+                SakinaLuxuryNotifications.dismissStageNotification(c)
+            }
+            SakinaLuxuryNotifications.ACTION_POST_DHIKR_TAP -> {
+                val cnt = (sp.getInt("live_post_tasbih", 0) + 1) % 34
+                sp.edit().putInt("live_post_tasbih", cnt).apply()
+                val dhikr = when {
+                    cnt < 11 -> "سُبْحَانَ اللَّهِ · أَسْتَغْفِرُ اللَّهَ (3×)"
+                    cnt < 22 -> "الْحَمْدُ لِلَّهِ · اللَّهُمَّ أَنْتَ السَّلَامُ"
+                    else -> "اللَّهُ أَكْبَرُ · لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ"
+                }
+                SakinaLuxuryNotifications.showPostPrayerNotification(
+                    context = c,
+                    prayerName = sp.getString("live_active_prayer_name", "الصلاة") ?: "الصلاة",
+                    dhikrText = dhikr,
+                    tasbihCount = cnt,
+                    contentPendingIntent = buildOpenMainPi(c)
+                )
+            }
+            else -> return false
+        }
+        update(c)
+        try { SakinaWidgetUpdater.updateAll(c) } catch (_: Exception) {}
+        return true
+    }
+
     private fun activeLang(ctx: Context): SakinaLang {
         val code = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE).getString("app_lang", "ar") ?: "ar"
         return SakinaLang.entries.firstOrNull { it.code == code } ?: SakinaLang.AR

@@ -431,6 +431,7 @@ object AlarmScheduler {
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
+        if (SakinaLiveNotifier.handleNotificationAction(c, i.action)) return
         val name = i.getStringExtra("n") ?: return
         val at = i.getLongExtra("at", 0L)
         val backup = i.getBooleanExtra("bk", false)
