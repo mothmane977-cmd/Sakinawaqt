@@ -1,8 +1,11 @@
-name: Build Release AAB & APK (v32)
+name: Build Release AAB & APK (v50 Direct Release)
 on:
   push:
     branches: [main]
   workflow_dispatch: {}
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -368,3 +371,20 @@ jobs:
         with:
           name: sakina-release-apk
           path: app/build/outputs/apk/release/*.apk
+
+      # 5. نشر ملف APK مباشرة في GitHub Releases (تحميل مباشر بدون ZIP مع دعم استئناف التحميل على الهاتف)
+      - name: Publish Direct APK to GitHub Releases (latest)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK_FILE=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
+          if [ -n "$APK_FILE" ] && [ -f "$APK_FILE" ]; then
+            cp "$APK_FILE" /tmp/sakina-latest.apk
+            if gh release view latest >/dev/null 2>&1; then
+              gh release upload latest /tmp/sakina-latest.apk --clobber
+              gh release edit latest --title "Sakina Latest Build (#${GITHUB_RUN_NUMBER})" --notes "Direct APK download (no ZIP, supports resume). Built from commit ${GITHUB_SHA::7}."
+            else
+              gh release create latest /tmp/sakina-latest.apk --title "Sakina Latest Build (#${GITHUB_RUN_NUMBER})" --notes "Direct APK download (no ZIP, supports resume). Built from commit ${GITHUB_SHA::7}."
+            fi
+            echo "Published sakina-latest.apk to GitHub Releases (latest)!"
+          fi
