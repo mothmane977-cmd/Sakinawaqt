@@ -55,7 +55,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-private enum class ExtraSection { NONE, ADHKAR, DUAS, RUQYAH, ALARM, NOTIFICATIONS, APPEARANCE, SETTINGS, SUNNAH, NAMES_OF_ALLAH, WORSHIP_STATS }
+private enum class ExtraSection { NONE, ADHKAR, DUAS, RUQYAH, ALARM, NOTIFICATIONS, APPEARANCE, SETTINGS, SUNNAH, NAMES_OF_ALLAH, WORSHIP_STATS, HEART_CARD }
 
 private data class BrandPrayerRow(
     val keyNameAr: String,
@@ -235,6 +235,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     var celestialHubMode by remember { mutableStateOf(CelestialHubMode.NONE) }
     var lastHubMode by remember { mutableStateOf(CelestialHubMode.NONE) }
     var extraSection by remember { mutableStateOf(if (openAfterPrayer) ExtraSection.ADHKAR else ExtraSection.NONE) }
+    var isMushafReadingFullScreen by remember { mutableStateOf(false) }
     var showRatingDialog by remember { mutableStateOf(SakinaAdvancedPrefs.shouldShowRatingPrompt(ctx)) }
     var adhkarInitCat by remember { mutableStateOf<Int?>(if (openAfterPrayer) 2 else null) }
     LaunchedEffect(openAfterPrayer) {
@@ -270,7 +271,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
         }
     }
     val headerImg = when (extraSection) {
-        ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH, ExtraSection.SUNNAH, ExtraSection.NAMES_OF_ALLAH, ExtraSection.WORSHIP_STATS -> R.drawable.bg_header_adhkar
+        ExtraSection.ADHKAR, ExtraSection.DUAS, ExtraSection.RUQYAH, ExtraSection.SUNNAH, ExtraSection.NAMES_OF_ALLAH, ExtraSection.WORSHIP_STATS, ExtraSection.HEART_CARD -> R.drawable.bg_header_adhkar
         ExtraSection.ALARM, ExtraSection.NOTIFICATIONS, ExtraSection.APPEARANCE, ExtraSection.SETTINGS -> R.drawable.bg_header_mosque
         ExtraSection.NONE -> when (currentTab) {
             SakinaNavTab.HOME -> {
@@ -548,6 +549,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             }
                                         )
                                         ExtraSection.NAMES_OF_ALLAH -> SakinaNamesOfAllahScreen(ctx = ctx, onBack = { returnFromExtra() })
+                                        ExtraSection.HEART_CARD -> SakinaHeartCardScreen(onBack = { returnFromExtra() })
                                         ExtraSection.ALARM -> SakinaAlarmScreen(ctx = ctx, initialSection = 0, onBackClick = { returnFromExtra() })
                                         ExtraSection.NOTIFICATIONS -> SakinaAlarmScreen(ctx = ctx, initialSection = 1, onBackClick = { returnFromExtra() })
                                         ExtraSection.APPEARANCE -> SakinaSettingsScreen(
@@ -589,15 +591,27 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                                         }
                                                     )
                                                     SakinaNavTab.QIBLA -> SakinaQiblaScreen(ctx = ctx)
-                                                    SakinaNavTab.QURAN -> SakinaQuranScreen(ctx = ctx)
+                                                    SakinaNavTab.QURAN -> SakinaQuranScreen(ctx = ctx, onReaderActiveChanged = { isMushafReadingFullScreen = it })
                                                     SakinaNavTab.CALENDAR -> SakinaCalendarScreen(ctx = ctx)
                                                 }
                                             }
                                         }
                                     }
 
-                                    if (extraSection == ExtraSection.NONE && !(currentTab == SakinaNavTab.HOME && useOrbitalHome)) {
-                                        // v29 #5: Top-Right Dedicated Golden Settings Gear Icon -> General Settings Drawer
+                                    if (extraSection == ExtraSection.NONE && !(currentTab == SakinaNavTab.HOME && useOrbitalHome) && !(currentTab == SakinaNavTab.QURAN && isMushafReadingFullScreen)) {
+                                        // v48 #1: شريط علوي موحّد بزرّين متوازنين فقط (زر القائمة الموحّدة + زر تبديل اللغة AR)
+                                        Box(
+                                            modifier = Modifier
+                                                .align(AbsoluteAlignment.TopLeft)
+                                                .statusBarsPadding()
+                                                .padding(start = 16.dp, top = 12.dp)
+                                        ) {
+                                            SakinaGraduatedMenuIcon(
+                                                mirror = true,
+                                                onClick = { celestialHubMode = CelestialHubMode.WORSHIP }
+                                            )
+                                        }
+
                                         Box(
                                             modifier = Modifier
                                                 .align(AbsoluteAlignment.TopRight)
@@ -612,70 +626,28 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                                     borderAlpha = 0.72f
                                                 )
                                                 .clip(CircleShape)
-                                                .clickable { celestialHubMode = CelestialHubMode.SETTINGS },
+                                                .clickable {
+                                                    val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
+                                                    currentLang = next
+                                                    sp.edit().putString("app_lang", next.code).apply()
+                                                },
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Settings,
-                                                contentDescription = sakinaTr(currentLang, "الإعدادات", "Settings", "Paramètres", "Ayarlar", "Pengaturan", "ترتیبات"),
-                                                tint = SakinaLuxuryPalette.GoldBright,
-                                                modifier = Modifier.size(20.dp)
+                                            Text(
+                                                text = currentLang.code.uppercase(),
+                                                fontFamily = SakinaNumeralFont,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp,
+                                                color = SakinaLuxuryPalette.GoldSpecular,
+                                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                                             )
-                                        }
-
-                                        // Top-Left Group pinned in LTR so Language Switcher NEVER jumps across AR/UR/EN/FR (Point 5)
-                                        Box(
-                                            modifier = Modifier
-                                                .align(AbsoluteAlignment.TopLeft)
-                                                .statusBarsPadding()
-                                                .padding(start = 16.dp, top = 14.dp)
-                                        ) {
-                                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            SakinaGraduatedMenuIcon(
-                                                mirror = true,
-                                                onClick = { celestialHubMode = CelestialHubMode.WORSHIP }
-                                            )
-
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(36.dp)
-                                                    .sakinaLuxuryGlassCard(
-                                                        cornerRadius = 18.dp,
-                                                        innerHairline = false,
-                                                        emeraldFlare = false,
-                                                        shimmer = false,
-                                                        borderAlpha = 0.72f
-                                                    )
-                                                    .clip(CircleShape)
-                                                    .clickable {
-                                                        val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
-                                                        currentLang = next
-                                                        sp.edit().putString("app_lang", next.code).apply()
-                                                    },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = currentLang.code.uppercase(),
-                                                    fontFamily = SakinaNumeralFont,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 10.5.sp,
-                                                    color = SakinaLuxuryPalette.GoldSpecular,
-                                                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                                                )
-                                            }
-                                        }
-                                        }
                                         }
                                     }
 
-                                    if (extraSection == ExtraSection.NONE) {
+                                    if (extraSection == ExtraSection.NONE && !(currentTab == SakinaNavTab.QURAN && isMushafReadingFullScreen)) {
                                         SakinaBottomPillBar(
                                             currentTab = currentTab,
-                                            onTabSelected = { extraSection = ExtraSection.NONE; openedFromRightDrawer = false; openedFromLeftDrawer = false; currentTab = it },
+                                            onTabSelected = { extraSection = ExtraSection.NONE; openedFromRightDrawer = false; openedFromLeftDrawer = false; if (it != SakinaNavTab.QURAN) isMushafReadingFullScreen = false; currentTab = it },
                                             modifier = Modifier.align(Alignment.BottomCenter)
                                         )
                                     }
@@ -698,6 +670,10 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             },
                                             CelestialPortalItem(sakinaTr(currentLang, "إنجازي والصيام", "My Progress & Fast", "Progrès & Jeûne", "İlerleme & Oruç", "Progres & Puasa", "عبادات اور روزہ"), R.drawable.ic_sakina_calendar) {
                                                 extraSection = ExtraSection.WORSHIP_STATS
+                                            },
+                                            CelestialPortalItem(sakinaTr(currentLang, "سكينة القلب", "Heart Card Studio", "Carte Sakina", "Kalp Kartı", "Kartu Sakina", "سکینہ کارڈ"), R.drawable.ic_sakina_tasbih) {
+                                                lastHubMode = CelestialHubMode.WORSHIP
+                                                extraSection = ExtraSection.HEART_CARD
                                             },
                                             CelestialPortalItem(sakinaTr(currentLang, "السنن اليومية", "Daily Sunnah", "Sunna", "Sünnetler", "Sunnah", "سنن"), R.drawable.ic_sakina_clock) {
                                                 extraSection = ExtraSection.SUNNAH

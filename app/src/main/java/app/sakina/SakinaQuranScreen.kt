@@ -236,7 +236,7 @@ private fun loadMushafAsset(context: Context, riwaya: QuranRiwaya): List<SurahEn
 }
 
 @Composable
-fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
+fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier, onReaderActiveChanged: (Boolean) -> Unit = {}) {
     val theme = LocalSakinaTheme.current
     val s = LocalSakinaStrings.current
     val lang = LocalSakinaLang.current
@@ -250,6 +250,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
     var indexTab by remember { mutableStateOf(QuranIndexTab.SURAHS) }
     var searchQuery by remember { mutableStateOf("") }
     var isReaderOpen by remember { mutableStateOf(false) }
+    var bookmarkTick by remember { mutableIntStateOf(0) }
     var currentPage by remember { mutableIntStateOf((sp.getInt("quran_last_page", 0) + 1).coerceIn(1, 604)) }
     var tajweedEnabled by remember { mutableStateOf(sp.getBoolean("v29_tajweed_on", true)) }
     var readerTheme by remember {
@@ -442,6 +443,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
         quranFontFamily = SakinaNaskhFontFamily,
         showBottomDock = false,
         hostBottomBarReserve = 82.dp,
+        onReaderActiveChanged = onReaderActiveChanged,
         pageAyahsProvider = buildAyahsForPage,
         onRiwayahChange = { newR ->
             riwaya = if (newR == QuranRiwayah.WARSH) QuranRiwaya.WARSH else QuranRiwaya.HAFS
@@ -475,7 +477,19 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier) {
         onToggleReaderTheme = {
             readerTheme = if (readerTheme == QuranReaderTheme.WARM_PARCHMENT) QuranReaderTheme.NIGHT_EMERALD else QuranReaderTheme.WARM_PARCHMENT
         },
+        isCurrentPageBookmarked = remember(currentPage, bookmarkTick) {
+            SakinaV45StatsPrefs.isPageBookmarked(ctx, currentPage)
+        },
+        onToggleBookmark = {
+            val sNum = surahNumberForPage(currentPage)
+            val sName = SURAH_NAMES_AR.getOrElse(sNum - 1) { "ص $currentPage" }
+            SakinaV45StatsPrefs.toggleBookmark(ctx, currentPage, sName)
+            bookmarkTick++
+        },
         onPageChanged = { newPage ->
+            if (newPage != currentPage) {
+                SakinaV45StatsPrefs.logPageRead(ctx)
+            }
             val clamped = newPage.coerceIn(1, 604)
             currentPage = clamped
             val sNum = surahForMushafPage(clamped)

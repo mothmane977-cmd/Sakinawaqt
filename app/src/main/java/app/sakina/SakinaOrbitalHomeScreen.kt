@@ -294,6 +294,7 @@ fun SakinaOrbitalHomeScreen(
                 headingFontFamily = headingFontFamily,
                 bodyFontFamily = bodyFontFamily,
                 onTodayStatsClick = onTodayStatsClick,
+                onExpandFivePrayers = { showFivePrayersSheet = true },
                 onToggleCompleted = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onTogglePrayerCompleted(focusedPrayer.type)
@@ -322,6 +323,26 @@ fun SakinaOrbitalHomeScreen(
                     onTabSelected = onTabSelected
                 )
             }
+        }
+
+        // v48 #4: البطاقة الموسّعة المنبثقة للصلوات الخمس فوق الرئيسية دون التأثير على تنظيم الشاشة
+        if (showFivePrayersSheet && state.prayers.isNotEmpty()) {
+            FivePrayersExpandedModal(
+                prayers = state.prayers,
+                nextPrayerIndex = state.nextPrayerIndex,
+                countdownText = state.countdownText,
+                headingFontFamily = headingFontFamily,
+                bodyFontFamily = bodyFontFamily,
+                onCycleAlarmMode = { pType ->
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onCyclePrayerAlarmMode(pType)
+                },
+                onSelectPrayer = { idx ->
+                    focusedIndex = idx
+                    showFivePrayersSheet = false
+                },
+                onDismiss = { showFivePrayersSheet = false }
+            )
         }
     }
 }
@@ -696,6 +717,7 @@ private fun FocalSpotlightCard(
     headingFontFamily: FontFamily,
     bodyFontFamily: FontFamily,
     onTodayStatsClick: () -> Unit,
+    onExpandFivePrayers: () -> Unit = {},
     onToggleCompleted: () -> Unit,
     onCycleAlarmMode: () -> Unit
 ) {
@@ -729,7 +751,7 @@ private fun FocalSpotlightCard(
                     doubleBorder = false
                 )
                 .clip(RoundedCornerShape(22.dp))
-                .clickable(onClick = onTodayStatsClick)
+                .clickable(onClick = onExpandFivePrayers)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.bg_parchment_card),
@@ -738,7 +760,7 @@ private fun FocalSpotlightCard(
                 modifier = Modifier.matchParentSize()
             )
             Column(
-                modifier = Modifier.padding(top = 9.dp, bottom = 20.dp, start = 18.dp, end = 18.dp),
+                modifier = Modifier.padding(top = 7.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
@@ -760,6 +782,20 @@ private fun FocalSpotlightCard(
                             .background(SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.10f))
                             .clickable(onClick = onTodayStatsClick)
                             .padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+
+                    Text(
+                        text = "الصلوات الخمس ▾",
+                        color = SakinaOrbitalColors.MutedGoldText,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = bodyFontFamily,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.16f))
+                            .border(0.7.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
+                            .clickable(onClick = onExpandFivePrayers)
+                            .padding(horizontal = 9.dp, vertical = 3.dp)
                     )
 
                     Row(
@@ -823,7 +859,7 @@ private fun FocalSpotlightCard(
                 Text(
                     text = if (isNextPrayer) countdownText else prayer.timeText,
                     color = SakinaOrbitalColors.InkNavy,
-                    fontSize = 29.sp,
+                    fontSize = 25.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = bodyFontFamily,
                     style = TextStyle(fontFeatureSettings = "tnum"),
@@ -1044,4 +1080,195 @@ private fun DrawScope.drawCalendarVector(tint: Color) {
     drawLine(tint, Offset(w * 0.14f, h * 0.42f), Offset(w * 0.86f, h * 0.42f), strokeWidth = stroke)
     drawLine(tint, Offset(w * 0.34f, h * 0.12f), Offset(w * 0.34f, h * 0.28f), strokeWidth = stroke)
     drawLine(tint, Offset(w * 0.66f, h * 0.12f), Offset(w * 0.66f, h * 0.28f), strokeWidth = stroke)
+}
+
+@Composable
+private fun FivePrayersExpandedModal(
+    prayers: List<OrbitalPrayerNode>,
+    nextPrayerIndex: Int,
+    countdownText: String,
+    headingFontFamily: FontFamily,
+    bodyFontFamily: FontFamily,
+    onCycleAlarmMode: (PrayerType) -> Unit,
+    onSelectPrayer: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // حالات التبديل الرباعية لكل صلاة (أذان كامل · تكبير · اهتزاز · صامت)
+    val quadModes = remember(prayers) {
+        androidx.compose.runtime.mutableStateMapOf<PrayerType, Int>().apply {
+            for (p in prayers) {
+                this[p.type] = when (p.alarmMode) {
+                    PrayerAlarmMode.ADHAN -> 0
+                    PrayerAlarmMode.NOTIFICATION -> 1
+                    PrayerAlarmMode.SILENT -> 3
+                }
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xCC030A14))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onDismiss
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .widthIn(max = 400.dp)
+                .sakinaLuxuryGlassCard(cornerRadius = 24.dp, borderAlpha = 0.85f)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {}
+                )
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "مواقيت الصلوات الخمس",
+                    style = TextStyle(
+                        brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = headingFontFamily
+                    )
+                )
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.75f))
+                        .border(0.8.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.75f), CircleShape)
+                        .clickable(onClick = onDismiss),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "✕",
+                        color = SakinaLuxuryColors.SoftGoldGlow,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            for (idx in prayers.indices) {
+                val item = prayers[idx]
+                val isNext = idx == nextPrayerIndex
+                val qMode = quadModes[item.type] ?: 0
+                val modeLabel = when (qMode) {
+                    0 -> "أذان كامل"
+                    1 -> "تكبير"
+                    2 -> "اهتزاز"
+                    else -> "صامت"
+                }
+                val modeColor = when (qMode) {
+                    0 -> SakinaLuxuryColors.SoftGoldGlow
+                    1 -> SakinaLuxuryColors.EmeraldGlow
+                    2 -> SakinaOrbitalColors.ChampagneGold
+                    else -> Color(0xFF9CA3AF)
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(if (isNext) 18.dp else 14.dp))
+                        .background(
+                            if (isNext) {
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.96f),
+                                        Color(0xFF145340),
+                                        SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.96f)
+                                    )
+                                )
+                            } else {
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        SakinaOrbitalColors.GlassNavy.copy(alpha = 0.82f),
+                                        SakinaOrbitalColors.GlassNavy.copy(alpha = 0.68f)
+                                    )
+                                )
+                            }
+                        )
+                        .border(
+                            width = if (isNext) 1.5.dp else 0.9.dp,
+                            brush = SakinaLuxuryPalette.MetallicGoldButtonBrush,
+                            shape = RoundedCornerShape(if (isNext) 18.dp else 14.dp)
+                        )
+                        .clickable { onSelectPrayer(idx) }
+                        .padding(
+                            horizontal = if (isNext) 14.dp else 12.dp,
+                            vertical = if (isNext) 13.dp else 9.dp
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (isNext) "✦ ${item.localizedName} (القادمة)" else item.localizedName,
+                            color = if (isNext) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream,
+                            fontSize = if (isNext) 15.5.sp else 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = headingFontFamily
+                        )
+                        if (isNext) {
+                            Text(
+                                text = "المتبقي: $countdownText",
+                                color = SakinaLuxuryColors.EmeraldGlow,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                fontFamily = bodyFontFamily,
+                                style = TextStyle(fontFeatureSettings = "tnum")
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = item.timeText,
+                        color = if (isNext) Color.White else SakinaLuxuryColors.SoftGoldGlow,
+                        fontSize = if (isNext) 17.sp else 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = bodyFontFamily,
+                        style = TextStyle(fontFeatureSettings = "tnum"),
+                        modifier = Modifier.padding(horizontal = 10.dp)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(Color(0x6606101F))
+                            .border(0.8.dp, modeColor.copy(alpha = 0.72f), RoundedCornerShape(50))
+                            .clickable {
+                                val nextM = (qMode + 1) % 4
+                                quadModes[item.type] = nextM
+                                onCycleAlarmMode(item.type)
+                            }
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = modeLabel,
+                            color = modeColor,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = bodyFontFamily,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
