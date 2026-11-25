@@ -705,8 +705,21 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             },
                                             CelestialPortalItem(sakinaTr(currentLang, "أقرب المساجد", "Nearby Mosques", "Mosquées", "Camiler", "Masjid", "قریبی مساجد"), R.drawable.ic_sakina_mosque) {
                                                 try {
-                                                    val uri = android.net.Uri.parse("geo:0,0?q=mosque")
-                                                    ctx.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                                    val coords = Place.coords(ctx)
+                                                    val lat = coords.latitude
+                                                    val lon = coords.longitude
+                                                    val q = android.net.Uri.encode("مسجد")
+                                                    val mapUri = android.net.Uri.parse("geo:$lat,$lon?q=$q")
+                                                    val mapIntent = Intent(Intent.ACTION_VIEW, mapUri).apply {
+                                                        setPackage("com.google.android.apps.maps")
+                                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                    }
+                                                    try {
+                                                        ctx.startActivity(mapIntent)
+                                                    } catch (_: Exception) {
+                                                        val webUri = android.net.Uri.parse("https://www.google.com/maps/search/$q/@$lat,$lon,15z")
+                                                        ctx.startActivity(Intent(Intent.ACTION_VIEW, webUri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                                    }
                                                 } catch (_: Exception) {}
                                             }
                                         ),
@@ -945,7 +958,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
             val notifOk = remember(showDiagnostics) { nm.areNotificationsEnabled() }
 
             AlertDialog(
-                onDismissRequest = { showDiagnostics = false },
+                onDismissRequest = { showDiagnostics = false; celestialHubMode = CelestialHubMode.SETTINGS },
                 containerColor = effectiveTheme.bgCard,
                 title = {
                     Text(
@@ -1121,7 +1134,7 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                     }
                 },
                 confirmButton = {
-                    SakinaBackIconButton(onClick = { showDiagnostics = false })
+                    SakinaBackIconButton(onClick = { showDiagnostics = false; celestialHubMode = CelestialHubMode.SETTINGS })
                 }
             )
         }

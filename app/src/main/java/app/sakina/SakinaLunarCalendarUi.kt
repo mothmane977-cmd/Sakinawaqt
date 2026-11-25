@@ -532,7 +532,7 @@ private fun MonthlyCalendarGlassCard(
                                 verticalArrangement = Arrangement.Center,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .aspectRatio(1.08f)
+                                    .height(44.dp)
                                     .padding(2.dp)
                                     .clip(RoundedCornerShape(10.dp))
                                     .then(
@@ -555,7 +555,7 @@ private fun MonthlyCalendarGlassCard(
                                     fontSize = 13.sp,
                                     fontWeight = if (isSelected || cell.isToday || cell.isFriday) FontWeight.Bold else FontWeight.Normal,
                                     fontFamily = bodyFontFamily,
-                                    style = TextStyle(fontFeatureSettings = "tnum")
+                                    style = TextStyle(fontFeatureSettings = "tnum", platformStyle = PlatformTextStyle(includeFontPadding = false))
                                 )
 
                                 // v52 #3: كلمة «صيام» مباشرة بدون صندوق ضاغط لتظهر واضحة ومقروءة 100%

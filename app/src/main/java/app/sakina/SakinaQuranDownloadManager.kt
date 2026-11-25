@@ -111,6 +111,69 @@ object SakinaQuranDownloadManager {
             nameEn = "Yassin Al-Jazaery (Warsh)",
             riwaya = QuranRiwaya.WARSH,
             serverUrl = "https://server11.mp3quran.net/qari/"
+        ),
+        QuranReciter(
+            id = "yasser",
+            nameAr = "ياسر الدوسري",
+            nameEn = "Yasser Al-Dosari",
+            riwaya = QuranRiwaya.HAFS,
+            serverUrl = "https://server11.mp3quran.net/yasser/"
+        ),
+        QuranReciter(
+            id = "qtm",
+            nameAr = "ناصر القطامي",
+            nameEn = "Nasser Al-Qatami",
+            riwaya = QuranRiwaya.HAFS,
+            serverUrl = "https://server6.mp3quran.net/qtm/"
+        ),
+        QuranReciter(
+            id = "minsh",
+            nameAr = "محمد صديق المنشاوي",
+            nameEn = "Muhammad Siddiq Al-Minshawi",
+            riwaya = QuranRiwaya.HAFS,
+            serverUrl = "https://server10.mp3quran.net/minsh/"
+        ),
+        QuranReciter(
+            id = "ghamdi",
+            nameAr = "سعد الغامدي",
+            nameEn = "Saad Al-Ghamdi",
+            riwaya = QuranRiwaya.HAFS,
+            serverUrl = "https://server7.mp3quran.net/s_gmd/"
+        ),
+        QuranReciter(
+            id = "shur",
+            nameAr = "سعود الشريم",
+            nameEn = "Saud Al-Shuraim",
+            riwaya = QuranRiwaya.HAFS,
+            serverUrl = "https://server7.mp3quran.net/shur/"
+        ),
+        QuranReciter(
+            id = "frs_a",
+            nameAr = "فارس عباد",
+            nameEn = "Fares Abbad",
+            riwaya = QuranRiwaya.HAFS,
+            serverUrl = "https://server8.mp3quran.net/frs_a/"
+        ),
+        QuranReciter(
+            id = "islam",
+            nameAr = "إسلام صبحي",
+            nameEn = "Islam Sobhi",
+            riwaya = QuranRiwaya.HAFS,
+            serverUrl = "https://server14.mp3quran.net/islam/Rewayat-Hafs-A-n-Assem/"
+        ),
+        QuranReciter(
+            id = "soufi_warsh",
+            nameAr = "عبد الرشيد صوفي (ورش)",
+            nameEn = "Abdulrashid Soufi (Warsh)",
+            riwaya = QuranRiwaya.WARSH,
+            serverUrl = "https://server16.mp3quran.net/soufi/Rewayat-Warsh-A-n-Nafi/"
+        ),
+        QuranReciter(
+            id = "ibrahim_dosari_warsh",
+            nameAr = "إبراهيم الدوسري (ورش)",
+            nameEn = "Ibrahim Al-Dosari (Warsh)",
+            riwaya = QuranRiwaya.WARSH,
+            serverUrl = "https://server10.mp3quran.net/ibrahim_dosri/Rewayat-Warsh-A-n-Nafi/"
         )
     )
 

@@ -369,8 +369,10 @@ fun SakinaCalendarScreen(ctx: Context, modifier: Modifier = Modifier) {
             }
             val hM = cellHijri.get(IslamicCalendar.MONTH)
             val hD = cellHijri.get(IslamicCalendar.DAY_OF_MONTH)
-            val isFri = cellCal.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY
-            val isWhite = hD in 13..15
+            val dow = cellCal.get(Calendar.DAY_OF_WEEK)
+            val isFri = dow == Calendar.FRIDAY
+            val isMonThu = dow == Calendar.MONDAY || dow == Calendar.THURSDAY
+            val isWhite = hD in 13..15 || isMonThu
             val occ: String? = when {
                 hM == IslamicCalendar.MUHARRAM && hD == 1 -> sakinaTr(lang, "رأس السنة الهجرية", "Islamic New Year", "Nouvel An Hégirien", "Hicri Yılbaşı", "Tahun Baru Hijriah", "نیا ہجری سال")
                 hM == IslamicCalendar.MUHARRAM && hD == 10 -> sakinaTr(lang, "يوم عاشوراء", "Day of Ashura", "Jour d'Achoura", "Aşure Günü", "Hari Asyura", "یوم عاشورہ")

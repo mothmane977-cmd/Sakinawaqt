@@ -182,7 +182,7 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                 cornerRadius = 18.dp,
                 onClick = { expandLiveNotif = !expandLiveNotif }
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(sakinaTr(lang, "الإشعارات الصامتة وشريط الصلاة الحي", "Silent & Live Notifications", "Notifications silencieuses", "Sessiz Bildirimler", "Notifikasi Senyap", "خاموش اطلاعات"), fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaLuxuryColors.SoftGoldGlow)
                         Text(if (expandLiveNotif) "▴" else "▾", color = SakinaLuxuryColors.SoftGoldGlow, fontSize = 15.sp)
@@ -212,7 +212,7 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                 cornerRadius = 18.dp,
                 onClick = { expandSpiritualReminders = !expandSpiritualReminders }
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(sakinaTr(lang, "التذكيرات الروحانية والمناسبات", "Spiritual Reminders", "Rappels spirituels", "Manevi Hatırlatıcılar", "Pengingat Ibadah", "روحانی یاد دہانیاں"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaLuxuryColors.SoftGoldGlow)
                         Text(if (expandSpiritualReminders) "▴" else "▾", color = SakinaLuxuryColors.SoftGoldGlow, fontSize = 15.sp)
