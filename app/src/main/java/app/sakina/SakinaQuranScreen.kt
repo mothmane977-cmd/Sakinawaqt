@@ -481,7 +481,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier, onReaderActiv
             SakinaV45StatsPrefs.isPageBookmarked(ctx, currentPage)
         },
         onToggleBookmark = {
-            val sNum = surahNumberForPage(currentPage)
+            val sNum = surahForMushafPage(currentPage)
             val sName = SURAH_NAMES_AR.getOrElse(sNum - 1) { "ص $currentPage" }
             SakinaV45StatsPrefs.toggleBookmark(ctx, currentPage, sName)
             bookmarkTick++
