@@ -178,44 +178,21 @@ fun SakinaJewelSwitch(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val thumbOffset by animateDpAsState(
-        targetValue = if (checked) 24.dp else 2.dp,
-        animationSpec = tween(220),
-        label = "jewelSwitch"
-    )
-    val trackColor by animateColorAsState(
-        targetValue = if (checked) SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.35f)
-        else SakinaLuxuryColors.MidnightNavy.copy(alpha = 0.85f),
-        label = "switchTrack"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = if (checked) SakinaLuxuryColors.SoftGoldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.30f),
-        label = "switchBorder"
-    )
-
     Box(
         modifier = modifier
-            .width(50.dp)
-            .height(28.dp)
+            .width(66.dp)
+            .height(31.dp)
             .clip(RoundedCornerShape(50))
-            .background(trackColor)
-            .border(1.dp, borderColor, RoundedCornerShape(50))
-            .clickable { onCheckedChange(!checked) }
-            .padding(2.dp),
-        contentAlignment = Alignment.CenterStart
+            .clickable { onCheckedChange(!checked) },
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .offset(x = thumbOffset)
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(
-                    if (checked) Brush.radialGradient(
-                        listOf(Color.White, SakinaLuxuryColors.SoftGoldGlow, SakinaLuxuryColors.ChampagneGold)
-                    ) else Brush.radialGradient(
-                        listOf(Color(0xFF9FB0C3), Color(0xFF475A6E))
-                    )
-                )
+        Image(
+            painter = painterResource(
+                id = if (checked) R.drawable.switch_gold_on_bg else R.drawable.switch_gold_off_bg
+            ),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize()
         )
     }
 }
@@ -443,10 +420,10 @@ fun SakinaLuxuryFloatingDock(
 ) {
     Box(
         modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
             .fillMaxWidth()
-            .height(66.dp)
-            .clip(RoundedCornerShape(33.dp))
+            .height(74.dp)
+            .clip(RoundedCornerShape(37.dp))
             .background(
                 Brush.verticalGradient(
                     listOf(
@@ -530,18 +507,30 @@ fun SakinaLuxuryFloatingDock(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(
-                            painter = painterResource(id = tab.iconRes),
-                            contentDescription = tab.label,
-                            tint = iconTint,
-                            modifier = Modifier.size(21.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(if (selected) 38.dp else 32.dp)
+                                .clip(CircleShape)
+                                .border(
+                                    width = if (selected) 1.4.dp else 0.7.dp,
+                                    color = if (selected) SakinaLuxuryColors.SoftGoldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.45f),
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = tab.iconRes),
+                                contentDescription = tab.label,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
                             text = tab.label,
                             color = iconTint,
-                            fontSize = 10.sp,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 10.5.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                             maxLines = 1
                         )
                     }
@@ -585,22 +574,19 @@ fun SakinaMihrabRibbonItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // الميدالية الذهبية المصقولة بالأيقونة الدلالية الخاصة بكل وظيفة
+            // v54-2: الميدالية الذهبية ثلاثية الأبعاد الحقيقية الخاصة بكل وظيفة
             Box(
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .border(1.0.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.72f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_gold_medallion_btn),
+                    painter = painterResource(id = iconRes),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
-                )
-                Icon(
-                    painter = painterResource(id = iconRes),
-                    contentDescription = null,
-                    tint = SakinaLuxuryColors.SoftGoldGlow,
-                    modifier = Modifier.size(20.dp)
                 )
             }
 

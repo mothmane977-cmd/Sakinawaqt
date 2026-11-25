@@ -681,29 +681,29 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         mode = celestialHubMode,
                                         lang = currentLang,
                                         worshipPortals = listOf(
-                                            CelestialPortalItem(s.adhkarTitle, R.drawable.ic_sakina_tasbih) {
+                                            CelestialPortalItem(s.adhkarTitle, R.drawable.ic_3d_tasbih) {
                                                 adhkarInitCat = null; extraSection = ExtraSection.ADHKAR
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "الأدعية المأثورة", "Duas", "Invocations", "Dualar", "Doa", "دعائیں"), R.drawable.ic_sakina_lantern) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "الأدعية المأثورة", "Duas", "Invocations", "Dualar", "Doa", "دعائیں"), R.drawable.ic_3d_lantern) {
                                                 extraSection = ExtraSection.DUAS
                                             },
-                                            CelestialPortalItem(s.ruqyahTitle, R.drawable.ic_sakina_shield) {
+                                            CelestialPortalItem(s.ruqyahTitle, R.drawable.ic_3d_star_geo) {
                                                 extraSection = ExtraSection.RUQYAH
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "أسماء الله الحسنى", "99 Names", "99 Noms", "Esmaül Hüsna", "Asmaul Husna", "اسماء الحسنیٰ"), R.drawable.ic_sakina_lantern) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "أسماء الله الحسنى", "99 Names", "99 Noms", "Esmaül Hüsna", "Asmaul Husna", "اسماء الحسنیٰ"), R.drawable.ic_3d_sunrise) {
                                                 extraSection = ExtraSection.NAMES_OF_ALLAH
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "إنجازي والصيام", "My Progress & Fast", "Progrès & Jeûne", "İlerleme & Oruç", "Progres & Puasa", "عبادات اور روزہ"), R.drawable.ic_sakina_calendar) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "إنجازي والصيام", "My Progress & Fast", "Progrès & Jeûne", "İlerleme & Oruç", "Progres & Puasa", "عبادات اور روزہ"), R.drawable.ic_3d_calendar_crescent) {
                                                 extraSection = ExtraSection.WORSHIP_STATS
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "سكينة القلب", "Heart Card Studio", "Carte Sakina", "Kalp Kartı", "Kartu Sakina", "سکینہ کارڈ"), R.drawable.ic_sakina_tasbih) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "سكينة القلب", "Heart Card Studio", "Carte Sakina", "Kalp Kartı", "Kartu Sakina", "سکینہ کارڈ"), R.drawable.ic_3d_lantern) {
                                                 lastHubMode = CelestialHubMode.WORSHIP
                                                 extraSection = ExtraSection.HEART_CARD
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "السنن اليومية", "Daily Sunnah", "Sunna", "Sünnetler", "Sunnah", "سنن"), R.drawable.ic_sakina_clock) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "السنن اليومية", "Daily Sunnah", "Sunna", "Sünnetler", "Sunnah", "سنن"), R.drawable.ic_3d_quran_stand) {
                                                 extraSection = ExtraSection.SUNNAH
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "أقرب المساجد", "Nearby Mosques", "Mosquées", "Camiler", "Masjid", "قریبی مساجد"), R.drawable.ic_sakina_mosque) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "أقرب المساجد", "Nearby Mosques", "Mosquées", "Camiler", "Masjid", "قریبی مساجد"), R.drawable.ic_3d_mosque) {
                                                 try {
                                                     val coords = Place.coords(ctx)
                                                     val lat = coords.latitude
@@ -724,19 +724,19 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                             }
                                         ),
                                         settingsPortals = listOf(
-                                            CelestialPortalItem(sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres", "Ayarlar", "Pengaturan", "ترتیبات"), R.drawable.ic_sakina_settings) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres", "Ayarlar", "Pengaturan", "ترتیبات"), R.drawable.ic_3d_settings_gear) {
                                                 lastHubMode = CelestialHubMode.SETTINGS; extraSection = ExtraSection.SETTINGS
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "الأذان والمنبهات", "Adhan & Alarms", "Adhan & Alarmes", "Ezan Alarmları", "Adzan & Alarm", "اذان الارم"), R.drawable.ic_sakina_clock) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "الأذان والمنبهات", "Adhan & Alarms", "Adhan & Alarmes", "Ezan Alarmları", "Adzan & Alarm", "اذان الارم"), R.drawable.ic_3d_mic) {
                                                 lastHubMode = CelestialHubMode.SETTINGS; extraSection = ExtraSection.ALARM
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "الإشعارات الصامتة", "Quiet Notifications", "Notifications", "Bildirimler", "Notifikasi", "اطلاعات"), R.drawable.ic_sakina_lantern) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "الإشعارات الصامتة", "Quiet Notifications", "Notifications", "Bildirimler", "Notifikasi", "اطلاعات"), R.drawable.ic_3d_bell) {
                                                 lastHubMode = CelestialHubMode.SETTINGS; extraSection = ExtraSection.NOTIFICATIONS
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "تشخيص الموثوقية", "Diagnostics", "Diagnostic", "Tanılama", "Diagnostik", "تشخیص"), R.drawable.ic_sakina_shield) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "تشخيص الموثوقية", "Diagnostics", "Diagnostic", "Tanılama", "Diagnostik", "تشخیص"), R.drawable.ic_3d_star_geo) {
                                                 showDiagnostics = true
                                             },
-                                            CelestialPortalItem(sakinaTr(currentLang, "مشاركة سَكِينة", "Share Sakina", "Partager", "Paylaş", "Bagikan", "شیئر کریں"), R.drawable.ic_sakina_share) {
+                                            CelestialPortalItem(sakinaTr(currentLang, "مشاركة سَكِينة", "Share Sakina", "Partager", "Paylaş", "Bagikan", "شیئر کریں"), R.drawable.ic_3d_kaaba) {
                                                 SakinaAdvancedPrefs.shareApp(ctx, currentLang)
                                             }
                                         ),

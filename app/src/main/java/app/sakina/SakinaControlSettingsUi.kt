@@ -1,5 +1,7 @@
 package app.sakina
 
+import androidx.annotation.DrawableRes
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -266,6 +268,7 @@ fun SakinaControlSettingsScreen(
                     isExpanded = expandedModule == SettingsModuleId.APPEARANCE,
                     headingFontFamily = headingFontFamily,
                     bodyFontFamily = bodyFontFamily,
+                    iconRes = R.drawable.ic_3d_star_geo,
                     iconDraw = { drawPaletteVector(SakinaOrbitalColors.ChampagneGold) },
                     onHeaderClick = {
                         expandedModule = if (expandedModule == SettingsModuleId.APPEARANCE) null else SettingsModuleId.APPEARANCE
@@ -351,6 +354,7 @@ fun SakinaControlSettingsScreen(
                     isExpanded = expandedModule == SettingsModuleId.PRAYER_CALC,
                     headingFontFamily = headingFontFamily,
                     bodyFontFamily = bodyFontFamily,
+                    iconRes = R.drawable.ic_3d_mosque,
                     iconDraw = { drawCompassSettingsVector(SakinaOrbitalColors.ChampagneGold) },
                     onHeaderClick = {
                         expandedModule = if (expandedModule == SettingsModuleId.PRAYER_CALC) null else SettingsModuleId.PRAYER_CALC
@@ -404,6 +408,7 @@ fun SakinaControlSettingsScreen(
                     isExpanded = expandedModule == SettingsModuleId.ADHAN_ALERTS,
                     headingFontFamily = headingFontFamily,
                     bodyFontFamily = bodyFontFamily,
+                    iconRes = R.drawable.ic_3d_bell,
                     iconDraw = { drawBellWaveVector(SakinaOrbitalColors.ChampagneGold) },
                     onHeaderClick = {
                         expandedModule = if (expandedModule == SettingsModuleId.ADHAN_ALERTS) null else SettingsModuleId.ADHAN_ALERTS
@@ -449,6 +454,7 @@ fun SakinaControlSettingsScreen(
                     isExpanded = expandedModule == SettingsModuleId.BACKUP_PRIVACY,
                     headingFontFamily = headingFontFamily,
                     bodyFontFamily = bodyFontFamily,
+                    iconRes = R.drawable.ic_3d_settings_gear,
                     iconDraw = { drawShieldCheckVector(SakinaOrbitalColors.ChampagneGold) },
                     onHeaderClick = {
                         expandedModule = if (expandedModule == SettingsModuleId.BACKUP_PRIVACY) null else SettingsModuleId.BACKUP_PRIVACY
@@ -614,7 +620,8 @@ private fun ExpandableControlModule(
     isExpanded: Boolean,
     headingFontFamily: FontFamily,
     bodyFontFamily: FontFamily,
-    iconDraw: DrawScope.() -> Unit,
+    @DrawableRes iconRes: Int? = null,
+    iconDraw: DrawScope.() -> Unit = {},
     onHeaderClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
@@ -643,17 +650,29 @@ private fun ExpandableControlModule(
                     modifier = Modifier.weight(1f)
                 ) {
                     Box(
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .border(1.0.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.72f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_gold_medallion_btn),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        Canvas(modifier = Modifier.size(18.dp)) {
-                            iconDraw()
+                        if (iconRes != null) {
+                            Image(
+                                painter = painterResource(id = iconRes),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_gold_medallion_btn),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Canvas(modifier = Modifier.size(18.dp)) {
+                                iconDraw()
+                            }
                         }
                     }
                     Spacer(modifier = Modifier.width(12.dp))

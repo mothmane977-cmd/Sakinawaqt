@@ -618,11 +618,19 @@ private fun OrbitalPrayerDial(
             )
         }
 
+        // v54-2: قرص الهلال الذهبي المصقول ثلاثي الأبعاد خلف مدار الصلوات
+        Image(
+            painter = painterResource(id = R.drawable.bg_home_crescent_dial_3d),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(214.dp)
+        )
+
         // مجسّم الكعبة ثلاثي الأبعاد الحقيقي بالكسوة والحزام الذهبي المتوهج
         Image(
             painter = painterResource(id = R.drawable.ic_kaaba_3d),
             contentDescription = null,
-            modifier = Modifier.size(72.dp)
+            modifier = Modifier.size(68.dp)
         )
 
         for (index in prayers.indices) {
@@ -931,24 +939,28 @@ private fun FocalSpotlightCard(
                                 2 -> SakinaOrbitalColors.ChampagneGold
                                 else -> Color(0xFF9CA3AF)
                             }
-                            Row(
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(if (isNext) 14.dp else 11.dp))
-                                    .background(
-                                        if (isNext) SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.88f)
-                                        else Color(0x4406101F)
-                                    )
-                                    .border(
-                                        width = if (isNext) 1.2.dp else 0.7.dp,
-                                        brush = SakinaLuxuryPalette.MetallicGoldButtonBrush,
-                                        shape = RoundedCornerShape(if (isNext) 14.dp else 11.dp)
-                                    )
-                                    .clickable { onSelectPrayerFromList(idx) }
-                                    .padding(horizontal = 10.dp, vertical = if (isNext) 9.dp else 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                    .height(if (isNext) 46.dp else 40.dp)
+                                    .clickable { onSelectPrayerFromList(idx) },
+                                contentAlignment = Alignment.Center
                             ) {
+                                Image(
+                                    painter = painterResource(
+                                        id = if (isNext) R.drawable.bg_prayer_row_active_emerald_3d else R.drawable.bg_prayer_row_gold_3d
+                                    ),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.FillBounds,
+                                    modifier = Modifier.matchParentSize()
+                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 24.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
                                 Text(
                                     text = if (isNext) "✦ ${item.localizedName}" else item.localizedName,
                                     color = if (isNext) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream,
@@ -981,6 +993,7 @@ private fun FocalSpotlightCard(
                                         }
                                         .padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
+                                }
                             }
                         }
                     }
@@ -1039,10 +1052,10 @@ fun LiquidDynamicDock(
     modifier: Modifier = Modifier
 ) {
     val dockTabs = listOf(
-        SakinaDockTab("0", strings.tabHome, R.drawable.ic_sakina_home),
-        SakinaDockTab("1", strings.tabQibla, R.drawable.ic_sakina_qibla),
-        SakinaDockTab("2", strings.tabQuran, R.drawable.ic_sakina_quran),
-        SakinaDockTab("3", strings.tabCalendar, R.drawable.ic_sakina_calendar)
+        SakinaDockTab("0", strings.tabHome, R.drawable.ic_3d_mosque),
+        SakinaDockTab("1", strings.tabQibla, R.drawable.ic_3d_qibla_compass),
+        SakinaDockTab("2", strings.tabQuran, R.drawable.ic_3d_quran_stand),
+        SakinaDockTab("3", strings.tabCalendar, R.drawable.ic_3d_calendar_crescent)
     )
     SakinaLuxuryFloatingDock(
         tabs = dockTabs,
