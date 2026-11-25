@@ -291,11 +291,19 @@ fun SakinaStarMedallionBadge(
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
+        val scaledSp = when {
+            numberText.length <= 1 -> 13.sp
+            numberText.length == 2 -> 10.5.sp
+            else -> 8.5.sp
+        }
         Text(
             text = numberText,
             color = SakinaLuxuryColors.SoftGoldGlow,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = scaledSp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            softWrap = false,
+            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
         )
     }
 }

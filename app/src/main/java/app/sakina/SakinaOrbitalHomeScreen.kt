@@ -310,7 +310,11 @@ fun SakinaOrbitalHomeScreen(
                 },
                 onToggleCompleted = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    val willBeCompleted = !focusedPrayer.isCompleted
                     onTogglePrayerCompleted(focusedPrayer.type)
+                    if (willBeCompleted && state.prayers.isNotEmpty()) {
+                        focusedIndex = (focusedIndex + 1) % state.prayers.size
+                    }
                 },
                 onCycleAlarmMode = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -761,60 +765,64 @@ private fun FocalSpotlightCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp, bottom = 10.dp, start = 20.dp, end = 20.dp),
+                    .padding(top = 24.dp, bottom = 24.dp, start = 22.dp, end = 22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // شريط علوي رفيع مدمج بفواصل ذهبية شعرية بدل الأزرار البيضاوية المنفصلة
+                // v52 #1: ثلاثة أزرار كبسولية فاخرة مذهّبة الحواف داخل الإطار الآمن بعيداً عن الزخارف
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = strings.todayProgressFormat.format(completedCount, totalPrayers),
-                        color = SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.90f),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        color = SakinaLuxuryColors.SoftGoldGlow,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
                         fontFamily = bodyFontFamily,
                         style = TextStyle(fontFeatureSettings = "tnum"),
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(50))
+                            .background(Color(0x99061726))
+                            .border(0.85.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
                             .clickable(onClick = onTodayStatsClick)
-                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .padding(horizontal = 9.dp, vertical = 4.dp)
                     )
 
                     Text(
                         text = if (isExpanded) "الصلوات الخمس ▴" else "الصلوات الخمس ▾",
                         color = SakinaLuxuryColors.SoftGoldGlow,
-                        fontSize = 11.5.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = headingFontFamily,
+                        fontFamily = bodyFontFamily,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(50))
+                            .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.85f))
+                            .border(1.0.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
                             .clickable(onClick = onExpandFivePrayers)
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                            .padding(horizontal = 11.dp, vertical = 4.dp)
                     )
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(50))
+                            .background(Color(0x99061726))
+                            .border(0.85.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
                             .clickable(onClick = onCycleAlarmMode)
-                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .padding(horizontal = 9.dp, vertical = 4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Notifications,
                             contentDescription = null,
                             tint = SakinaLuxuryColors.SoftGoldGlow,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.size(3.dp))
                         Text(
                             text = alarmLabel,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
                             fontFamily = bodyFontFamily,
                             color = SakinaLuxuryColors.SoftGoldGlow
                         )

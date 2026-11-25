@@ -264,7 +264,13 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     }
 
     fun returnFromExtra() {
-        val prevHub = lastHubMode
+        val prevSection = extraSection
+        val prevHub = when {
+            lastHubMode != CelestialHubMode.NONE -> lastHubMode
+            prevSection in setOf(ExtraSection.SETTINGS, ExtraSection.ALARM, ExtraSection.NOTIFICATIONS, ExtraSection.APPEARANCE) -> CelestialHubMode.SETTINGS
+            prevSection != ExtraSection.NONE -> CelestialHubMode.WORSHIP
+            else -> CelestialHubMode.NONE
+        }
         extraSection = ExtraSection.NONE
         openedFromRightDrawer = false
         openedFromLeftDrawer = false

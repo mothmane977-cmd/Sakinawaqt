@@ -16,6 +16,7 @@ import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.IconCompat
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -63,6 +64,34 @@ object SakinaLiveNotifier {
             }
             receiverRegistered = true
         } catch (_: Exception) {}
+    }
+
+
+    private fun renderLiveCountdownStatusIcon(remMinTotal: Long, isArabic: Boolean): IconCompat {
+        val size = 64
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = 4.2f
+        }
+        c.drawRoundRect(RectF(4f, 4f, size - 4f, size - 4f), 16f, 16f, ring)
+
+        val label = when {
+            remMinTotal < 60L -> "${remMinTotal.coerceAtLeast(1L)}" + if (isArabic) "د" else "m"
+            else -> "${(remMinTotal / 60L).coerceAtMost(9L)}" + if (isArabic) "س" else "h"
+        }
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            textSize = if (label.length >= 3) 26f else 31f
+        }
+        val fm = tp.fontMetrics
+        val baseline = size * 0.5f - (fm.ascent + fm.descent) * 0.5f
+        c.drawText(label, size * 0.5f, baseline, tp)
+        return IconCompat.createWithBitmap(bmp)
     }
 
     private fun activeLang(ctx: Context): SakinaLang {
@@ -522,7 +551,14 @@ object SakinaLiveNotifier {
             )
 
             val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_stat_sakina)
+                .apply {
+                    val showCountdownIcon = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && (calNow.get(Calendar.MINUTE) % 2 == 1)
+                    if (showCountdownIcon) {
+                        setSmallIcon(renderLiveCountdownStatusIcon(remMinTotal, lang == SakinaLang.AR || lang == SakinaLang.UR))
+                    } else {
+                        setSmallIcon(R.drawable.ic_stat_sakina)
+                    }
+                }
                 .setContentTitle(styledTitle)
                 .setContentText(styledSub)
                 .setStyle(

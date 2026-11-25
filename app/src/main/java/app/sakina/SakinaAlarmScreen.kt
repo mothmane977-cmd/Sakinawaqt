@@ -121,7 +121,8 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(if (sel) theme.accentGold else Color.Transparent)
+                        .background(if (sel) SakinaLuxuryColors.DeepEmerald else Color.Transparent)
+                            .border(if (sel) 1.dp else 0.dp, if (sel) SakinaLuxuryColors.SoftGoldGlow else Color.Transparent, RoundedCornerShape(12.dp))
                         .clickable { alarmTab = idx }
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
@@ -131,7 +132,7 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                         fontFamily = SakinaEditorialFont,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.5.sp,
-                        color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory
+                        color = if (sel) SakinaLuxuryColors.SoftGoldGlow else SakinaBrandColors.LuminousIvory.copy(alpha = 0.72f)
                     )
                 }
             }
@@ -153,7 +154,8 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(11.dp))
-                            .background(if (sel) theme.accentBright else Color.Transparent)
+                            .background(if (sel) SakinaLuxuryColors.DeepEmerald else Color.Transparent)
+                            .border(if (sel) 1.dp else 0.dp, if (sel) SakinaLuxuryColors.SoftGoldGlow else Color.Transparent, RoundedCornerShape(11.dp))
                             .clickable { alarmSubTab = idx }
                             .padding(vertical = 6.dp),
                         contentAlignment = Alignment.Center
@@ -163,7 +165,7 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                             fontFamily = SakinaHeadingFont,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.5.sp,
-                            color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory
+                            color = if (sel) SakinaLuxuryColors.SoftGoldGlow else SakinaBrandColors.LuminousIvory.copy(alpha = 0.72f)
                         )
                     }
                 }
@@ -451,7 +453,7 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                             fontFamily = SakinaNumeralFont,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
-                            color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory,
+                            color = if (sel) SakinaLuxuryColors.SoftGoldGlow else SakinaBrandColors.LuminousIvory.copy(alpha = 0.72f),
                             maxLines = 1
                         )
                     }
@@ -550,7 +552,7 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
                             fontFamily = SakinaBodyFont,
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
-                            color = if (sel) theme.bgDeep else SakinaBrandColors.LuminousIvory,
+                            color = if (sel) SakinaLuxuryColors.SoftGoldGlow else SakinaBrandColors.LuminousIvory.copy(alpha = 0.72f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Center

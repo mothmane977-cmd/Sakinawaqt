@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -172,7 +173,7 @@ fun SakinaLunarCalendarScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(top = 54.dp, bottom = if (!showBottomDock) hostBottomBarReserve else 0.dp)
+                .padding(top = 46.dp, bottom = if (!showBottomDock) hostBottomBarReserve else 0.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -557,29 +558,19 @@ private fun MonthlyCalendarGlassCard(
                                     style = TextStyle(fontFeatureSettings = "tnum")
                                 )
 
-                                // شارة «صيام» المذهّبة الواضحة بدل النقطة المبهمة
+                                // v52 #3: كلمة «صيام» مباشرة بدون صندوق ضاغط لتظهر واضحة ومقروءة 100%
                                 if (cell.isCurrentMonth && (cell.isWhiteDay || cell.hasOccasion)) {
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(top = 1.dp)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(
-                                                if (isSelected) SakinaOrbitalColors.InkNavy.copy(alpha = 0.85f)
-                                                else SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.88f)
-                                            )
-                                            .border(0.6.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.85f), RoundedCornerShape(6.dp))
-                                            .padding(horizontal = 3.dp, vertical = 0.5.dp)
-                                    ) {
-                                        Text(
-                                            text = "صيام",
-                                            color = SakinaLuxuryColors.SoftGoldGlow,
-                                            fontSize = 8.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            fontFamily = bodyFontFamily
-                                        )
-                                    }
+                                    Text(
+                                        text = "صيام",
+                                        color = if (isSelected) SakinaOrbitalColors.InkNavy else SakinaLuxuryColors.SoftGoldGlow,
+                                        fontSize = 8.5.sp,
+                                        lineHeight = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        fontFamily = bodyFontFamily,
+                                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                                    )
                                 }
                             }
                         }
@@ -685,7 +676,7 @@ private fun HadithParchmentCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 26.dp, vertical = 10.dp),
+                .padding(horizontal = 24.dp, vertical = 7.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -701,11 +692,11 @@ private fun HadithParchmentCard(
             Text(
                 text = hadithText,
                 color = SakinaOrbitalColors.InkNavy,
-                fontSize = 12.sp,
-                lineHeight = 19.sp,
+                fontSize = 11.5.sp,
+                lineHeight = 17.sp,
                 fontFamily = bodyFontFamily,
                 textAlign = TextAlign.Center,
-                maxLines = 3
+                maxLines = 2
             )
             Spacer(modifier = Modifier.height(3.dp))
             Text(
