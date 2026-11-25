@@ -993,9 +993,9 @@ private fun QuranMushafReaderContent(
     )
 
     // v51 #2: التقليب الآلي للصفحات متزامناً مع تقدم المشغّل الصوتي
-    LaunchedEffect(state.player.isPlaying, state.player.currentPositionSec, state.player.totalDurationSec, state.player.surahNumber) {
+    LaunchedEffect(state.player.isPlaying, state.player.currentPositionSec, state.player.totalDurationSec, state.player.selectedSurahNumber) {
         if (state.player.isPlaying && state.player.totalDurationSec > 10) {
-            val sIdx = (state.player.surahNumber - 1).coerceIn(0, state.surahs.lastIndex.coerceAtLeast(0))
+            val sIdx = (state.player.selectedSurahNumber - 1).coerceIn(0, state.surahs.lastIndex.coerceAtLeast(0))
             val curSurah = state.surahs.getOrNull(sIdx)
             val nextSurah = state.surahs.getOrNull(sIdx + 1)
             if (curSurah != null) {
