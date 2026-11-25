@@ -1,5 +1,7 @@
 package app.sakina
 
+import androidx.compose.ui.draw.clip
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.CircleShape
 
