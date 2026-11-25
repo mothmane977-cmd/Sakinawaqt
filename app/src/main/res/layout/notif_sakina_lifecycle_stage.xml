@@ -8,37 +8,70 @@
     <ImageView
         android:id="@+id/iv_stage_backdrop"
         android:layout_width="match_parent"
-        android:layout_height="176dp"
+        android:layout_height="184dp"
         android:scaleType="centerCrop"
+        android:contentDescription="@null" />
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="184dp"
+        android:scaleType="fitXY"
+        android:alpha="0.72"
+        android:src="@drawable/bg_glass_gold_card"
         android:contentDescription="@null" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="14dp">
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp">
 
-        <TextView
-            android:id="@+id/tv_stage_title"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#FFF3DFA2"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/tv_stage_subtitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="#CCFFFFFF"
-            android:textSize="12sp" />
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="10dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_3d_mosque"
+                android:contentDescription="@null" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_stage_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#FFF7E7B4"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_stage_subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="#DDFAF6EC"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tv_stage_parchment_dhikr"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="10dp"
             android:background="@drawable/bg_notif_parchment_ribbon"
             android:gravity="center"
             android:paddingStart="12dp"
@@ -59,35 +92,35 @@
             <TextView
                 android:id="@+id/btn_stage_primary"
                 android:layout_width="0dp"
-                android:layout_height="34dp"
+                android:layout_height="35dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_notif_gold_pill"
                 android:gravity="center"
-                android:textColor="#FFF3DFA2"
+                android:textColor="#FFF7E7B4"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/btn_stage_secondary"
                 android:layout_width="0dp"
-                android:layout_height="34dp"
+                android:layout_height="35dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_notif_gold_pill"
                 android:gravity="center"
-                android:textColor="#FFF3DFA2"
+                android:textColor="#FFF7E7B4"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/btn_stage_tertiary"
                 android:layout_width="0dp"
-                android:layout_height="34dp"
+                android:layout_height="35dp"
                 android:layout_weight="1"
                 android:layout_marginStart="6dp"
                 android:background="@drawable/bg_notif_gold_pill"
                 android:gravity="center"
-                android:textColor="#FFF3DFA2"
+                android:textColor="#FFF7E7B4"
                 android:textSize="12sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
