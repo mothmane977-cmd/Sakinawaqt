@@ -253,6 +253,12 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
     val leftDrawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    BackHandler(enabled = celestialHubMode != CelestialHubMode.NONE) {
+        celestialHubMode = CelestialHubMode.NONE
+    }
+    BackHandler(enabled = extraSection != ExtraSection.NONE) {
+        returnFromExtra()
+    }
     BackHandler(enabled = rightDrawerState.isOpen || leftDrawerState.isOpen) {
         scope.launch {
             rightDrawerState.close()

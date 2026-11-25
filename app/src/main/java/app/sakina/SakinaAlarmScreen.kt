@@ -171,7 +171,69 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
         }
 
         if (alarmTab == 1) {
-            SakinaGlassCard(modifier = Modifier.fillMaxWidth()) {
+            var expandLiveNotif by remember { mutableStateOf(true) }
+            var expandSpiritualReminders by remember { mutableStateOf(true) }
+
+            // 1. بطاقة الإشعارات الصامتة المنسدلة للأسفل
+            SakinaGlowingGlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = 18.dp,
+                onClick = { expandLiveNotif = !expandLiveNotif }
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(sakinaTr(lang, "الإشعارات الصامتة وشريط الصلاة الحي", "Silent & Live Notifications", "Notifications silencieuses", "Sessiz Bildirimler", "Notifikasi Senyap", "خاموش اطلاعات"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaLuxuryColors.SoftGoldGlow)
+                        Text(if (expandLiveNotif) "▴" else "▾", color = SakinaLuxuryColors.SoftGoldGlow, fontSize = 15.sp)
+                    }
+                    androidx.compose.animation.AnimatedVisibility(visible = expandLiveNotif) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text(sakinaTr(lang, "الإشعار الحي الدائم لمواقيت الصلاة", "Persistent Live Prayer Bar", "Barre de prière permanente", "Kalıcı Namaz Bildirimi", "Notifikasi Jadwal Sholat Aktif", "مستقل لائیو نماز نوٹیفکیشن"), fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                                SakinaGoldSwitch(checked = liveNotifOn, onCheckedChange = {
+                                    liveNotifOn = it; SakinaAdvancedPrefs.setPersistentNotifEnabled(ctx, it); SakinaLiveNotifier.update(ctx)
+                                })
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text(sakinaTr(lang, "إشعار أذكار ما بعد الصلاة (بعد 12 د)", "Post-Prayer Adhkar Alert (12m)", "Alerte Adhkar après prière (12 min)", "Namaz Sonrası Zikir (12 dk)", "Notifikasi Dzikir Ba'da Sholat", "نماز کے بعد اذکار"), fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                                SakinaGoldSwitch(checked = postAdhkarOn, onCheckedChange = {
+                                    postAdhkarOn = it; SakinaAdvancedPrefs.setPostPrayerAdhkarNotif(ctx, it)
+                                })
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            // 2. بطاقة التذكيرات الروحانية المنسدلة للأسفل
+            SakinaGlowingGlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = 18.dp,
+                onClick = { expandSpiritualReminders = !expandSpiritualReminders }
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(sakinaTr(lang, "التذكيرات الروحانية والمناسبات", "Spiritual Reminders", "Rappels spirituels", "Manevi Hatırlatıcılar", "Pengingat Ibadah", "روحانی یاد دہانیاں"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaLuxuryColors.SoftGoldGlow)
+                        Text(if (expandSpiritualReminders) "▴" else "▾", color = SakinaLuxuryColors.SoftGoldGlow, fontSize = 15.sp)
+                    }
+                    androidx.compose.animation.AnimatedVisibility(visible = expandSpiritualReminders) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text(sakinaTr(lang, "تذكير ليلي بصيام التطوع والأيام البيض", "Voluntary & White Days Fasting", "Rappel du jeûne surérogatoire", "Nafile Oruç Hatırlatıcısı", "Pengingat Puasa Sunnah", "نفلی روزوں کی یاد دہانی"), fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                                SakinaGoldSwitch(checked = fastingOn, onCheckedChange = {
+                                    fastingOn = it; SakinaAdvancedPrefs.setVoluntaryFastingNotif(ctx, it); try { AlarmScheduler.scheduleNext(ctx) } catch (_: Exception) {}
+                                })
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text(sakinaTr(lang, "تذكير سورة الكهف صباح الجمعة", "Friday Surah Al-Kahf Reminder", "Rappel Sourate Al-Kahf (vendredi)", "Cuma Kehf Suresi Hatırlatıcısı", "Pengingat Surah Al-Kahf Jumat", "جمعہ سورۃ الکہف یاد دہانی"), fontFamily = SakinaBodyFont, fontSize = 12.5.sp, color = SakinaBrandColors.LuminousIvory, modifier = Modifier.weight(1f))
+                                SakinaGoldSwitch(checked = kahfOn, onCheckedChange = {
+                                    kahfOn = it; SakinaAdvancedPrefs.setFridayKahfNotif(ctx, it)
+                                })
+                            }
+                        }
+                    }
+                }
+            }
+            if (false) { // suppress old flat block
                 Text(sakinaTr(lang, "الإشعارات والتذكيرات الروحانية (مفصولة حسب الوظيفة)", "Quiet Notifications & Alerts", "Notifications et alertes discrètes", "Sessiz Bildirimler", "Notifikasi Tenang", "خاموش اطلاعات"), fontFamily = SakinaHeadingFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = theme.accentBright)
                 Spacer(Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

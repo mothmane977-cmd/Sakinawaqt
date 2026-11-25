@@ -755,7 +755,7 @@ private fun FocalSpotlightCard(
                 modifier = Modifier.matchParentSize()
             )
             Column(
-                modifier = Modifier.padding(top = 7.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
+                modifier = Modifier.padding(top = 12.dp, bottom = 18.dp, start = 24.dp, end = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
@@ -773,11 +773,15 @@ private fun FocalSpotlightCard(
                         softWrap = false,
                         style = TextStyle(fontFeatureSettings = "tnum"),
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.72f))
-                            .border(0.6.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(50))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xDD0B2438), Color(0xEE0E3B33))
+                                )
+                            )
+                            .border(1.0.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
                             .clickable(onClick = onTodayStatsClick)
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     )
 
                     Text(
@@ -787,26 +791,29 @@ private fun FocalSpotlightCard(
                         fontWeight = FontWeight.Bold,
                         fontFamily = bodyFontFamily,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.16f))
-                            .border(0.7.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(50))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xEE0E3E33), Color(0xFF165242), Color(0xEE0E3E33))
+                                )
+                            )
+                            .border(1.15.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
                             .clickable(onClick = onExpandFivePrayers)
-                            .padding(horizontal = 9.dp, vertical = 3.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.5.dp)
                     )
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(50))
                             .background(
-                                when (prayer.alarmMode) {
-                                    PrayerAlarmMode.ADHAN -> SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.18f)
-                                    PrayerAlarmMode.NOTIFICATION -> SakinaOrbitalColors.DeepEmerald.copy(alpha = 0.10f)
-                                    PrayerAlarmMode.SILENT -> Color.Gray.copy(alpha = 0.12f)
-                                }
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xDD0B2438), Color(0xEE0E3B33))
+                                )
                             )
+                            .border(1.0.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(50))
                             .clickable(onClick = onCycleAlarmMode)
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                             .semantics {
                                 contentDescription = "${strings.toggleAlarmDesc} ${prayer.localizedName}"
                             }

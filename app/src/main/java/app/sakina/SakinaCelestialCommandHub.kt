@@ -116,7 +116,7 @@ fun SakinaCelestialCommandHub(
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 56.dp, bottom = 12.dp, start = 8.dp, end = 8.dp)
+                    .padding(top = 66.dp, bottom = 8.dp, start = 0.dp, end = 0.dp)
             )
 
             Column(
@@ -147,7 +147,7 @@ fun SakinaCelestialCommandHub(
                     modifier = Modifier.fillMaxWidth(0.88f)
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(26.dp))
 
                 // النجمة المثمّنة الذهبية داخل قوس المحراب الرقيق
                 Box(
@@ -189,6 +189,7 @@ fun SakinaCelestialCommandHub(
                 Column(
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxWidth(0.90f)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -219,13 +220,15 @@ fun SakinaCelestialCommandHub(
                                         verticalArrangement = Arrangement.Center
                                     ) {
                                         Box(
-                                            modifier = Modifier
-                                                .size(34.dp)
-                                                .clip(CircleShape)
-                                                .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.72f))
-                                                .border(0.8.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.65f), CircleShape),
+                                            modifier = Modifier.size(40.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
+                                            Image(
+                                                painter = painterResource(id = R.drawable.ic_gold_medallion_btn),
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
                                             Icon(
                                                 painter = painterResource(id = item.iconRes),
                                                 contentDescription = null,

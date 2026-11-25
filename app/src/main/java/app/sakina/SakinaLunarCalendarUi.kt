@@ -587,7 +587,7 @@ private fun MonthlyCalendarGlassCard(
                                         Text(
                                             text = "صيام",
                                             color = SakinaLuxuryColors.SoftGoldGlow,
-                                            fontSize = 7.5.sp,
+                                            fontSize = 8.sp,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
                                             softWrap = false,
@@ -687,12 +687,8 @@ private fun HadithParchmentCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .sakinaParchmentGlowCard(
-                cornerRadius = 20.dp,
-                haloAlpha = 0.38f,
-                doubleBorder = false
-            )
             .clip(RoundedCornerShape(20.dp))
+            .border(1.4.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(20.dp))
     ) {
         Image(
             painter = painterResource(id = R.drawable.bg_parchment_card),
@@ -701,33 +697,38 @@ private fun HadithParchmentCard(
             modifier = Modifier.matchParentSize()
         )
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 26.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "◆ $title ◆",
                 color = SakinaOrbitalColors.MutedGoldText,
-                fontSize = 12.5.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = headingFontFamily,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = hadithText,
-                color = SakinaOrbitalColors.InkNavy,
-                fontSize = 13.sp,
-                lineHeight = 22.sp,
-                fontFamily = bodyFontFamily,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
+                text = hadithText,
+                color = SakinaOrbitalColors.InkNavy,
+                fontSize = 12.sp,
+                lineHeight = 19.sp,
+                fontFamily = bodyFontFamily,
+                textAlign = TextAlign.Center,
+                maxLines = 3
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
                 text = source,
                 color = SakinaOrbitalColors.DeepEmerald,
-                fontSize = 11.sp,
+                fontSize = 10.5.sp,
                 fontWeight = FontWeight.SemiBold,
-                fontFamily = bodyFontFamily
+                fontFamily = bodyFontFamily,
+                maxLines = 1
             )
         }
     }

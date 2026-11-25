@@ -1173,7 +1173,7 @@ private fun QuranMushafReaderContent(
                                 fontSize = 23.sp,
                                 lineHeight = 42.sp,
                                 fontFamily = quranFontFamily,
-                                textAlign = TextAlign.Justify
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
