@@ -3,6 +3,7 @@ package app.sakina
 import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +24,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -184,7 +187,16 @@ fun SakinaAlarmScreen(ctx: Context, initialSection: Int = 0, onBackClick: () -> 
             ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(sakinaTr(lang, "الإشعارات الصامتة وشريط الصلاة الحي", "Silent & Live Notifications", "Notifications silencieuses", "Sessiz Bildirimler", "Notifikasi Senyap", "خاموش اطلاعات"), fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaLuxuryColors.SoftGoldGlow)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_3d_bell),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(30.dp).clip(CircleShape)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(sakinaTr(lang, "الإشعارات الصامتة وشريط الصلاة الحي", "Silent & Live Notifications", "Notifications silencieuses", "Sessiz Bildirimler", "Notifikasi Senyap", "خاموش اطلاعات"), fontFamily = SakinaBodyFont, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SakinaLuxuryColors.SoftGoldGlow)
+                        }
                         Text(if (expandLiveNotif) "▴" else "▾", color = SakinaLuxuryColors.SoftGoldGlow, fontSize = 15.sp)
                     }
                     androidx.compose.animation.AnimatedVisibility(visible = expandLiveNotif) {

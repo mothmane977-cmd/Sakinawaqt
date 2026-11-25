@@ -414,22 +414,11 @@ fun SakinaNamesOfAllahScreen(ctx: Context, onBack: () -> Unit) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(34.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(theme.accentGold.copy(alpha = 0.22f))
-                                    .border(1.dp, theme.accentGold.copy(alpha = 0.55f), RoundedCornerShape(10.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    SakinaAdvancedPrefs.formatDigits(ctx, "${entry.number}"),
-                                    fontFamily = SakinaNumeralFont,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = theme.accentBright
-                                )
-                            }
+                            SakinaStarMedallionBadge(
+                                numberText = SakinaAdvancedPrefs.formatDigits(ctx, "${entry.number}"),
+                                starBgRes = R.drawable.ic_star_medallion_gold,
+                                size = 40.dp
+                            )
                             Column(
                                 modifier = Modifier
                                     .weight(1f)

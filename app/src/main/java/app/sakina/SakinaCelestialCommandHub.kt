@@ -154,13 +154,15 @@ fun SakinaCelestialCommandHub(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize()
                     )
-                    Icon(
+                    Image(
                         painter = painterResource(
-                            id = if (mode == CelestialHubMode.SETTINGS) R.drawable.ic_sakina_settings else R.drawable.ic_sakina_tasbih
+                            id = if (mode == CelestialHubMode.SETTINGS) R.drawable.ic_3d_settings_gear else R.drawable.ic_3d_tasbih
                         ),
                         contentDescription = null,
-                        tint = SakinaLuxuryColors.SoftGoldGlow,
-                        modifier = Modifier.size(22.dp)
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
                     )
                 }
 

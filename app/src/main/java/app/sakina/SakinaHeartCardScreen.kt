@@ -90,7 +90,9 @@ enum class PrayerLightPhase(
     FAJR_DEW("ندى الفجر", Color(0xFF176B53), Color(0xFF28587B), 0xFF176B53.toInt()),
     DUHA_GOLD("ذهب الضحى", Color(0xFFD4AF37), Color(0xFF1B4D3E), 0xFF7D6217.toInt()),
     SUNSET_WARMTH("دفء الغروب", Color(0xFFB57C3C), Color(0xFF1A2F4B), 0xFF6B441C.toInt()),
-    NIGHT_SANCTUARY("سكون الليل", Color(0xFF0D3B2E), Color(0xFF091A32), 0xFF0D3B2E.toInt())
+    NIGHT_SANCTUARY("سكون الليل", Color(0xFF0D3B2E), Color(0xFF091A32), 0xFF0D3B2E.toInt()),
+    EMERALD_MIHRAB("محراب الزمرد", Color(0xFF0E6B52), Color(0xFF061E24), 0xFF0E6B52.toInt()),
+    ROYAL_INDIGO("نور المحراب", Color(0xFF1F3B6D), Color(0xFF0A1428), 0xFF1F3B6D.toInt())
 }
 
 data class HeartCardVerse(

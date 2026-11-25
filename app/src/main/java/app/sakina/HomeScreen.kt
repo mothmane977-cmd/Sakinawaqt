@@ -384,14 +384,14 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     color = effectiveTheme.accentGold,
                                     modifier = Modifier.padding(horizontal = 4.dp)
                                 )
-                                SakinaDrawerPillItem(R.drawable.ic_sakina_clock, sakinaTr(currentLang, "المنبهات الصوتية", "Sound Alarms", "Alarmes sonores", "Sesli Alarmlar", "Alarm Suara", "صوتی الارم")) {
+                                SakinaDrawerPillItem(R.drawable.ic_3d_mic, sakinaTr(currentLang, "المنبهات الصوتية", "Sound Alarms", "Alarmes sonores", "Sesli Alarmlar", "Alarm Suara", "صوتی الارم")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.ALARM
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_sakina_lantern, sakinaTr(currentLang, "التنبيهات الهادئة", "Quiet Notifications", "Notifications discrètes", "Sessiz Bildirimler", "Notifikasi Tenang", "خاموش اطلاعات")) {
+                                SakinaDrawerPillItem(R.drawable.ic_3d_bell, sakinaTr(currentLang, "التنبيهات الهادئة", "Quiet Notifications", "Notifications discrètes", "Sessiz Bildirimler", "Notifikasi Tenang", "خاموش اطلاعات")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.NOTIFICATIONS
                                 }
                                 SakinaDrawerPillItem(
-                                    R.drawable.ic_sakina_home,
+                                    R.drawable.ic_3d_mosque,
                                     if (useOrbitalHome) sakinaTr(currentLang, "التبديل للشاشة الكلاسيكية", "Switch to Classic Home", "Passer à l'accueil classique", "Klasik Ana Ekrana Geç", "Beralih ke Beranda Klasik", "کلاسک ہوم اسکرین")
                                     else sakinaTr(currentLang, "التبديل للشاشة المدارية ✨", "Switch to Orbital Home ✨", "Passer à l'accueil orbital ✨", "Yörünge Ana Ekranına Geç ✨", "Beralih ke Beranda Orbital ✨", "آربیٹل ہوم اسکرین ✨")
                                 ) {
@@ -399,14 +399,14 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     sp.edit().putBoolean("v33_orbital_home", useOrbitalHome).apply()
                                     scope.launch { rightDrawerState.close() }
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_sakina_lantern, sakinaTr(currentLang, "المظهر والخطوط", "Appearance & Fonts", "Apparence et polices", "Görünüm ve Yazı Tipi", "Tampilan & Font", "ظاہری شکل اور فونٹس")) {
+                                SakinaDrawerPillItem(R.drawable.ic_3d_star_geo, sakinaTr(currentLang, "المظهر والخطوط", "Appearance & Fonts", "Apparence et polices", "Görünüm ve Yazı Tipi", "Tampilan & Font", "ظاہری شکل اور فونٹس")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.APPEARANCE
                                 }
-                                SakinaDrawerPillItem(R.drawable.ic_sakina_settings, sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres généraux", "Genel Ayarlar", "Pengaturan Umum", "عمومی ترتیبات")) {
+                                SakinaDrawerPillItem(R.drawable.ic_3d_settings_gear, sakinaTr(currentLang, "الإعدادات العامة", "General Settings", "Paramètres généraux", "Genel Ayarlar", "Pengaturan Umum", "عمومی ترتیبات")) {
                                     scope.launch { rightDrawerState.close() }; openedFromRightDrawer = true; openedFromLeftDrawer = false; extraSection = ExtraSection.SETTINGS
                                 }
                                 SakinaDrawerPillItem(
-                                    R.drawable.ic_sakina_shield,
+                                    R.drawable.ic_3d_kaaba,
                                     sakinaTr(currentLang, "تشخيص البطارية والصلاحيات", "Battery & Alarm Diagnostics", "Diagnostic batterie et alarmes", "Pil ve Alarm Tanılama", "Diagnostik Baterai & Alarm", "بیٹری اور الارم تشخیص")
                                 ) {
                                     scope.launch { rightDrawerState.close() }

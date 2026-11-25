@@ -544,19 +544,33 @@ private fun MonthlyCalendarGlassCard(
                                     )
                                     .clickable(enabled = cell.isCurrentMonth) { onDayClick(cell) }
                             ) {
-                                Text(
-                                    text = if (cell.isCurrentMonth && cell.dayNumber > 0) cell.dayNumber.toString() else "",
-                                    color = when {
-                                        isSelected -> SakinaOrbitalColors.InkNavy
-                                        !cell.isCurrentMonth -> SakinaOrbitalColors.WarmCream.copy(alpha = 0.28f)
-                                        cell.isFriday -> SakinaOrbitalColors.SoftGoldGlow
-                                        else -> SakinaOrbitalColors.WarmCream
-                                    },
-                                    fontSize = 13.sp,
-                                    fontWeight = if (isSelected || cell.isToday || cell.isFriday) FontWeight.Bold else FontWeight.Normal,
-                                    fontFamily = bodyFontFamily,
-                                    style = TextStyle(fontFeatureSettings = "tnum", platformStyle = PlatformTextStyle(includeFontPadding = false))
-                                )
+                                Box(
+                                    modifier = Modifier.size(if (cell.isToday && !isSelected) 30.dp else 22.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (cell.isToday && !isSelected) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.ic_star_medallion_gold),
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Fit,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                    Text(
+                                        text = if (cell.isCurrentMonth && cell.dayNumber > 0) cell.dayNumber.toString() else "",
+                                        color = when {
+                                            isSelected -> SakinaOrbitalColors.InkNavy
+                                            cell.isToday -> SakinaLuxuryColors.SoftGoldGlow
+                                            !cell.isCurrentMonth -> SakinaOrbitalColors.WarmCream.copy(alpha = 0.28f)
+                                            cell.isFriday -> SakinaOrbitalColors.SoftGoldGlow
+                                            else -> SakinaOrbitalColors.WarmCream
+                                        },
+                                        fontSize = 12.5.sp,
+                                        fontWeight = if (isSelected || cell.isToday || cell.isFriday) FontWeight.Bold else FontWeight.Normal,
+                                        fontFamily = bodyFontFamily,
+                                        style = TextStyle(fontFeatureSettings = "tnum", platformStyle = PlatformTextStyle(includeFontPadding = false))
+                                    )
+                                }
 
                                 // v52 #3: كلمة «صيام» مباشرة بدون صندوق ضاغط لتظهر واضحة ومقروءة 100%
                                 if (cell.isCurrentMonth && (cell.isWhiteDay || cell.hasOccasion)) {

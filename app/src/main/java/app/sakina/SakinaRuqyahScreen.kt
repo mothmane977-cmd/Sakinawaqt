@@ -1,5 +1,8 @@
 package app.sakina
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.CircleShape
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -78,6 +83,15 @@ fun SakinaRuqyahScreen(onBackToHome: () -> Unit, modifier: Modifier = Modifier) 
             SakinaBackIconButton(
                 onClick = { if (selectedIdx != null) selectedIdx = null else onBackToHome() },
                 modifier = Modifier.align(Alignment.CenterStart)
+            )
+            Image(
+                painter = painterResource(id = R.drawable.ic_3d_star_geo),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(34.dp)
+                    .clip(CircleShape)
             )
             SakinaOrnamentCartouche(
                 modifier = Modifier.align(Alignment.Center),
