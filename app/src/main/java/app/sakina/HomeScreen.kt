@@ -673,6 +673,13 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         SakinaBottomPillBar(
                                             currentTab = currentTab,
                                             onTabSelected = { extraSection = ExtraSection.NONE; openedFromRightDrawer = false; openedFromLeftDrawer = false; if (it != SakinaNavTab.QURAN) isMushafReadingFullScreen = false; currentTab = it },
+                                            onTasbihClick = {
+                                                adhkarInitCat = null
+                                                extraSection = ExtraSection.ADHKAR
+                                            },
+                                            onMoreClick = {
+                                                celestialHubMode = CelestialHubMode.WORSHIP
+                                            },
                                             modifier = Modifier.align(Alignment.BottomCenter)
                                         )
                                     }
@@ -681,6 +688,9 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         mode = celestialHubMode,
                                         lang = currentLang,
                                         worshipPortals = listOf(
+                                            CelestialPortalItem(sakinaTr(currentLang, "التقويم الهجري", "Hijri Calendar", "Calendrier Hégirien", "Hicri Takvim", "Kalender Hijriah", "ہجری کیلنڈر"), R.drawable.ic_3d_calendar_crescent) {
+                                                extraSection = ExtraSection.NONE; currentTab = SakinaNavTab.CALENDAR
+                                            },
                                             CelestialPortalItem(s.adhkarTitle, R.drawable.ic_3d_tasbih) {
                                                 adhkarInitCat = null; extraSection = ExtraSection.ADHKAR
                                             },

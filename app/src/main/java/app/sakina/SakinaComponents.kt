@@ -763,28 +763,42 @@ fun SakinaDrawerPillItem(
 fun SakinaBottomPillBar(
     currentTab: SakinaNavTab,
     onTabSelected: (SakinaNavTab) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onTasbihClick: () -> Unit = {},
+    onMoreClick: () -> Unit = {}
 ) {
-    val s = LocalSakinaStrings.current
-    val dockStrings = SakinaHomeStrings(
-        tabHome = SakinaNavTab.HOME.label(s),
-        tabQibla = SakinaNavTab.QIBLA.label(s),
-        tabQuran = SakinaNavTab.QURAN.label(s),
-        tabCalendar = SakinaNavTab.CALENDAR.label(s)
+    val lang = LocalSakinaLang.current
+    val dockTabs = listOf(
+        SakinaDockTab("home", sakinaTr(lang, "الرئيسية", "Home", "Accueil", "Ana Sayfa", "Beranda", "ہوم"), R.drawable.ic_dock_home_3d),
+        SakinaDockTab("quran", sakinaTr(lang, "القرآن", "Quran", "Coran", "Kur'an", "Al-Quran", "قرآن"), R.drawable.ic_dock_quran_3d),
+        SakinaDockTab("qibla", sakinaTr(lang, "القبلة", "Qibla", "Qibla", "Kıble", "Kiblat", "قبلہ"), R.drawable.ic_dock_qibla_3d),
+        SakinaDockTab("tasbih", sakinaTr(lang, "التسبيح", "Tasbih", "Tasbih", "Tesbih", "Tasbih", "تسبیح"), R.drawable.ic_dock_tasbih_3d),
+        SakinaDockTab("more", sakinaTr(lang, "المزيد", "More", "Plus", "Daha", "Lainnya", "مزید"), R.drawable.ic_dock_more_3d)
     )
+    val selectedRoute = when (currentTab) {
+        SakinaNavTab.HOME -> "home"
+        SakinaNavTab.QURAN -> "quran"
+        SakinaNavTab.QIBLA -> "qibla"
+        SakinaNavTab.CALENDAR -> "more"
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(horizontal = 4.dp, vertical = 2.dp)
     ) {
-        LiquidDynamicDock(
-            selectedIndex = currentTab.ordinal,
-            strings = dockStrings,
-            bodyFontFamily = SakinaBodyFont,
-            onTabSelected = { idx ->
-                val target = SakinaNavTab.entries.getOrElse(idx) { SakinaNavTab.HOME }
-                onTabSelected(target)
+        SakinaLuxuryFloatingDock(
+            tabs = dockTabs,
+            selectedRoute = selectedRoute,
+            onTabSelected = { route ->
+                when (route) {
+                    "home" -> onTabSelected(SakinaNavTab.HOME)
+                    "quran" -> onTabSelected(SakinaNavTab.QURAN)
+                    "qibla" -> onTabSelected(SakinaNavTab.QIBLA)
+                    "tasbih" -> onTasbihClick()
+                    "more" -> onMoreClick()
+                    else -> Unit
+                }
             }
         )
     }

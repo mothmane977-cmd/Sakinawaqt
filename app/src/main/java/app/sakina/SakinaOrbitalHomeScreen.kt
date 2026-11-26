@@ -229,7 +229,7 @@ fun SakinaOrbitalHomeScreen(
                 .padding(
                     start = 14.dp,
                     end = 14.dp,
-                    bottom = if (showBottomDock) 8.dp else 88.dp
+                    bottom = if (showBottomDock) 8.dp else 96.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -266,7 +266,7 @@ fun SakinaOrbitalHomeScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(start = 34.dp, end = 34.dp, bottom = 10.dp)
+                    modifier = Modifier.padding(start = 36.dp, end = 36.dp, bottom = 22.dp)
                 ) {
                     Text(
                         text = focusedPrayer.localizedName,
@@ -284,8 +284,8 @@ fun SakinaOrbitalHomeScreen(
                         text = focusedPrayer.timeText,
                         style = TextStyle(
                             brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                            fontSize = 28.sp,
-                            lineHeight = 32.sp,
+                            fontSize = 25.sp,
+                            lineHeight = 28.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = bodyFontFamily,
                             fontFeatureSettings = "tnum",
@@ -300,7 +300,7 @@ fun SakinaOrbitalHomeScreen(
                             "${completedCount}/${state.prayers.size.coerceAtLeast(5)} اليوم"
                         },
                         color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.94f),
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = bodyFontFamily,
                         maxLines = 1,
@@ -332,7 +332,8 @@ fun SakinaOrbitalHomeScreen(
                             .combinedClickable(
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    focusedIndex = idx
+                                    if (focusedIndex == idx) onTogglePrayerCompleted(node.type)
+                                    else focusedIndex = idx
                                 },
                                 onLongClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -353,7 +354,7 @@ fun SakinaOrbitalHomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 50.dp),
+                                .padding(horizontal = 44.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -378,43 +379,28 @@ fun SakinaOrbitalHomeScreen(
                                     style = TextStyle(fontFeatureSettings = "tnum")
                                 )
 
-                                // ميدالية ✓ الذهبية المعدنية ثلاثية الأبعاد الحقيقية (مطابقة 100% لـ 22098.jpg)
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_3d_check_gold),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Fit,
-                                    alpha = if (node.isCompleted) 1f else 0.28f,
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(CircleShape)
-                                        .clickable {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            onTogglePrayerCompleted(node.type)
-                                        }
-                                )
+                                // ميدالية ✓ الذهبية المعدنية ثلاثية الأبعاد تظهر عند تأدية الصلاة (مطابقة 100% لـ 22088.jpg)
+                                if (node.isCompleted) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_3d_check_gold),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                onTogglePrayerCompleted(node.type)
+                                            }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // 4. شريط النوافل المختصر داخل كبسولة داكنة رفيعة لوضوح 100% فوق الزخرفة
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xB806101F))
-                    .border(0.6.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.30f), RoundedCornerShape(16.dp))
-                    .padding(vertical = 5.dp)
-            ) {
-                ComprehensiveNafilahStrip(
-                    state = state,
-                    strings = strings,
-                    bodyFontFamily = bodyFontFamily
-                )
-            }
+            Spacer(modifier = Modifier.height(4.dp))
 
             if (showBottomDock) {
                 Spacer(modifier = Modifier.height(8.dp))

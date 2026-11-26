@@ -420,9 +420,8 @@ fun SakinaLuxuryFloatingDock(
 ) {
     Box(
         modifier = modifier
-            .padding(horizontal = 6.dp, vertical = 4.dp)
             .fillMaxWidth()
-            .height(84.dp)
+            .height(98.dp)
     ) {
         Image(
             painter = painterResource(id = R.drawable.bg_luxury_floating_dock),
@@ -433,19 +432,15 @@ fun SakinaLuxuryFloatingDock(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                .padding(start = 14.dp, end = 14.dp, top = 18.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             tabs.forEach { tab ->
                 val selected = tab.route == selectedRoute
-                val iconTint by animateColorAsState(
-                    targetValue = if (selected) SakinaLuxuryColors.SoftGoldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f),
-                    label = "dockTint"
-                )
-                val arcWidth by animateDpAsState(
-                    targetValue = if (selected) 44.dp else 0.dp,
-                    label = "dockArc"
+                val medSize by animateDpAsState(
+                    targetValue = if (selected) 47.dp else 43.dp,
+                    label = "dockMedSize"
                 )
                 Box(
                     modifier = Modifier
@@ -460,26 +455,14 @@ fun SakinaLuxuryFloatingDock(
                     if (selected) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(56.dp)
                                 .background(
                                     Brush.radialGradient(
                                         listOf(
-                                            SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.22f),
+                                            SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.28f),
+                                            SakinaLuxuryColors.EmeraldGlow.copy(alpha = 0.14f),
                                             Color.Transparent
                                         )
-                                    ),
-                                    shape = CircleShape
-                                )
-                        )
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 2.dp)
-                                .width(arcWidth)
-                                .height(2.5.dp)
-                                .background(
-                                    Brush.horizontalGradient(
-                                        listOf(Color.Transparent, SakinaLuxuryColors.SoftGoldGlow, Color.Transparent)
                                     ),
                                     shape = CircleShape
                                 )
@@ -489,31 +472,24 @@ fun SakinaLuxuryFloatingDock(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(if (selected) 38.dp else 32.dp)
-                                .clip(CircleShape)
-                                .border(
-                                    width = if (selected) 1.4.dp else 0.7.dp,
-                                    color = if (selected) SakinaLuxuryColors.SoftGoldGlow else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.45f),
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = tab.iconRes),
-                                contentDescription = tab.label,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(3.dp))
+                        Image(
+                            painter = painterResource(id = tab.iconRes),
+                            contentDescription = tab.label,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(medSize)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = tab.label,
-                            color = iconTint,
-                            fontSize = 10.5.sp,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                            maxLines = 1
+                            style = TextStyle(
+                                brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SakinaHeadingFont,
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
