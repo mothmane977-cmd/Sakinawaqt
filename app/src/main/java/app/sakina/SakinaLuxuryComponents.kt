@@ -421,7 +421,7 @@ fun SakinaLuxuryFloatingDock(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(106.dp)
+            .height(116.dp)
     ) {
         Image(
             painter = painterResource(id = R.drawable.bg_luxury_floating_dock),
@@ -432,14 +432,14 @@ fun SakinaLuxuryFloatingDock(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 16.dp, end = 16.dp, top = 22.dp, bottom = 14.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 26.dp, bottom = 10.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             tabs.forEach { tab ->
                 val selected = tab.route == selectedRoute
                 val medSize by animateDpAsState(
-                    targetValue = if (selected) 40.dp else 37.dp,
+                    targetValue = if (selected) 42.dp else 39.dp,
                     label = "dockMedSize"
                 )
                 Box(
@@ -478,20 +478,20 @@ fun SakinaLuxuryFloatingDock(
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.size(medSize)
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = tab.label,
                             style = TextStyle(
                                 brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
                                 shadow = SakinaLuxuryPalette.GoldEngravedShadow,
                                 fontSize = 11.5.sp,
-                                lineHeight = 18.sp,
+                                lineHeight = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = SakinaHeadingFont,
-                                platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
                             ),
                             maxLines = 1,
-                            softWrap = false
+                            softWrap = false,
+                            modifier = Modifier.offset(y = (-2).dp)
                         )
                     }
                 }

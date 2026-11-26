@@ -35,8 +35,8 @@ object SakinaStatusBarIconFactory {
             style = Paint.Style.FILL
         }
 
-        drawTieredMinaret(canvas, fillPaint, cx = 11f * s, topY = 8f * s, bottomY = 64f * s, width = 9.5f * s)
-        drawTieredMinaret(canvas, fillPaint, cx = 85f * s, topY = 8f * s, bottomY = 64f * s, width = 9.5f * s)
+        drawTieredMinaret(canvas, fillPaint, cx = 10f * s, topY = 7f * s, bottomY = 64f * s, width = 12.6f * s)
+        drawTieredMinaret(canvas, fillPaint, cx = 86f * s, topY = 7f * s, bottomY = 64f * s, width = 12.6f * s)
         drawCrescent(canvas, cx = 48f * s, cy = 7f * s, radius = 5.6f * s)
 
         val domePath = Path().apply {
@@ -71,8 +71,8 @@ object SakinaStatusBarIconFactory {
         }
 
         // صومعتان معماريتان بارزتان على أقصى الطرفين
-        drawTieredMinaret(canvas, fillPaint, cx = 8.5f * s, topY = 8f * s, bottomY = 64f * s, width = 8.4f * s)
-        drawTieredMinaret(canvas, fillPaint, cx = 87.5f * s, topY = 8f * s, bottomY = 64f * s, width = 8.4f * s)
+        drawTieredMinaret(canvas, fillPaint, cx = 7.5f * s, topY = 7f * s, bottomY = 64f * s, width = 11.2f * s)
+        drawTieredMinaret(canvas, fillPaint, cx = 88.5f * s, topY = 7f * s, bottomY = 64f * s, width = 11.2f * s)
         drawCrescent(canvas, cx = 48f * s, cy = 7f * s, radius = 5.4f * s)
 
         // قبة واسعة مفرّغة تتسع لرقمين كبيرين بوضوح عالٍ (x = 15..81)
@@ -110,12 +110,12 @@ object SakinaStatusBarIconFactory {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-            textSize = 27f * s
-            textScaleX = 1.08f
+            textSize = 25f * s
+            textScaleX = 1.04f
         }
         val fm = tp.fontMetrics
         val y = 80f * s - (fm.ascent + fm.descent) / 2f
-        canvas.drawText("قنوت", 48f * s, y, tp)
+        canvas.drawText("نورقنوت", 48f * s, y, tp)
     }
 
     private fun drawCrescent(canvas: Canvas, cx: Float, cy: Float, radius: Float) {

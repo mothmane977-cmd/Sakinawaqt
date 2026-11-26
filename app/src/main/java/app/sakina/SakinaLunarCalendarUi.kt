@@ -173,7 +173,7 @@ fun SakinaLunarCalendarScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(top = 46.dp, bottom = if (!showBottomDock) hostBottomBarReserve else 0.dp)
+                .padding(top = 44.dp, bottom = if (!showBottomDock) hostBottomBarReserve + 18.dp else 0.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -539,8 +539,8 @@ private fun MonthlyCalendarGlassCard(
                                 verticalArrangement = Arrangement.Center,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(50.dp)
-                                    .padding(1.5.dp)
+                                    .height(46.dp)
+                                    .padding(1.dp)
                                     .clip(RoundedCornerShape(10.dp))
                                     .then(
                                         when {
@@ -575,7 +575,7 @@ private fun MonthlyCalendarGlassCard(
                                         },
                                         fontSize = 12.5.sp,
                                         fontWeight = if (isSelected || cell.isToday || cell.isFriday) FontWeight.Bold else FontWeight.Medium,
-                                        fontFamily = bodyFontFamily,
+                                        fontFamily = SakinaNumeralFont,
                                         style = TextStyle(fontFeatureSettings = "tnum", platformStyle = PlatformTextStyle(includeFontPadding = false))
                                     )
                                 }
@@ -676,7 +676,7 @@ private fun SelectedDayPrayerBar(
                         color = SakinaOrbitalColors.WarmCream,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        fontFamily = bodyFontFamily,
+                        fontFamily = SakinaNumeralFont,
                         style = TextStyle(fontFeatureSettings = "tnum")
                     )
                 }

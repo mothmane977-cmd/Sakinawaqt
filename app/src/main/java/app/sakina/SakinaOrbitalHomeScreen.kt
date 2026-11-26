@@ -264,7 +264,7 @@ fun SakinaOrbitalHomeScreen(
                 .padding(
                     start = 12.dp,
                     end = 12.dp,
-                    bottom = if (showBottomDock) 8.dp else 108.dp
+                    bottom = if (showBottomDock) 8.dp else 118.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -356,52 +356,64 @@ fun SakinaOrbitalHomeScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(top = 74.dp, start = 24.dp, end = 24.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(top = 50.dp, start = 24.dp, end = 24.dp, bottom = 22.dp)
                 ) {
                     Text(
                         text = focusedPrayer.localizedName,
                         style = TextStyle(
                             brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
                             shadow = SakinaLuxuryPalette.GoldEngravedShadow,
-                            fontSize = 25.sp,
-                            lineHeight = 30.sp,
+                            fontSize = 24.sp,
+                            lineHeight = 28.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = SakinaHeadingFont,
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         )
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = focusedPrayer.timeText,
                         style = TextStyle(
                             brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
                             shadow = SakinaLuxuryPalette.GoldEngravedShadow,
-                            fontSize = 31.sp,
-                            lineHeight = 36.sp,
+                            fontSize = 30.sp,
+                            lineHeight = 34.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = SakinaHeadingFont,
+                            fontFamily = SakinaNumeralFont,
                             fontFeatureSettings = "tnum",
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         )
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = if (focusedIndex == state.nextPrayerIndex) {
-                            "متبقي ${state.countdownText}"
-                        } else {
-                            "${completedCount}/${state.prayers.size.coerceAtLeast(5)} اليوم"
-                        },
-                        style = TextStyle(
-                            brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                            shadow = SakinaLuxuryPalette.GoldEngravedShadow,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = SakinaHeadingFont,
-                            fontFeatureSettings = "tnum",
-                            platformStyle = PlatformTextStyle(includeFontPadding = false)
-                        ),
-                        maxLines = 1
-                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Text(
+                            text = if (focusedIndex == state.nextPrayerIndex) "متبقي" else "اليوم",
+                            style = TextStyle(
+                                brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                                shadow = SakinaLuxuryPalette.GoldEngravedShadow,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SakinaHeadingFont,
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            )
+                        )
+                        Text(
+                            text = if (focusedIndex == state.nextPrayerIndex) state.countdownText
+                            else "${completedCount}/${state.prayers.size.coerceAtLeast(5)}",
+                            style = TextStyle(
+                                brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                                shadow = SakinaLuxuryPalette.GoldEngravedShadow,
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SakinaNumeralFont,
+                                fontFeatureSettings = "tnum",
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            ),
+                            maxLines = 1
+                        )
+                    }
                 }
             }
 
@@ -484,9 +496,9 @@ fun SakinaOrbitalHomeScreen(
                                         style = TextStyle(
                                             brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
                                             shadow = SakinaLuxuryPalette.GoldEngravedShadow,
-                                            fontSize = 17.sp,
+                                            fontSize = 16.5.sp,
                                             fontWeight = FontWeight.Bold,
-                                            fontFamily = SakinaHeadingFont,
+                                            fontFamily = SakinaNumeralFont,
                                             fontFeatureSettings = "tnum",
                                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                                         )
@@ -597,9 +609,9 @@ fun SakinaOrbitalHomeScreen(
                                             style = TextStyle(
                                                 brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
                                                 shadow = SakinaLuxuryPalette.GoldEngravedShadow,
-                                                fontSize = 16.5.sp,
+                                                fontSize = 16.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                fontFamily = SakinaHeadingFont,
+                                                fontFamily = SakinaNumeralFont,
                                                 fontFeatureSettings = "tnum",
                                                 platformStyle = PlatformTextStyle(includeFontPadding = false)
                                             )
@@ -640,11 +652,11 @@ fun SakinaOrbitalHomeScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // شريط النوافل داخل نفس شريط الأرابيسك الذهبي ثلاثي الأبعاد (bg_prayer_row_gold_3d)
+                    // شريط النوافل بارتفاع مريح 66dp ودرجة زمرد موحّدة مع الخانات والشريط السفلي
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
+                            .height(66.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -653,7 +665,18 @@ fun SakinaOrbitalHomeScreen(
                             contentScale = ContentScale.FillBounds,
                             modifier = Modifier.matchParentSize()
                         )
-                        Box(modifier = Modifier.padding(horizontal = 36.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 36.dp, vertical = 6.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color.Transparent, Color(0x36146652), Color.Transparent)
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
                             ComprehensiveNafilahStrip(
                                 state = state,
                                 strings = strings,
@@ -1431,17 +1454,29 @@ private fun ComprehensiveNafilahStrip(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = label,
-                    color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.65f),
-                    fontSize = 10.sp,
-                    fontFamily = bodyFontFamily
+                    style = TextStyle(
+                        brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                        fontSize = 10.5.sp,
+                        lineHeight = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = bodyFontFamily,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    ),
+                    maxLines = 1
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = time,
-                    color = SakinaOrbitalColors.SoftGoldGlow,
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = bodyFontFamily,
-                    style = TextStyle(fontFeatureSettings = "tnum")
+                    style = TextStyle(
+                        brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                        fontSize = 11.5.sp,
+                        lineHeight = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = SakinaNumeralFont,
+                        fontFeatureSettings = "tnum",
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    ),
+                    maxLines = 1
                 )
             }
         }
