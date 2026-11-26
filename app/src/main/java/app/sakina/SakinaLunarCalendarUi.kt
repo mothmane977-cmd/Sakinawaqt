@@ -496,15 +496,22 @@ private fun MonthlyCalendarGlassCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // رؤوس أيام الأسبوع
-            Row(modifier = Modifier.fillMaxWidth()) {
+            // رؤوس أيام الأسبوع داخل كبسولة زجاجية زمردية مذهّبة (مطابقة لـ 22087.jpg)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(50))
+                    .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.55f))
+                    .border(0.8.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(50))
+                    .padding(vertical = 6.dp, horizontal = 2.dp)
+            ) {
                 strings.weekdayHeaders.forEachIndexed { idx, dayName ->
                     val isFri = idx == strings.weekdayHeaders.lastIndex
                     Text(
                         text = dayName,
-                        color = if (isFri) SakinaOrbitalColors.ChampagneGold else SakinaOrbitalColors.WarmCream.copy(alpha = 0.65f),
+                        color = if (isFri) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.85f),
                         fontSize = 10.sp,
-                        fontWeight = if (isFri) FontWeight.Bold else FontWeight.Medium,
+                        fontWeight = if (isFri) FontWeight.Bold else FontWeight.SemiBold,
                         fontFamily = bodyFontFamily,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f)
@@ -532,23 +539,24 @@ private fun MonthlyCalendarGlassCard(
                                 verticalArrangement = Arrangement.Center,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp)
-                                    .padding(2.dp)
+                                    .height(50.dp)
+                                    .padding(1.5.dp)
                                     .clip(RoundedCornerShape(10.dp))
                                     .then(
                                         when {
-                                            isSelected -> Modifier.background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
-                                            cell.isToday -> Modifier.background(SakinaLuxuryPalette.GoldBright.copy(alpha = 0.22f))
+                                            isSelected && !cell.isToday -> Modifier
+                                                .background(SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.85f))
+                                                .border(1.dp, SakinaLuxuryColors.SoftGoldGlow, RoundedCornerShape(10.dp))
                                             else -> Modifier
                                         }
                                     )
                                     .clickable(enabled = cell.isCurrentMonth) { onDayClick(cell) }
                             ) {
                                 Box(
-                                    modifier = Modifier.size(if (cell.isToday && !isSelected) 30.dp else 22.dp),
+                                    modifier = Modifier.size(if (cell.isToday) 31.dp else 22.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (cell.isToday && !isSelected) {
+                                    if (cell.isToday) {
                                         Image(
                                             painter = painterResource(id = R.drawable.ic_star_medallion_gold),
                                             contentDescription = null,
@@ -559,32 +567,42 @@ private fun MonthlyCalendarGlassCard(
                                     Text(
                                         text = if (cell.isCurrentMonth && cell.dayNumber > 0) cell.dayNumber.toString() else "",
                                         color = when {
-                                            isSelected -> SakinaOrbitalColors.InkNavy
                                             cell.isToday -> SakinaLuxuryColors.SoftGoldGlow
+                                            isSelected -> Color.White
                                             !cell.isCurrentMonth -> SakinaOrbitalColors.WarmCream.copy(alpha = 0.28f)
-                                            cell.isFriday -> SakinaOrbitalColors.SoftGoldGlow
+                                            cell.isFriday -> SakinaLuxuryColors.SoftGoldGlow
                                             else -> SakinaOrbitalColors.WarmCream
                                         },
                                         fontSize = 12.5.sp,
-                                        fontWeight = if (isSelected || cell.isToday || cell.isFriday) FontWeight.Bold else FontWeight.Normal,
+                                        fontWeight = if (isSelected || cell.isToday || cell.isFriday) FontWeight.Bold else FontWeight.Medium,
                                         fontFamily = bodyFontFamily,
                                         style = TextStyle(fontFeatureSettings = "tnum", platformStyle = PlatformTextStyle(includeFontPadding = false))
                                     )
                                 }
 
-                                // v52 #3: كلمة «صيام» مباشرة بدون صندوق ضاغط لتظهر واضحة ومقروءة 100%
+                                // v55-2: كبسولة «صيام» الزمردية المضيئة تحت الرقم (مطابقة 100% لـ 22087.jpg)
                                 if (cell.isCurrentMonth && (cell.isWhiteDay || cell.hasOccasion)) {
-                                    Text(
-                                        text = "صيام",
-                                        color = if (isSelected) SakinaOrbitalColors.InkNavy else SakinaLuxuryColors.SoftGoldGlow,
-                                        fontSize = 9.sp,
-                                        lineHeight = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        fontFamily = FontFamily.SansSerif,
-                                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(top = 1.dp)
+                                            .clip(RoundedCornerShape(50))
+                                            .background(Color(0xDD0D4A39))
+                                            .border(0.6.dp, SakinaLuxuryColors.EmeraldGlow.copy(alpha = 0.78f), RoundedCornerShape(50))
+                                            .padding(horizontal = 4.dp, vertical = 0.5.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "صيام",
+                                            color = SakinaLuxuryColors.SoftGoldGlow,
+                                            fontSize = 8.sp,
+                                            lineHeight = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            fontFamily = FontFamily.SansSerif,
+                                            style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -682,7 +700,7 @@ private fun HadithParchmentCard(
             .border(1.4.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(20.dp))
     ) {
         Image(
-            painter = painterResource(id = R.drawable.bg_parchment_card),
+            painter = painterResource(id = R.drawable.bg_glass_gold_card),
             contentDescription = null,
             contentScale = ContentScale.FillBounds,
             modifier = Modifier.matchParentSize()
@@ -690,13 +708,13 @@ private fun HadithParchmentCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 7.dp),
+                .padding(horizontal = 26.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "◆ $title ◆",
-                color = SakinaOrbitalColors.MutedGoldText,
-                fontSize = 12.sp,
+                color = SakinaLuxuryColors.SoftGoldGlow,
+                fontSize = 12.5.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = headingFontFamily,
                 textAlign = TextAlign.Center,
@@ -705,12 +723,12 @@ private fun HadithParchmentCard(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = hadithText,
-                color = SakinaOrbitalColors.InkNavy,
+                color = SakinaOrbitalColors.WarmCream,
                 fontSize = 11.5.sp,
-                lineHeight = 17.sp,
+                lineHeight = 18.sp,
                 fontFamily = bodyFontFamily,
                 textAlign = TextAlign.Center,
-                maxLines = 2
+                maxLines = 3
             )
             Spacer(modifier = Modifier.height(3.dp))
             Text(

@@ -581,13 +581,7 @@ fun SakinaSpatialQiblaScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.bg_qibla_horizon_grid),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            alpha = 0.95f,
-            modifier = Modifier.fillMaxSize()
-        )
+        SakinaAmbientLuxuryBackdrop(showGeometricPattern = true, showStarDust = false)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -767,304 +761,131 @@ private fun SpatialHorizonCanvas(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "beacon")
     val beaconPulse by infiniteTransition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1.2f,
+        initialValue = 0.88f,
+        targetValue = 1.12f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1600, easing = FastOutSlowInEasing),
+            animation = tween(1700, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "beaconPulse"
     )
-
     val beamColor = if (isAligned) SakinaLuxuryPalette.EmeraldGlow else SakinaLuxuryPalette.GoldBright
 
-    BoxWithConstraints(
+    Column(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = AbsoluteAlignment.TopLeft
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        val density = LocalDensity.current
-        val boxW = with(density) { maxWidth.toPx() }
-        val boxH = with(density) { maxHeight.toPx() }
-        // الكعبة ثابتة دائماً في منتصف الأفق (تعمل في جميع اللغات RTL و LTR بدون اختفاء)
-        val kaabaXUi = boxW * 0.5f
-        val kaabaYUi = boxH * 0.24f - with(density) { 4.dp.toPx() }
-        val kaabaImgPx = with(density) { 94.dp.toPx() }
-        val astrolabeSizePx = (boxW * 0.62f).coerceAtMost(with(density) { 236.dp.toPx() })
-        val astrolabeX = boxW * 0.5f - astrolabeSizePx / 2f
-        val astrolabeY = boxH * 0.66f - astrolabeSizePx / 2f
-
-        // v54-4: إسطرلاب القبلة الذهبي ثلاثي الأبعاد يدور حياً مع اتجاه الهاتف
-        Image(
-            painter = painterResource(id = R.drawable.bg_qibla_astrolabe_3d),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            alpha = 0.88f,
+        // 1. الكعبة الذهبية ثلاثية الأبعاد في قمة الإسطرلاب مع قوس النور الزمردي
+        Box(
             modifier = Modifier
-                .offset { IntOffset(astrolabeX.roundToInt(), astrolabeY.roundToInt()) }
-                .size(with(density) { astrolabeSizePx.toDp() })
-                .graphicsLayer { rotationZ = deltaDeg }
-        )
-
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-        val horizonY = h * 0.24f
-        val reticleCenter = Offset(w * 0.5f, h * 0.66f)
-        val reticleRx = w * 0.36f
-        val reticleRy = h * 0.16f
-
-        val horizonPath = Path().apply {
-            moveTo(0f, horizonY + 26.dp.toPx())
-            quadraticBezierTo(w * 0.5f, horizonY - 22.dp.toPx(), w, horizonY + 26.dp.toPx())
-        }
-        drawPath(
-            path = horizonPath,
-            brush = Brush.horizontalGradient(
-                colors = listOf(
-                    Color.Transparent,
-                    SakinaLuxuryPalette.EmeraldGlow.copy(alpha = 0.25f),
-                    beamColor.copy(alpha = 0.45f),
-                    SakinaLuxuryPalette.EmeraldGlow.copy(alpha = 0.25f),
-                    Color.Transparent
-                )
-            ),
-            style = Stroke(width = 9.dp.toPx())
-        )
-        drawPath(
-            path = horizonPath,
-            brush = Brush.horizontalGradient(
-                colors = listOf(
-                    Color.Transparent,
-                    SakinaLuxuryPalette.GoldRich.copy(alpha = 0.75f),
-                    SakinaLuxuryPalette.GoldSpecular,
-                    SakinaLuxuryPalette.GoldRich.copy(alpha = 0.75f),
-                    Color.Transparent
-                )
-            ),
-            style = Stroke(width = 1.8.dp.toPx())
-        )
-
-        val gridCount = 7
-        for (i in -gridCount / 2..gridCount / 2) {
-            val spreadTop = i * (w * 0.11f)
-            val spreadBottom = i * (w * 0.24f)
-            drawLine(
-                color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.14f),
-                start = Offset(w * 0.5f + spreadTop, horizonY),
-                end = Offset(w * 0.5f + spreadBottom, h * 0.96f),
-                strokeWidth = 0.8.dp.toPx()
-            )
-        }
-        listOf(0.36f, 0.50f, 0.66f, 0.84f).forEach { yFactor ->
-            val y = h * yFactor
-            drawLine(
-                color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.10f),
-                start = Offset(w * 0.06f, y),
-                end = Offset(w * 0.94f, y),
-                strokeWidth = 0.8.dp.toPx()
-            )
-        }
-
-        if (sunDeltaDeg != null && abs(sunDeltaDeg) <= 85f) {
-            val sunNorm = (sunDeltaDeg / 85f).coerceIn(-1f, 1f)
-            val sunX = w * 0.5f + sunNorm * (w * 0.42f)
-            val sunY = horizonY - 24.dp.toPx() + (sunNorm * sunNorm) * 16.dp.toPx()
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(SakinaOrbitalColors.SoftGoldGlow.copy(alpha = 0.5f), Color.Transparent),
-                    center = Offset(sunX, sunY),
-                    radius = 18.dp.toPx()
-                ),
-                radius = 18.dp.toPx(),
-                center = Offset(sunX, sunY)
-            )
-            drawCircle(
-                color = SakinaOrbitalColors.SoftGoldGlow,
-                radius = 6.dp.toPx(),
-                center = Offset(sunX, sunY)
-            )
-        }
-
-        // الكعبة ثابتة في منتصف الأفق بينما يدور مؤشر البوصلة والشعاع مع اتجاه الهاتف
-        val kaabaX = w * 0.5f
-        val kaabaY = horizonY - 4.dp.toPx()
-        val kaabaCenter = Offset(kaabaX, kaabaY)
-
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(beamColor.copy(alpha = 0.45f), Color.Transparent),
-                center = kaabaCenter,
-                radius = (34f * beaconPulse).dp.toPx()
-            ),
-            radius = (34f * beaconPulse).dp.toPx(),
-            center = kaabaCenter
-        )
-
-        // الشعاع الذهبي الدوّار الحيّ: يدور فعلياً مع اتجاه هاتفك ويصطفّ مع الكعبة الثابتة في المنتصف عند المحاذاة!
-        val liveRad = (deltaDeg - 90f) * (PI / 180.0)
-        val liveTip = if (isAligned) {
-            kaabaCenter
-        } else {
-            val reachX = (reticleCenter.x + cos(liveRad) * (reticleRx * 1.48f)).toFloat()
-            val reachY = (reticleCenter.y + sin(liveRad) * (reticleRy * 2.15f)).toFloat()
-            Offset(reachX, reachY.coerceAtLeast(horizonY + 6.dp.toPx()))
-        }
-        val dxBeam = liveTip.x - reticleCenter.x
-        val dyBeam = liveTip.y - reticleCenter.y
-        val beamLen = kotlin.math.hypot(dxBeam.toDouble(), dyBeam.toDouble()).toFloat().coerceAtLeast(1f)
-        val perpX = -dyBeam / beamLen
-        val perpY = dxBeam / beamLen
-        val baseSpread = 15.dp.toPx()
-        val beamCone = Path().apply {
-            moveTo(reticleCenter.x + perpX * baseSpread, reticleCenter.y + perpY * baseSpread)
-            lineTo(liveTip.x, liveTip.y)
-            lineTo(reticleCenter.x - perpX * baseSpread, reticleCenter.y - perpY * baseSpread)
-            close()
-        }
-        drawPath(
-            path = beamCone,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    beamColor.copy(alpha = 0.24f),
-                    SakinaLuxuryPalette.GoldBright.copy(alpha = 0.38f),
-                    SakinaLuxuryPalette.GoldSpecular.copy(alpha = 0.65f)
-                ),
-                start = reticleCenter,
-                end = liveTip
-            )
-        )
-        drawGlowingGoldLine(
-            start = reticleCenter,
-            end = liveTip,
-            coreStrokePx = if (isAligned) 3.8.dp.toPx() else 2.8.dp.toPx(),
-            glowColor = beamColor
-        )
-        drawGlowingLuxuryOrb(
-            center = liveTip,
-            coreRadiusPx = if (isAligned) 5.5.dp.toPx() else 4.2.dp.toPx(),
-            coreColor = SakinaLuxuryPalette.GoldSpecular,
-            haloColor = beamColor,
-            haloScale = 3.0f,
-            intensity = 1.0f
-        )
-
-        drawLuxuryKaabaEmblem(
-            center = kaabaCenter,
-            sizePx = 32.dp.toPx(),
-            withLightPillar = true,
-            pillarHeightPx = 98.dp.toPx(),
-            glowColor = beamColor
-        )
-
-        drawGlowingGoldOval(
-            topLeft = Offset(reticleCenter.x - reticleRx, reticleCenter.y - reticleRy),
-            size = Size(reticleRx * 2f, reticleRy * 2f),
-            coreStrokePx = 2.4.dp.toPx(),
-            glowColor = beamColor,
-            alphaScale = 1.0f
-        )
-        drawOval(
-            color = SakinaLuxuryPalette.EmeraldGlow.copy(alpha = 0.48f),
-            topLeft = Offset(reticleCenter.x - reticleRx * 0.84f, reticleCenter.y - reticleRy * 0.84f),
-            size = Size(reticleRx * 1.68f, reticleRy * 1.68f),
-            style = Stroke(width = 1.6.dp.toPx())
-        )
-        drawOval(
-            color = SakinaLuxuryPalette.GoldBright.copy(alpha = 0.36f),
-            topLeft = Offset(reticleCenter.x - reticleRx * 0.64f, reticleCenter.y - reticleRy * 0.64f),
-            size = Size(reticleRx * 1.28f, reticleRy * 1.28f),
-            style = Stroke(
-                width = 1.1.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
-            )
-        )
-        // تدريجات البوصلة تدور حيّاً مع اتجاه الهاتف!
-        for (deg in 0 until 360 step 15) {
-            val a = (deg + deltaDeg) * (PI / 180.0)
-            val isMajor = deg % 90 == 0
-            val innerScale = if (isMajor) 0.88f else 0.94f
-            val p1 = Offset(
-                reticleCenter.x + (cos(a) * reticleRx * innerScale).toFloat(),
-                reticleCenter.y + (sin(a) * reticleRy * innerScale).toFloat()
-            )
-            val p2 = Offset(
-                reticleCenter.x + (cos(a) * reticleRx).toFloat(),
-                reticleCenter.y + (sin(a) * reticleRy).toFloat()
-            )
-            drawLine(
-                color = if (isMajor) SakinaLuxuryPalette.GoldSpecular else SakinaLuxuryPalette.GoldBright.copy(alpha = 0.55f),
-                start = p1,
-                end = p2,
-                strokeWidth = if (isMajor) 2.dp.toPx() else 1.dp.toPx()
-            )
-        }
-
-        val rad = (deltaDeg - 90f) * (PI / 180.0)
-        val dotOnReticle = Offset(
-            x = reticleCenter.x + (cos(rad) * reticleRx).toFloat(),
-            y = reticleCenter.y + (sin(rad) * reticleRy).toFloat()
-        )
-        drawCircle(
-            color = beamColor,
-            radius = 5.5.dp.toPx(),
-            center = dotOnReticle
-        )
-
-        val maxShiftPx = 20.dp.toPx()
-        val bubbleOffset = Offset(
-            x = reticleCenter.x + (rollDeg / 45f).coerceIn(-1f, 1f) * maxShiftPx,
-            y = reticleCenter.y + (pitchDeg / 45f).coerceIn(-1f, 1f) * maxShiftPx * 0.6f
-        )
-        drawCircle(
-            color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.35f),
-            radius = 16.dp.toPx(),
-            center = reticleCenter,
-            style = Stroke(width = 1.dp.toPx())
-        )
-        drawCircle(
-            color = if (isPhoneFlat) Color(0xFF34D399) else SakinaOrbitalColors.SoftGoldGlow,
-            radius = 5.dp.toPx(),
-            center = bubbleOffset
-        )
-    }
-
-        // مجسّم الكعبة ثلاثي الأبعاد الكبير والوحيد ثابت في منتصف الأفق
-        Image(
-            painter = painterResource(id = R.drawable.ic_kaaba_3d_glow),
-            contentDescription = null,
-            modifier = Modifier
-                .size(94.dp)
-                .absoluteOffset {
-                    IntOffset(
-                        x = (kaabaXUi - kaabaImgPx / 2f).roundToInt(),
-                        y = (kaabaYUi - kaabaImgPx * 0.56f).roundToInt()
-                    )
+                .fillMaxWidth()
+                .height(82.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val cx = size.width * 0.5f
+                val cy = size.height * 0.62f
+                val arcPath = Path().apply {
+                    moveTo(cx - 118.dp.toPx(), cy + 16.dp.toPx())
+                    quadraticBezierTo(cx, cy - 26.dp.toPx(), cx + 118.dp.toPx(), cy + 16.dp.toPx())
                 }
-        )
-    }
-}
+                drawPath(
+                    path = arcPath,
+                    brush = Brush.horizontalGradient(
+                        listOf(Color.Transparent, beamColor.copy(alpha = 0.42f), beamColor, beamColor.copy(alpha = 0.42f), Color.Transparent)
+                    ),
+                    style = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(beamColor.copy(alpha = 0.36f), Color.Transparent),
+                        center = Offset(cx, size.height * 0.48f),
+                        radius = 44.dp.toPx() * beaconPulse
+                    ),
+                    radius = 44.dp.toPx() * beaconPulse,
+                    center = Offset(cx, size.height * 0.48f)
+                )
+            }
+            Image(
+                painter = painterResource(id = R.drawable.ic_kaaba_3d),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(60.dp)
+            )
+        }
 
-private fun DrawScope.drawKaabaBeacon(center: Offset, sizePx: Float, glowColor: Color) {
-    val topLeft = Offset(center.x - sizePx / 2f, center.y - sizePx / 2f)
-    drawRoundRect(
-        color = SakinaOrbitalColors.DeepSpaceNavy,
-        topLeft = topLeft,
-        size = Size(sizePx, sizePx),
-        cornerRadius = CornerRadius(3.dp.toPx())
-    )
-    drawRoundRect(
-        color = glowColor,
-        topLeft = topLeft,
-        size = Size(sizePx, sizePx),
-        cornerRadius = CornerRadius(3.dp.toPx()),
-        style = Stroke(width = 1.6.dp.toPx())
-    )
-    drawLine(
-        color = SakinaOrbitalColors.SoftGoldGlow,
-        start = Offset(topLeft.x + 2.dp.toPx(), topLeft.y + sizePx * 0.34f),
-        end = Offset(topLeft.x + sizePx - 2.dp.toPx(), topLeft.y + sizePx * 0.34f),
-        strokeWidth = 2.dp.toPx()
-    )
+        // 2. إسطرلاب القبلة الذهبي ثلاثي الأبعاد متمركز 100% + إبرة الشعاع الزمردي المضيئة
+        Box(
+            modifier = Modifier.size(264.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            // هالة زمردية خفيفة خلف الإسطرلاب
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(
+                            SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.52f),
+                            beamColor.copy(alpha = if (isAligned) 0.22f else 0.10f),
+                            Color.Transparent
+                        )
+                    ),
+                    radius = size.minDimension * 0.52f
+                )
+            }
+
+            // قرص الإسطرلاب الذهبي يدور حياً مع اتجاه الهاتف (متمركز 0px في RTL وLTR)
+            Image(
+                painter = painterResource(id = R.drawable.bg_qibla_astrolabe_3d),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .size(252.dp)
+                    .graphicsLayer { rotationZ = deltaDeg }
+            )
+
+            // إبرة التوجيه الزمردية المتوهجة تشير دوماً نحو الكعبة (تدور مع deltaDeg)
+            Canvas(
+                modifier = Modifier
+                    .size(252.dp)
+                    .graphicsLayer { rotationZ = deltaDeg }
+            ) {
+                val cx = size.width / 2f
+                val cy = size.height / 2f
+                val tipY = size.height * 0.05f
+                val needlePath = Path().apply {
+                    moveTo(cx, tipY)
+                    lineTo(cx + 8.dp.toPx(), cy)
+                    lineTo(cx, cy - 10.dp.toPx())
+                    lineTo(cx - 8.dp.toPx(), cy)
+                    close()
+                }
+                drawPath(
+                    path = needlePath,
+                    brush = Brush.verticalGradient(
+                        listOf(SakinaLuxuryPalette.EmeraldGlow, SakinaLuxuryColors.DeepEmerald),
+                        startY = tipY,
+                        endY = cy
+                    )
+                )
+                drawPath(
+                    path = needlePath,
+                    color = SakinaLuxuryPalette.GoldSpecular,
+                    style = Stroke(width = 1.2.dp.toPx())
+                )
+                // نقطة مضيئة في رأس الإبرة
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(Color.White, beamColor.copy(alpha = 0.6f), Color.Transparent),
+                        center = Offset(cx, tipY + 4.dp.toPx()),
+                        radius = 12.dp.toPx() * beaconPulse
+                    ),
+                    radius = 12.dp.toPx() * beaconPulse,
+                    center = Offset(cx, tipY + 4.dp.toPx())
+                )
+            }
+        }
+    }
 }
 
 @Composable
