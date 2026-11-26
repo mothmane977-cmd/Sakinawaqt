@@ -17,13 +17,13 @@
         android:layout_height="64dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp">
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp">
 
         <ImageView
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:layout_marginEnd="10dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginEnd="7dp"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_3d_mosque"
             android:contentDescription="@null" />
@@ -48,15 +48,17 @@
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textColor="#FFF7E7B4"
-                    android:textSize="15sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tv_collapsed_countdown"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:maxLines="1"
                     android:textColor="#FF1EE3A8"
-                    android:textSize="15sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -68,7 +70,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textColor="#CCFAF6EC"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>
