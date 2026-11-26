@@ -40,6 +40,9 @@ import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -262,10 +265,11 @@ fun SakinaOrbitalHomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(
                     start = 12.dp,
                     end = 12.dp,
-                    bottom = if (showBottomDock) 8.dp else 118.dp
+                    bottom = if (showBottomDock) 8.dp else 124.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -416,7 +420,7 @@ fun SakinaOrbitalHomeScreen(
             // 3. خانة الصلاة القادمة المتلاحمة مع القوس + التوسع السلس (650ms) للصلوات الخمس مع طيّ آلي بعد 25 ثانية
             val chevronRotation by animateFloatAsState(
                 targetValue = if (prayersExpanded) 180f else 0f,
-                animationSpec = tween(durationMillis = 550, easing = FastOutSlowInEasing),
+                animationSpec = tween(durationMillis = 900, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)),
                 label = "chevronRot"
             )
             val activeIdx = state.nextPrayerIndex.coerceIn(0, (state.prayers.lastIndex).coerceAtLeast(0))
@@ -432,8 +436,8 @@ fun SakinaOrbitalHomeScreen(
                 // الحالة المطويّة: خانة الصلاة القادمة المزخرفة مع السهم الذهبي الفاخر
                 AnimatedVisibility(
                     visible = !prayersExpanded && activeNode != null,
-                    enter = expandVertically(animationSpec = tween(950, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeIn(tween(450)),
-                    exit = shrinkVertically(animationSpec = tween(850, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeOut(tween(350))
+                    enter = expandVertically(animationSpec = tween(1200, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f))) + fadeIn(tween(900)),
+                    exit = shrinkVertically(animationSpec = tween(1200, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f))) + fadeOut(tween(900))
                 ) {
                     if (activeNode != null) {
                         Box(
@@ -522,8 +526,8 @@ fun SakinaOrbitalHomeScreen(
                 // الحالة الموسّعة: جميع الصلوات الخمس المزخرفة (22194.jpg) مع طيّ سلس وهادئ
                 AnimatedVisibility(
                     visible = prayersExpanded,
-                    enter = expandVertically(animationSpec = tween(950, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeIn(tween(750)),
-                    exit = shrinkVertically(animationSpec = tween(950, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeOut(tween(650))
+                    enter = expandVertically(animationSpec = tween(1200, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f))) + fadeIn(tween(900)),
+                    exit = shrinkVertically(animationSpec = tween(1200, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f))) + fadeOut(tween(900))
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -638,8 +642,8 @@ fun SakinaOrbitalHomeScreen(
             // 4. شريط النوافل + بطاقة «ذكر الوقت» بنفس خامات وزخارف خانات الصلوات والشريط السفلي 100%
             AnimatedVisibility(
                 visible = !prayersExpanded,
-                enter = expandVertically(animationSpec = tween(950, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeIn(tween(750)),
-                exit = shrinkVertically(animationSpec = tween(850, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeOut(tween(350))
+                enter = expandVertically(animationSpec = tween(1200, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f))) + fadeIn(tween(900)),
+                exit = shrinkVertically(animationSpec = tween(1200, easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f))) + fadeOut(tween(900))
             ) {
                 Column(
                     modifier = Modifier
@@ -684,7 +688,8 @@ fun SakinaOrbitalHomeScreen(
                     // بطاقة «ذكر الوقت» داخل نفس الزجاج الزمردي ذي الأركان الذهبية واللمعة المائلة (bg_home_prayer_capsule_3d)
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.95f),
+                            .fillMaxWidth(0.95f)
+                            .wrapContentHeight(),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -696,7 +701,8 @@ fun SakinaOrbitalHomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 24.dp, vertical = 14.dp),
+                                .wrapContentHeight()
+                                .padding(horizontal = 26.dp, vertical = 16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
@@ -726,7 +732,7 @@ fun SakinaOrbitalHomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(10.dp))
 
             if (showBottomDock) {
                 LiquidDynamicDock(
