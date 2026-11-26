@@ -205,8 +205,9 @@ object SakinaLuxuryNotifications {
                 renderStageBackdropBitmap(0xFF13483D.toInt(), 0xFFF3DFA2.toInt(), progress = 1f)
             )
             setTextViewText(R.id.tv_stage_title, "حان الآن موعد أذان $prayerName · $prayerTimeFormatted")
-            setTextViewText(R.id.tv_stage_subtitle, "الإقامة بعد $iqamaMinutes د")
-            setViewVisibility(R.id.tv_stage_parchment_dhikr, View.GONE)
+            setTextViewText(R.id.tv_stage_subtitle, "الإقامة بعد $iqamaMinutes د · نور قنوت")
+            setViewVisibility(R.id.tv_stage_parchment_dhikr, View.VISIBLE)
+            setTextViewText(R.id.tv_stage_parchment_dhikr, "قال رسول الله ﷺ: «أحبُّ الأعمال إلى الله: الصلاةُ على وقتها» — متفق عليه")
 
             setTextViewText(R.id.btn_stage_primary, "🔇 إيقاف")
             setTextViewText(R.id.btn_stage_secondary, "✓ صليت")
@@ -237,7 +238,7 @@ object SakinaLuxuryNotifications {
                 renderStageBackdropBitmap(0xFF0E3B34.toInt(), 0xFF1EE3A8.toInt(), progress = 0f)
             )
             setTextViewText(R.id.tv_stage_title, "أذكار ما بعد صلاة $prayerName")
-            setTextViewText(R.id.tv_stage_subtitle, "سَكِينةُ الختام")
+            setTextViewText(R.id.tv_stage_subtitle, "نور قنوت · أذكار الختام")
             setViewVisibility(R.id.tv_stage_parchment_dhikr, View.VISIBLE)
             setTextViewText(R.id.tv_stage_parchment_dhikr, dhikrText)
 
@@ -280,8 +281,8 @@ object SakinaLuxuryNotifications {
     }
 
     private fun actionPi(context: Context, action: String, requestCode: Int): PendingIntent {
-        val intent = Intent(context, AlarmReceiver::class.java).apply { this.action = action }
-        return PendingIntent.getBroadcast(
+        val intent = Intent(context, SakinaAdhanForegroundService::class.java).apply { this.action = action }
+        return PendingIntent.getService(
             context,
             requestCode,
             intent,

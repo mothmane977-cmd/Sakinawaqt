@@ -66,19 +66,19 @@ object SakinaLuxuryPalette {
     val GoldRich = Color(0xFFD4AF37)       // Rich 24k gold
     val GoldDeep = Color(0xFF8B6514)       // Deep metallic bronze-gold shadow
 
-    // Reusable 3-stop brushed metallic gold brushes for buttons, pills & headlines
+    // Exact 24k warm brushed antique champagne-gold stops sampled directly from 22194.jpg & Mihrab filigree
     val MetallicGoldButtonBrush = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFFFFF4C8),
-            Color(0xFFE7C261),
-            Color(0xFFB88823)
+            Color(0xFFF0D79E),
+            Color(0xFFD5B576),
+            Color(0xFFAE8B4D)
         )
     )
     val MetallicGoldTextBrush = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFFFFFAE6),
-            Color(0xFFF3D47E),
-            Color(0xFFC89B34)
+            Color(0xFFF2DAA4),
+            Color(0xFFD8B87A),
+            Color(0xFFB69454)
         )
     )
 

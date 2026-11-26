@@ -84,8 +84,6 @@ val SakinaOrnateArabicFont = FontFamily(
 
 private fun resolveFont(isRtl: Boolean, styleIdx: Int): FontFamily = when {
     !isRtl -> SakinaLatinLuxuryFontFamily
-    styleIdx == 1 -> SakinaOrnateArabicFont
-    styleIdx == 2 -> FontFamily.SansSerif
     else -> SakinaNaskhFontFamily
 }
 

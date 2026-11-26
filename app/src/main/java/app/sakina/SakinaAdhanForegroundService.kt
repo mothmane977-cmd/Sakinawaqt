@@ -17,7 +17,13 @@ class SakinaAdhanForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
+        val act = intent?.action
+        if (act != null && act.startsWith("app.sakina.ACTION_LUX_")) {
+            SakinaLiveNotifier.handleNotificationAction(this, act)
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
+        if (act == ACTION_STOP) {
             SakinaAdhanAudio.stop()
             stopSelf()
             return START_NOT_STICKY

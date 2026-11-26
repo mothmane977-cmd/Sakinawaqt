@@ -10,8 +10,8 @@ import androidx.core.graphics.drawable.IconCompat
 
 /**
  * Sakina v54 — Architectural Status Bar Dynamic Icon Factory
- * - remainingMillis >= 60 min: Solid pointed mosque dome + 2 sturdy tiered minarets + crescent + real bold Arabic "سكينة"
- * - remainingMillis <  60 min: Extra-wide graceful hollow dome cradling large bold minutes + 2 tiered minarets + "سكينة"
+ * - remainingMillis >= 60 min: Solid pointed mosque dome + 2 sturdy tiered minarets + crescent + real bold Arabic "قنوت"
+ * - remainingMillis <  60 min: Extra-wide graceful hollow dome cradling large bold minutes + 2 tiered minarets + "قنوت"
  */
 object SakinaStatusBarIconFactory {
 
@@ -115,7 +115,7 @@ object SakinaStatusBarIconFactory {
         }
         val fm = tp.fontMetrics
         val y = 80f * s - (fm.ascent + fm.descent) / 2f
-        canvas.drawText("سكينة", 48f * s, y, tp)
+        canvas.drawText("قنوت", 48f * s, y, tp)
     }
 
     private fun drawCrescent(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
