@@ -60,11 +60,11 @@ object SakinaBrandColors {
 
 // 100% Classical Amiri Naskh Font Family for Arabic & Urdu
 val SakinaNaskhFontFamily = FontFamily(
-    Font(R.font.noto_naskh_arabic_regular, FontWeight.Light),
-    Font(R.font.noto_naskh_arabic_regular, FontWeight.Normal),
-    Font(R.font.noto_naskh_arabic_regular, FontWeight.Medium),
-    Font(R.font.noto_naskh_arabic_bold, FontWeight.SemiBold),
-    Font(R.font.noto_naskh_arabic_bold, FontWeight.Bold)
+    Font(R.font.amiri_regular, FontWeight.Light),
+    Font(R.font.amiri_regular, FontWeight.Normal),
+    Font(R.font.amiri_regular, FontWeight.Medium),
+    Font(R.font.amiri_bold, FontWeight.SemiBold),
+    Font(R.font.amiri_bold, FontWeight.Bold)
 )
 
 // Plus Jakarta Sans for Latin languages & numerals

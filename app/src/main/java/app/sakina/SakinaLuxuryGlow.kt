@@ -28,6 +28,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -81,6 +82,8 @@ object SakinaLuxuryPalette {
             Color(0xFFB69454)
         )
     )
+
+    val GoldEngravedShadow = Shadow(color = Color(0xCC040C16), offset = Offset(0f, 1.5f), blurRadius = 3f)
 
     // Luminous Emerald Accent
     val EmeraldSpecular = Color(0xFF7CFFD4)

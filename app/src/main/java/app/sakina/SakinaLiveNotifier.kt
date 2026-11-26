@@ -113,18 +113,16 @@ object SakinaLiveNotifier {
             SakinaLuxuryNotifications.ACTION_MARK_PRAYED -> {
                 val todayKey = SakinaAdvancedPrefs.dateKeyOffset(0)
                 val idx = sp.getInt("live_active_prayer_idx", 0).coerceIn(0, 4)
-                if (!SakinaAdvancedPrefs.isPrayerLogged(c, todayKey, idx)) {
-                    SakinaAdvancedPrefs.togglePrayerLogged(c, todayKey, idx)
-                }
+                SakinaAdvancedPrefs.togglePrayerLogged(c, todayKey, idx)
                 SakinaLuxuryNotifications.dismissStageNotification(c)
             }
             SakinaLuxuryNotifications.ACTION_CYCLE_ALERT -> {
                 val cur = sp.getInt("live_quick_alert_mode", 0)
-                sp.edit().putInt("live_quick_alert_mode", (cur + 1) % 3).apply()
+                sp.edit().putInt("live_quick_alert_mode", (cur + 1) % 3).commit()
             }
             SakinaLuxuryNotifications.ACTION_TASBIH_TAP -> {
                 val cnt = (sp.getInt("live_notif_tasbih", 0) + 1) % 34
-                sp.edit().putInt("live_notif_tasbih", cnt).apply()
+                sp.edit().putInt("live_notif_tasbih", cnt).commit()
             }
             SakinaLuxuryNotifications.ACTION_PREPARED,
             SakinaLuxuryNotifications.ACTION_SNOOZE_5M,

@@ -117,6 +117,11 @@ object SakinaLuxuryNotifications {
             setTextViewText(R.id.tv_next_prayer, "$prayerName $prayerTimeFormatted")
             setTextViewText(R.id.tv_remaining_time, countdownStr)
             setTextViewText(R.id.tv_five_prayers_strip, fivePrayersStrip)
+            val spNotif = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+            val activeIdx = spNotif.getInt("live_active_prayer_idx", 0).coerceIn(0, 4)
+            val todayK = SakinaAdvancedPrefs.dateKeyOffset(0)
+            val prayedNow = SakinaAdvancedPrefs.isPrayerLogged(context, todayK, activeIdx)
+            setTextViewText(R.id.btn_live_prayed, if (prayedNow) "✓ تمّت الصلاة" else "○ صليت")
             setTextViewText(R.id.btn_live_alert_mode, alertModeLabel)
             setTextViewText(R.id.btn_live_tasbih, "تسبيحة ${tasbihCount % 34}/33")
 
@@ -281,8 +286,11 @@ object SakinaLuxuryNotifications {
     }
 
     private fun actionPi(context: Context, action: String, requestCode: Int): PendingIntent {
-        val intent = Intent(context, SakinaAdhanForegroundService::class.java).apply { this.action = action }
-        return PendingIntent.getService(
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            this.action = action
+            setPackage(context.packageName)
+        }
+        return PendingIntent.getBroadcast(
             context,
             requestCode,
             intent,
