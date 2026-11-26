@@ -80,6 +80,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -265,39 +266,48 @@ fun SakinaOrbitalHomeScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    modifier = Modifier.padding(start = 34.dp, end = 34.dp, bottom = 10.dp)
                 ) {
                     Text(
                         text = focusedPrayer.localizedName,
                         style = TextStyle(
                             brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                            fontSize = 27.sp,
+                            fontSize = 22.sp,
+                            lineHeight = 26.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = headingFontFamily
+                            fontFamily = headingFontFamily,
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
                         )
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = focusedPrayer.timeText,
                         style = TextStyle(
                             brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                            fontSize = 32.sp,
+                            fontSize = 28.sp,
+                            lineHeight = 32.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = bodyFontFamily,
-                            fontFeatureSettings = "tnum"
+                            fontFeatureSettings = "tnum",
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
                         )
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = if (focusedIndex == state.nextPrayerIndex) {
                             "متبقي ${state.countdownText}"
                         } else {
                             "${completedCount}/${state.prayers.size.coerceAtLeast(5)} اليوم"
                         },
-                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.92f),
-                        fontSize = 13.5.sp,
+                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.94f),
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = bodyFontFamily,
-                        style = TextStyle(fontFeatureSettings = "tnum")
+                        maxLines = 1,
+                        style = TextStyle(
+                            fontFeatureSettings = "tnum",
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                        )
                     )
                 }
             }
@@ -343,7 +353,7 @@ fun SakinaOrbitalHomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 28.dp),
+                                .padding(horizontal = 50.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -368,34 +378,20 @@ fun SakinaOrbitalHomeScreen(
                                     style = TextStyle(fontFeatureSettings = "tnum")
                                 )
 
-                                // ميدالية ✓ الذهبية الدائرية لتسجيل أداء الصلاة بلمسة واحدة
-                                Box(
+                                // ميدالية ✓ الذهبية المعدنية ثلاثية الأبعاد الحقيقية (مطابقة 100% لـ 22098.jpg)
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_3d_check_gold),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Fit,
+                                    alpha = if (node.isCompleted) 1f else 0.28f,
                                     modifier = Modifier
-                                        .size(28.dp)
+                                        .size(30.dp)
                                         .clip(CircleShape)
-                                        .background(
-                                            if (node.isCompleted) SakinaLuxuryPalette.MetallicGoldButtonBrush
-                                            else Brush.verticalGradient(listOf(Color(0x5506101F), Color(0x8806101F)))
-                                        )
-                                        .border(
-                                            width = if (node.isCompleted || isActive) 1.2.dp else 0.7.dp,
-                                            color = SakinaLuxuryColors.SoftGoldGlow.copy(alpha = if (node.isCompleted) 1f else 0.55f),
-                                            shape = CircleShape
-                                        )
                                         .clickable {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             onTogglePrayerCompleted(node.type)
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Check,
-                                        contentDescription = null,
-                                        tint = if (node.isCompleted) SakinaOrbitalColors.InkNavy
-                                        else SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.55f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
+                                        }
+                                )
                             }
                         }
                     }
@@ -404,12 +400,21 @@ fun SakinaOrbitalHomeScreen(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // 4. شريط النوافل المختصر أسفل الصلوات الخمس
-            ComprehensiveNafilahStrip(
-                state = state,
-                strings = strings,
-                bodyFontFamily = bodyFontFamily
-            )
+            // 4. شريط النوافل المختصر داخل كبسولة داكنة رفيعة لوضوح 100% فوق الزخرفة
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xB806101F))
+                    .border(0.6.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.30f), RoundedCornerShape(16.dp))
+                    .padding(vertical = 5.dp)
+            ) {
+                ComprehensiveNafilahStrip(
+                    state = state,
+                    strings = strings,
+                    bodyFontFamily = bodyFontFamily
+                )
+            }
 
             if (showBottomDock) {
                 Spacer(modifier = Modifier.height(8.dp))

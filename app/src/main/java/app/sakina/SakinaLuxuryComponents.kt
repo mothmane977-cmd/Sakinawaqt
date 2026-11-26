@@ -420,29 +420,9 @@ fun SakinaLuxuryFloatingDock(
 ) {
     Box(
         modifier = modifier
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(horizontal = 6.dp, vertical = 4.dp)
             .fillMaxWidth()
-            .height(74.dp)
-            .clip(RoundedCornerShape(37.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        SakinaLuxuryColors.MidnightNavy.copy(alpha = 0.92f),
-                        SakinaLuxuryColors.DeepSpaceNavy.copy(alpha = 0.97f)
-                    )
-                )
-            )
-            .border(
-                width = 0.95.dp,
-                brush = Brush.horizontalGradient(
-                    listOf(
-                        SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.25f),
-                        SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.65f),
-                        SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.25f)
-                    )
-                ),
-                shape = RoundedCornerShape(33.dp)
-            )
+            .height(84.dp)
     ) {
         Image(
             painter = painterResource(id = R.drawable.bg_luxury_floating_dock),
@@ -451,7 +431,9 @@ fun SakinaLuxuryFloatingDock(
             modifier = Modifier.matchParentSize()
         )
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
