@@ -669,9 +669,10 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                         }
                                     }
 
-                                    if (extraSection == ExtraSection.NONE && !(currentTab == SakinaNavTab.QURAN && isMushafReadingFullScreen)) {
+                                    if ((extraSection == ExtraSection.NONE || extraSection == ExtraSection.ADHKAR) && !(currentTab == SakinaNavTab.QURAN && isMushafReadingFullScreen)) {
                                         SakinaBottomPillBar(
                                             currentTab = currentTab,
+                                            activeRouteOverride = if (extraSection == ExtraSection.ADHKAR) "tasbih" else null,
                                             onTabSelected = { extraSection = ExtraSection.NONE; openedFromRightDrawer = false; openedFromLeftDrawer = false; if (it != SakinaNavTab.QURAN) isMushafReadingFullScreen = false; currentTab = it },
                                             onTasbihClick = {
                                                 adhkarInitCat = null

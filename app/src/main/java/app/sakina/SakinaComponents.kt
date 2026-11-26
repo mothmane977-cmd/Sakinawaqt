@@ -764,6 +764,7 @@ fun SakinaBottomPillBar(
     currentTab: SakinaNavTab,
     onTabSelected: (SakinaNavTab) -> Unit,
     modifier: Modifier = Modifier,
+    activeRouteOverride: String? = null,
     onTasbihClick: () -> Unit = {},
     onMoreClick: () -> Unit = {}
 ) {
@@ -775,7 +776,7 @@ fun SakinaBottomPillBar(
         SakinaDockTab("tasbih", sakinaTr(lang, "التسبيح", "Tasbih", "Tasbih", "Tesbih", "Tasbih", "تسبیح"), R.drawable.ic_dock_tasbih_3d),
         SakinaDockTab("more", sakinaTr(lang, "المزيد", "More", "Plus", "Daha", "Lainnya", "مزید"), R.drawable.ic_dock_more_3d)
     )
-    val selectedRoute = when (currentTab) {
+    val selectedRoute = activeRouteOverride ?: when (currentTab) {
         SakinaNavTab.HOME -> "home"
         SakinaNavTab.QURAN -> "quran"
         SakinaNavTab.QIBLA -> "qibla"

@@ -223,59 +223,62 @@ fun SakinaOrbitalHomeScreen(
             .navigationBarsPadding()
     ) {
         SakinaAmbientLuxuryBackdrop(showGeometricPattern = true, showStarDust = true)
+        var prayersExpanded by remember { mutableStateOf(true) }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
                     start = 14.dp,
                     end = 14.dp,
-                    bottom = if (showBottomDock) 8.dp else 96.dp
+                    bottom = if (showBottomDock) 8.dp else 104.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            // 1. الترويسة النظيفة المطابقة للتصميم المعتمد (سَكِينة · المدينة والتاريخ الهجري)
+            // 1. الترويسة بخط أميري الذهبي
             MinimalistOrbitalHeader(
                 appTitle = strings.appTitle,
                 cityName = state.cityName,
                 hijriDate = state.hijriDate,
                 langCode = state.languageCode,
-                headingFontFamily = headingFontFamily,
-                bodyFontFamily = bodyFontFamily,
+                headingFontFamily = SakinaHeadingFont,
+                bodyFontFamily = SakinaHeadingFont,
                 onMenuClick = onMenuClick,
                 onLanguageClick = onLanguageClick,
                 onLocationClick = onCityClick
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
-            // 2. قرص الهلال الذهبي المصقول الكبير (22088.jpg) وبداخله الصلاة القادمة والوقت والعداد
+            // 2. قوس المحراب النوراني المذهّب (الخيار 1) بخط أميري الذهبي
             Box(
                 modifier = Modifier
-                    .size(236.dp)
+                    .fillMaxWidth(0.76f)
+                    .height(224.dp)
                     .clickable { onTodayStatsClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.bg_home_crescent_dial_3d),
+                    painter = painterResource(id = R.drawable.bg_home_mihrab_hero_3d),
                     contentDescription = null,
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.FillBounds,
                     modifier = Modifier.fillMaxSize()
                 )
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(start = 36.dp, end = 36.dp, bottom = 22.dp)
+                    modifier = Modifier.padding(top = 56.dp, start = 24.dp, end = 24.dp, bottom = 12.dp)
                 ) {
                     Text(
                         text = focusedPrayer.localizedName,
                         style = TextStyle(
                             brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                            fontSize = 22.sp,
-                            lineHeight = 26.sp,
+                            fontSize = 27.sp,
+                            lineHeight = 32.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = headingFontFamily,
+                            fontFamily = SakinaHeadingFont,
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         )
                     )
@@ -284,10 +287,10 @@ fun SakinaOrbitalHomeScreen(
                         text = focusedPrayer.timeText,
                         style = TextStyle(
                             brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                            fontSize = 25.sp,
-                            lineHeight = 28.sp,
+                            fontSize = 33.sp,
+                            lineHeight = 38.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = bodyFontFamily,
+                            fontFamily = SakinaHeadingFont,
                             fontFeatureSettings = "tnum",
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         )
@@ -300,9 +303,9 @@ fun SakinaOrbitalHomeScreen(
                             "${completedCount}/${state.prayers.size.coerceAtLeast(5)} اليوم"
                         },
                         color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.94f),
-                        fontSize = 11.sp,
+                        fontSize = 13.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        fontFamily = bodyFontFamily,
+                        fontFamily = SakinaHeadingFont,
                         maxLines = 1,
                         style = TextStyle(
                             fontFeatureSettings = "tnum",
@@ -312,86 +315,143 @@ fun SakinaOrbitalHomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 3. صفوف الصلوات الخمس الدائمة المزخرفة بالذهب والزمرد (مطابقة 100% لـ 22088.jpg)
-            Column(
+            // 3. كبسولة مواقيت الصلوات الخمس الفاخرة القابلة للتوسع والطيّ (مطابقة 100% للخيار 1)
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterVertically),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth(0.92f)
+                    .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
             ) {
-                state.prayers.forEachIndexed { idx, node ->
-                    val isActive = idx == focusedIndex || idx == state.nextPrayerIndex
-                    val isHighlighted = idx == state.nextPrayerIndex
-                    Box(
+                Image(
+                    painter = painterResource(id = R.drawable.bg_home_prayer_capsule_3d),
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier.matchParentSize()
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // رأس الكبسولة القابل للنقر للطي والتوسع
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
-                            .combinedClickable(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    if (focusedIndex == idx) onTogglePrayerCompleted(node.type)
-                                    else focusedIndex = idx
-                                },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onCyclePrayerAlarmMode(node.type)
-                                }
-                            ),
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                prayersExpanded = !prayersExpanded
+                            }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Image(
-                            painter = painterResource(
-                                id = if (isHighlighted) R.drawable.bg_prayer_row_active_emerald_3d
-                                else R.drawable.bg_prayer_row_gold_3d
-                            ),
-                            contentDescription = null,
-                            contentScale = ContentScale.FillBounds,
-                            modifier = Modifier.matchParentSize()
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 44.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = node.localizedName,
-                                color = if (isHighlighted) Color.White else SakinaLuxuryColors.SoftGoldGlow,
-                                fontSize = 16.5.sp,
+                        Text(
+                            text = if (prayersExpanded) "مواقيت الصلوات الخمس ▴" else "مواقيت الصلوات الخمس ▾",
+                            style = TextStyle(
+                                brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                                fontSize = 15.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                fontFamily = headingFontFamily
+                                fontFamily = SakinaHeadingFont,
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
                             )
+                        )
+                    }
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Text(
-                                    text = node.timeText,
-                                    color = if (isHighlighted) Color.White else SakinaLuxuryColors.SoftGoldGlow,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = bodyFontFamily,
-                                    style = TextStyle(fontFeatureSettings = "tnum")
-                                )
-
-                                // ميدالية ✓ الذهبية المعدنية ثلاثية الأبعاد تظهر عند تأدية الصلاة (مطابقة 100% لـ 22088.jpg)
-                                if (node.isCompleted) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.ic_3d_check_gold),
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Fit,
-                                        modifier = Modifier
-                                            .size(34.dp)
-                                            .clip(CircleShape)
-                                            .clickable {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                onTogglePrayerCompleted(node.type)
+                    AnimatedVisibility(visible = prayersExpanded) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            state.prayers.forEachIndexed { idx, node ->
+                                val isHighlighted = idx == state.nextPrayerIndex
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(
+                                            if (isHighlighted) {
+                                                Brush.horizontalGradient(
+                                                    listOf(
+                                                        SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.85f),
+                                                        SakinaLuxuryColors.EmeraldGlow.copy(alpha = 0.34f),
+                                                        SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.85f)
+                                                    )
+                                                )
+                                            } else {
+                                                Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
                                             }
+                                        )
+                                        .combinedClickable(
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                if (focusedIndex == idx) onTogglePrayerCompleted(node.type)
+                                                else focusedIndex = idx
+                                            },
+                                            onLongClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                onCyclePrayerAlarmMode(node.type)
+                                            }
+                                        )
+                                        .padding(horizontal = 12.dp, vertical = 7.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = node.localizedName,
+                                            style = TextStyle(
+                                                brush = if (isHighlighted) Brush.verticalGradient(listOf(Color.White, SakinaLuxuryColors.SoftGoldGlow))
+                                                else SakinaLuxuryPalette.MetallicGoldTextBrush,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                fontFamily = SakinaHeadingFont,
+                                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                            )
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            if (node.isCompleted) {
+                                                Image(
+                                                    painter = painterResource(id = R.drawable.ic_3d_check_gold),
+                                                    contentDescription = null,
+                                                    contentScale = ContentScale.Fit,
+                                                    modifier = Modifier
+                                                        .size(24.dp)
+                                                        .clip(CircleShape)
+                                                        .clickable {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            onTogglePrayerCompleted(node.type)
+                                                        }
+                                                )
+                                            }
+                                            Text(
+                                                text = node.timeText,
+                                                style = TextStyle(
+                                                    brush = if (isHighlighted) Brush.verticalGradient(listOf(Color.White, SakinaLuxuryColors.SoftGoldGlow))
+                                                    else SakinaLuxuryPalette.MetallicGoldTextBrush,
+                                                    fontSize = 16.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontFamily = SakinaHeadingFont,
+                                                    fontFeatureSettings = "tnum",
+                                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                                if (idx < state.prayers.lastIndex) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(0.6.dp)
+                                            .background(SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.25f))
                                     )
                                 }
                             }
@@ -400,14 +460,13 @@ fun SakinaOrbitalHomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
             if (showBottomDock) {
-                Spacer(modifier = Modifier.height(8.dp))
                 LiquidDynamicDock(
                     selectedIndex = selectedTabIndex,
                     strings = strings,
-                    bodyFontFamily = bodyFontFamily,
+                    bodyFontFamily = SakinaHeadingFont,
                     onTabSelected = onTabSelected
                 )
             }

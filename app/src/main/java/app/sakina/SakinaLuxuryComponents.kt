@@ -421,7 +421,7 @@ fun SakinaLuxuryFloatingDock(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(98.dp)
+            .height(104.dp)
     ) {
         Image(
             painter = painterResource(id = R.drawable.bg_luxury_floating_dock),
@@ -432,14 +432,14 @@ fun SakinaLuxuryFloatingDock(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 14.dp, end = 14.dp, top = 18.dp, bottom = 8.dp),
+                .padding(start = 18.dp, end = 18.dp, top = 28.dp, bottom = 10.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             tabs.forEach { tab ->
                 val selected = tab.route == selectedRoute
                 val medSize by animateDpAsState(
-                    targetValue = if (selected) 47.dp else 43.dp,
+                    targetValue = if (selected) 42.dp else 39.dp,
                     label = "dockMedSize"
                 )
                 Box(
