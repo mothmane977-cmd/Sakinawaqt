@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -279,16 +280,11 @@ fun SakinaOrbitalHomeScreen(
                     .clip(RoundedCornerShape(12.dp))
                     .clickable(onClick = onCityClick)
             ) {
-                Text(
-                    text = "نور قنوت",
-                    style = TextStyle(
-                        brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                        fontSize = 25.sp,
-                        lineHeight = 30.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = SakinaHeadingFont,
-                        platformStyle = PlatformTextStyle(includeFontPadding = false)
-                    )
+                Image(
+                    painter = painterResource(id = R.drawable.ic_logo_nurqunoot_gold),
+                    contentDescription = "نُورُ قُنُوت",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.height(40.dp)
                 )
                 Canvas(
                     modifier = Modifier
@@ -356,7 +352,7 @@ fun SakinaOrbitalHomeScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(top = 50.dp, start = 24.dp, end = 24.dp, bottom = 22.dp)
+                    modifier = Modifier.padding(top = 64.dp, start = 24.dp, end = 24.dp, bottom = 12.dp)
                 ) {
                     Text(
                         text = focusedPrayer.localizedName,
@@ -436,8 +432,8 @@ fun SakinaOrbitalHomeScreen(
                 // الحالة المطويّة: خانة الصلاة القادمة المزخرفة مع السهم الذهبي الفاخر
                 AnimatedVisibility(
                     visible = !prayersExpanded && activeNode != null,
-                    enter = expandVertically(animationSpec = tween(650, easing = FastOutSlowInEasing)) + fadeIn(tween(450)),
-                    exit = shrinkVertically(animationSpec = tween(550, easing = FastOutSlowInEasing)) + fadeOut(tween(350))
+                    enter = expandVertically(animationSpec = tween(950, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeIn(tween(450)),
+                    exit = shrinkVertically(animationSpec = tween(850, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeOut(tween(350))
                 ) {
                     if (activeNode != null) {
                         Box(
@@ -526,8 +522,8 @@ fun SakinaOrbitalHomeScreen(
                 // الحالة الموسّعة: جميع الصلوات الخمس المزخرفة (22194.jpg) مع طيّ سلس وهادئ
                 AnimatedVisibility(
                     visible = prayersExpanded,
-                    enter = expandVertically(animationSpec = tween(650, easing = FastOutSlowInEasing)) + fadeIn(tween(500)),
-                    exit = shrinkVertically(animationSpec = tween(650, easing = FastOutSlowInEasing)) + fadeOut(tween(450))
+                    enter = expandVertically(animationSpec = tween(950, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeIn(tween(750)),
+                    exit = shrinkVertically(animationSpec = tween(950, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeOut(tween(650))
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -642,8 +638,8 @@ fun SakinaOrbitalHomeScreen(
             // 4. شريط النوافل + بطاقة «ذكر الوقت» بنفس خامات وزخارف خانات الصلوات والشريط السفلي 100%
             AnimatedVisibility(
                 visible = !prayersExpanded,
-                enter = expandVertically(animationSpec = tween(650, easing = FastOutSlowInEasing)) + fadeIn(tween(500)),
-                exit = shrinkVertically(animationSpec = tween(550, easing = FastOutSlowInEasing)) + fadeOut(tween(350))
+                enter = expandVertically(animationSpec = tween(950, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeIn(tween(750)),
+                exit = shrinkVertically(animationSpec = tween(850, easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f))) + fadeOut(tween(350))
             ) {
                 Column(
                     modifier = Modifier
@@ -668,11 +664,11 @@ fun SakinaOrbitalHomeScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 36.dp, vertical = 6.dp)
+                                .padding(horizontal = 42.dp, vertical = 5.dp)
                                 .clip(RoundedCornerShape(18.dp))
                                 .background(
                                     Brush.horizontalGradient(
-                                        listOf(Color.Transparent, Color(0x36146652), Color.Transparent)
+                                        listOf(Color(0x660B4236), Color(0xAA146854), Color(0x660B4236))
                                     )
                                 ),
                             contentAlignment = Alignment.Center
@@ -1445,38 +1441,45 @@ private fun ComprehensiveNafilahStrip(
         strings.tahajjudLabel to state.tahajjudTime
     )
 
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
-        contentPadding = PaddingValues(horizontal = 8.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        itemsIndexed(items) { _, (label, time) ->
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        items.forEach { (label, time) ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = label,
                     style = TextStyle(
                         brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                        fontSize = 10.5.sp,
-                        lineHeight = 14.sp,
+                        fontSize = 9.5.sp,
+                        lineHeight = 13.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = bodyFontFamily,
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                     ),
-                    maxLines = 1
+                    maxLines = 1,
+                    softWrap = false
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = time,
                     style = TextStyle(
                         brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                        fontSize = 11.5.sp,
-                        lineHeight = 14.sp,
+                        fontSize = 10.5.sp,
+                        lineHeight = 13.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = SakinaNumeralFont,
                         fontFeatureSettings = "tnum",
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                     ),
-                    maxLines = 1
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         }
