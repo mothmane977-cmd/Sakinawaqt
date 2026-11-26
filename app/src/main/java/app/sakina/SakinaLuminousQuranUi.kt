@@ -9,6 +9,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -288,10 +290,10 @@ fun SakinaLuminousQuranScreen(
     }
     val haptic = LocalHapticFeedback.current
     var isPlayerExpanded by remember { mutableStateOf(false) }
-    var readerBarsVisible by remember { mutableStateOf(true) }
+    var readerBarsVisible by remember { mutableStateOf(false) }
     LaunchedEffect(state.isReaderOpen) {
         onReaderActiveChanged(state.isReaderOpen)
-        if (state.isReaderOpen) readerBarsVisible = true
+        if (state.isReaderOpen) readerBarsVisible = false
     }
 
     Box(
@@ -443,13 +445,38 @@ private fun QuranIndexPortalContent(
             text = strings.screenTitle,
             style = TextStyle(
                 brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
-                fontSize = 24.sp,
+                shadow = SakinaLuxuryPalette.GoldEngravedShadow,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = headingFontFamily,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                platformStyle = PlatformTextStyle(includeFontPadding = false)
             ),
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 44.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            HorizontalDivider(
+                modifier = Modifier.weight(1f),
+                thickness = 0.8.dp,
+                color = SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.45f)
+            )
+            Text(
+                text = " ◆ ",
+                color = SakinaLuxuryColors.SoftGoldGlow,
+                fontSize = 9.sp,
+                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+            )
+            HorizontalDivider(
+                modifier = Modifier.weight(1f),
+                thickness = 0.8.dp,
+                color = SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.45f)
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -1281,237 +1308,339 @@ private fun QuranMushafReaderContent(
         }
     }
 
-    Column(modifier = modifier.fillMaxWidth()) {
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // ترويسة عائمة تختفي وتظهر بلمسة وسط الصفحة لخشوع تام
-        AnimatedVisibility(visible = localBarsVisible) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(onClick = onCloseReader) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = strings.backDesc,
-                    tint = SakinaOrbitalColors.ChampagneGold
-                )
-            }
-
-            Text(
-                text = "${state.currentReaderSurah} · ص ${state.currentReaderPage}",
-                color = SakinaOrbitalColors.WarmCream,
-                fontSize = 15.5.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = headingFontFamily,
-                style = TextStyle(fontFeatureSettings = "tnum")
-            )
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ReaderTopChip(
-                    label = if (state.riwayah == QuranRiwayah.HAFS) strings.hafsShort else strings.warshShort,
-                    isActive = true,
-                    bodyFontFamily = bodyFontFamily,
-                    onClick = onRiwayahToggle
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                ReaderTopChip(
-                    label = if (state.riwayah == QuranRiwayah.HAFS) {
-                        if (state.isTajweedEnabled) "${strings.tajweedLabel} ✓" else strings.tajweedLabel
-                    } else {
-                        strings.warshUsulLabel
-                    },
-                    isActive = state.riwayah == QuranRiwayah.WARSH || state.isTajweedEnabled,
-                    bodyFontFamily = bodyFontFamily,
-                    onClick = {
-                        if (state.riwayah == QuranRiwayah.HAFS) onToggleTajweed()
-                        else activeRuleExplanation = WarshUsulRule.BADAL.arabicTitle to WarshUsulRule.BADAL.explanation
-                    }
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                // زر حفظ المرجعية (🔖) لصفحة المصحف الحالية
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(if (isCurrentPageBookmarked) SakinaLuxuryColors.DeepEmerald else SakinaOrbitalColors.GlassNavy)
-                        .border(
-                            width = if (isCurrentPageBookmarked) 1.1.dp else 0.8.dp,
-                            color = if (isCurrentPageBookmarked) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.5f),
-                            shape = CircleShape
-                        )
-                        .clickable(onClick = onToggleBookmark),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (isCurrentPageBookmarked) "★" else "☆",
-                        color = SakinaLuxuryColors.SoftGoldGlow,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                // زر تبديل الثيم المستقل (ورقي دافئ / زمردي ليلي)
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(SakinaOrbitalColors.GlassNavy)
-                        .border(0.8.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.5f), CircleShape)
-                        .clickable(onClick = onToggleReaderTheme)
-                        .semantics { contentDescription = strings.themeToggleDesc },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (isParchment) "🌙" else "☀",
-                        fontSize = 12.sp
-                    )
-                }
-            }
-        }
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Row(
+    Box(modifier = modifier.fillMaxSize()) {
+        // 1. صفحة المصحف ملء الشاشة (إطار خيط ذهبي نحيف وزخرفة زوايا رقيقة في الوضع الورقي، وزمردي ليلي فاخر في الوضع الليلي)
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .then(
-                        if (isParchment) {
-                            Modifier.sakinaParchmentGlowCard(
-                                cornerRadius = 22.dp,
-                                haloAlpha = 0.36f,
-                                doubleBorder = true
-                            )
-                        } else {
-                            Modifier.sakinaLuxuryGlassCard(
-                                cornerRadius = 22.dp,
+                .fillMaxSize()
+                .then(
+                    if (isParchment) {
+                        Modifier.clip(RoundedCornerShape(16.dp))
+                    } else {
+                        Modifier
+                            .sakinaLuxuryGlassCard(
+                                cornerRadius = 18.dp,
                                 innerHairline = true,
                                 emeraldFlare = true,
                                 shimmer = false,
-                                borderAlpha = 0.68f
+                                borderAlpha = 0.72f
                             )
+                            .clip(RoundedCornerShape(18.dp))
+                    }
+                )
+        ) {
+            if (isParchment) {
+                Image(
+                    painter = painterResource(id = R.drawable.bg_mushaf_fullscreen_frame),
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // تقليب الصفحات بالسحب الأفقي الحقيقي (HorizontalPager) مع هوامش آمنة تحفظ الآيات داخل الخيط الذهبي
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { pageIndex ->
+                val ayahsForThisPage = pageAyahsProvider(pageIndex + 1)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onToggleBars() }
+                        .padding(
+                            start = 26.dp,
+                            end = 26.dp,
+                            top = 30.dp,
+                            bottom = 42.dp
+                        )
+                ) {
+                    val combinedAyahs = buildAnnotatedString {
+                        ayahsForThisPage.forEach { ayah ->
+                            append(ayah.styledText)
+                            withStyle(
+                                SpanStyle(
+                                    color = if (isParchment) Color(0xFF9C762F) else SakinaOrbitalColors.SoftGoldGlow,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            ) {
+                                append(" ﴿${ayah.ayahNumber}﴾ ")
+                            }
+                        }
+                    }
+
+                    val charCount = combinedAyahs.length
+                    val autoFontSp = when {
+                        charCount < 280 -> 25.sp
+                        charCount < 480 -> 21.sp
+                        charCount < 700 -> 18.5.sp
+                        charCount < 950 -> 16.5.sp
+                        else -> 15.sp
+                    }
+                    val autoLineSp = when {
+                        charCount < 280 -> 44.sp
+                        charCount < 480 -> 36.sp
+                        charCount < 700 -> 31.sp
+                        charCount < 950 -> 27.sp
+                        else -> 24.sp
+                    }
+                    Text(
+                        text = combinedAyahs,
+                        color = pageTextColor,
+                        fontSize = autoFontSp,
+                        lineHeight = autoLineSp,
+                        fontFamily = quranFontFamily,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            // رقم الصفحة الهادئ أسفل إطار المصحف (دائم الظهور بوقار في وضع ملء الشاشة)
+            if (!localBarsVisible) {
+                Text(
+                    text = "${state.currentReaderPage}",
+                    color = if (isParchment) Color(0xFF8C6B2F) else SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = SakinaNumeralFont,
+                    style = TextStyle(
+                        fontFeatureSettings = "tnum",
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 14.dp)
+                )
+            }
+        }
+
+        // 2. الترويسة العلوية الفاخرة (تظهر وتختفي بسلاسة عند لمس الصفحة مع 3 ميداليات ذهبية ثلاثية الأبعاد)
+        AnimatedVisibility(
+            visible = localBarsVisible,
+            enter = fadeIn(tween(220)) + slideInVertically(tween(240)) { -it / 2 },
+            exit = fadeOut(tween(180)) + slideOutVertically(tween(200)) { -it / 2 },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xF206181B), Color(0xEC092324))
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                        shape = RoundedCornerShape(22.dp)
+                    )
+                    .padding(horizontal = 10.dp, vertical = 9.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // ميدالية الرجوع الذهبية 3D
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onCloseReader)
+                            .semantics { contentDescription = strings.backDesc },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_quran_back_gold_3d),
+                            contentDescription = strings.backDesc,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
+                    // اسم السورة ورقم الصفحة بخط أميري ذهبي محفور
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.weight(1f).padding(horizontal = 6.dp)
+                    ) {
+                        Text(
+                            text = "${state.currentReaderSurah} · ص ",
+                            style = TextStyle(
+                                brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                                shadow = SakinaLuxuryPalette.GoldEngravedShadow,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = headingFontFamily,
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${state.currentReaderPage}",
+                            style = TextStyle(
+                                brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                                shadow = SakinaLuxuryPalette.GoldEngravedShadow,
+                                fontSize = 15.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SakinaNumeralFont,
+                                fontFeatureSettings = "tnum",
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            ),
+                            maxLines = 1
+                        )
+                    }
+
+                    // ميداليتا المرجعية والوضع الليلي الذهبيتان 3D
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .then(
+                                    if (isCurrentPageBookmarked) {
+                                        Modifier.border(1.8.dp, SakinaLuxuryColors.EmeraldGlow, CircleShape)
+                                    } else Modifier
+                                )
+                                .clickable(onClick = onToggleBookmark),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_quran_bookmark_gold_3d),
+                                contentDescription = null,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .then(
+                                    if (!isParchment) {
+                                        Modifier.border(1.6.dp, SakinaLuxuryColors.SoftGoldGlow, CircleShape)
+                                    } else Modifier
+                                )
+                                .clickable(onClick = onToggleReaderTheme)
+                                .semantics { contentDescription = strings.themeToggleDesc },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_quran_night_gold_3d),
+                                contentDescription = strings.themeToggleDesc,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(7.dp))
+
+                // شريحتا الرواية والتجويد/أصول ورش بالزمردي والذهبي أسفل الترويسة
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    ReaderTopChip(
+                        label = if (state.riwayah == QuranRiwayah.HAFS) strings.hafsShort else strings.warshShort,
+                        isActive = true,
+                        bodyFontFamily = bodyFontFamily,
+                        onClick = onRiwayahToggle
+                    )
+                    ReaderTopChip(
+                        label = if (state.riwayah == QuranRiwayah.HAFS) {
+                            if (state.isTajweedEnabled) "${strings.tajweedLabel} ✓" else strings.tajweedLabel
+                        } else {
+                            strings.warshUsulLabel
+                        },
+                        isActive = state.riwayah == QuranRiwayah.WARSH || state.isTajweedEnabled,
+                        bodyFontFamily = bodyFontFamily,
+                        onClick = {
+                            if (state.riwayah == QuranRiwayah.HAFS) onToggleTajweed()
+                            else activeRuleExplanation = WarshUsulRule.BADAL.arabicTitle to WarshUsulRule.BADAL.explanation
                         }
                     )
-                    .clip(RoundedCornerShape(22.dp))
-            ) {
-                // v49 #4: إزالة الإطار المتداخل واستغلال 100% من عرض الشاشة بهوامش آمنة
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // تقليب الصفحات بالسحب الأفقي الحقيقي (HorizontalPager)
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    ) { pageIndex ->
-                        val ayahsForThisPage = pageAyahsProvider(pageIndex + 1)
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) { onToggleBars() }
-                                .padding(
-                                    start = 14.dp,
-                                    end = 14.dp,
-                                    top = 12.dp,
-                                    bottom = 10.dp
-                                )
-                        ) {
-                            val combinedAyahs = buildAnnotatedString {
-                                ayahsForThisPage.forEach { ayah ->
-                                    append(ayah.styledText)
-                                    withStyle(
-                                        SpanStyle(
-                                            color = SakinaOrbitalColors.MutedGoldText,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    ) {
-                                        append(" ﴿${ayah.ayahNumber}﴾ ")
-                                    }
-                                }
-                            }
+                }
+            }
+        }
 
-                            val charCount = combinedAyahs.length
-                            val autoFontSp = when {
-                                charCount < 280 -> 25.sp
-                                charCount < 480 -> 21.sp
-                                charCount < 700 -> 18.5.sp
-                                charCount < 950 -> 16.5.sp
-                                else -> 15.sp
-                            }
-                            val autoLineSp = when {
-                                charCount < 280 -> 44.sp
-                                charCount < 480 -> 36.sp
-                                charCount < 700 -> 31.sp
-                                charCount < 950 -> 27.sp
-                                else -> 24.sp
-                            }
+        // 3. الشريط السفلي العائم (شرح الحكم + التجويد/أصول ورش + أزرار تقليب الصفحات)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+        ) {
+            AnimatedVisibility(visible = activeRuleExplanation != null) {
+                activeRuleExplanation?.let { (title, desc) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(SakinaOrbitalColors.DeepEmerald)
+                            .border(0.9.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = combinedAyahs,
-                                color = pageTextColor,
-                                fontSize = autoFontSp,
-                                lineHeight = autoLineSp,
-                                fontFamily = quranFontFamily,
-                                textAlign = TextAlign.Center
+                                text = title,
+                                color = SakinaOrbitalColors.SoftGoldGlow,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = headingFontFamily
+                            )
+                            Text(
+                                text = desc,
+                                color = SakinaOrbitalColors.WarmCream,
+                                fontSize = 11.sp,
+                                fontFamily = bodyFontFamily
                             )
                         }
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = null,
+                            tint = SakinaOrbitalColors.SoftGoldGlow,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { activeRuleExplanation = null }
+                        )
                     }
+                }
+            }
 
-                    // بطاقة شرح الحكم الفوري عند لمس أحد ألوان التجويد أو أصول ورش
-                    AnimatedVisibility(visible = activeRuleExplanation != null) {
-                        activeRuleExplanation?.let { (title, desc) ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(SakinaOrbitalColors.DeepEmerald)
-                                    .padding(horizontal = 12.dp, vertical = 7.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = title,
-                                        color = SakinaOrbitalColors.SoftGoldGlow,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = headingFontFamily
-                                    )
-                                    Text(
-                                        text = desc,
-                                        color = SakinaOrbitalColors.WarmCream,
-                                        fontSize = 10.5.sp,
-                                        fontFamily = bodyFontFamily
-                                    )
-                                }
-                                Icon(
-                                    imageVector = Icons.Rounded.Close,
-                                    contentDescription = null,
-                                    tint = SakinaOrbitalColors.SoftGoldGlow,
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .clickable { activeRuleExplanation = null }
-                                )
-                            }
-                        }
-                    }
-
-                    AnimatedVisibility(visible = localBarsVisible) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                    // الشريط السفلي العلمي المفصول: ألوان تجويد حفص vs شريط أصول ورش التفاعلي
+            AnimatedVisibility(
+                visible = localBarsVisible,
+                enter = fadeIn(tween(220)) + slideInVertically(tween(240)) { it / 2 },
+                exit = fadeOut(tween(180)) + slideOutVertically(tween(200)) { it / 2 }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xEE071B1E))
+                        .border(0.9.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(18.dp))
+                ) {
                     if (state.riwayah == QuranRiwayah.HAFS && state.isTajweedEnabled) {
                         HafsTajweedLegendStrip(
-                            isParchment = isParchment,
+                            isParchment = false,
                             bodyFontFamily = bodyFontFamily,
                             onRuleClick = { rule ->
                                 activeRuleExplanation = rule.arabicTitle to rule.explanation
@@ -1519,7 +1648,7 @@ private fun QuranMushafReaderContent(
                         )
                     } else if (state.riwayah == QuranRiwayah.WARSH) {
                         WarshUsulInteractiveStrip(
-                            isParchment = isParchment,
+                            isParchment = false,
                             bodyFontFamily = bodyFontFamily,
                             onUsulClick = { rule ->
                                 activeRuleExplanation = rule.arabicTitle to rule.explanation
@@ -1527,18 +1656,16 @@ private fun QuranMushafReaderContent(
                         )
                     }
 
-                    // شريط أزرار الصفحات (متزامن مع HorizontalPager)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(if (isParchment) Color(0xFFF0E9D8) else Color(0xFF071713))
-                            .padding(horizontal = 12.dp, vertical = 3.dp),
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "< ${strings.prevPageLabel}",
-                            color = if (state.currentReaderPage > 1) SakinaOrbitalColors.MutedGoldText else Color.Gray,
+                            color = if (state.currentReaderPage > 1) SakinaLuxuryColors.SoftGoldGlow else Color.Gray,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             fontFamily = bodyFontFamily,
@@ -1554,16 +1681,16 @@ private fun QuranMushafReaderContent(
 
                         Text(
                             text = strings.pageCounterFormat.format(state.currentReaderPage, state.totalPages),
-                            color = pageTextColor,
+                            color = SakinaOrbitalColors.WarmCream,
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = bodyFontFamily,
+                            fontFamily = SakinaNumeralFont,
                             style = TextStyle(fontFeatureSettings = "tnum")
                         )
 
                         Text(
                             text = "${strings.nextPageLabel} >",
-                            color = if (state.currentReaderPage < state.totalPages) SakinaOrbitalColors.MutedGoldText else Color.Gray,
+                            color = if (state.currentReaderPage < state.totalPages) SakinaLuxuryColors.SoftGoldGlow else Color.Gray,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             fontFamily = bodyFontFamily,
@@ -1574,17 +1701,11 @@ private fun QuranMushafReaderContent(
                                         pagerState.animateScrollToPage((state.currentReaderPage).coerceAtMost(state.totalPages - 1))
                                     }
                                 }
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         )
-                    }
-                    }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            // v51: removed VerticalSpineScrubber for 100% centered Mushaf
         }
     }
 }
@@ -1954,39 +2075,32 @@ private fun ExpandedLuxuryAudioOverlay(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = bottomReserve, start = 10.dp, end = 10.dp)
-                .sakinaLuxuryGlassCard(
-                    cornerRadius = 28.dp,
-                    innerHairline = true,
-                    emeraldFlare = true,
-                    shimmer = true,
-                    borderAlpha = 0.84f
-                )
-                .clip(RoundedCornerShape(28.dp))
+                .padding(bottom = bottomReserve, start = 6.dp, end = 6.dp)
                 .clickable(enabled = false, onClick = {})
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.bg_quran_diamond_player_3d),
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier.matchParentSize()
+            )
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 18.dp),
+                    .padding(start = 26.dp, end = 26.dp, top = 46.dp, bottom = 22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
-                    modifier = Modifier
-                        .width(42.dp)
-                        .height(4.dp)
-                        .background(SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.7f), CircleShape)
-                        .clickable(onClick = onDismiss)
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
                 Text(
                     text = "◆ ${player.selectedSurahName} ◆",
-                    color = SakinaOrbitalColors.SoftGoldGlow,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = headingFontFamily
+                    style = TextStyle(
+                        brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                        shadow = SakinaLuxuryPalette.GoldEngravedShadow,
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = headingFontFamily,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    ),
+                    modifier = Modifier.clickable(onClick = onDismiss)
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -2066,13 +2180,17 @@ private fun ExpandedLuxuryAudioOverlay(
                     Text(
                         text = formatDurationSec(player.currentPositionSec),
                         color = SakinaOrbitalColors.SoftGoldGlow,
-                        fontSize = 11.sp,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = SakinaNumeralFont,
                         style = TextStyle(fontFeatureSettings = "tnum")
                     )
                     Text(
                         text = formatDurationSec(player.totalDurationSec),
-                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.72f),
-                        fontSize = 11.sp,
+                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.78f),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = SakinaNumeralFont,
                         style = TextStyle(fontFeatureSettings = "tnum")
                     )
                 }
