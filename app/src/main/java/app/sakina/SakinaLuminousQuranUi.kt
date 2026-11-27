@@ -140,7 +140,8 @@ enum class QuranSubSection(val labelAr: String) {
 enum class QuranIndexTab {
     SURAHS,
     JUZS,
-    HIZBS
+    HIZBS,
+    PAGES
 }
 
 enum class SurahAudioStatus {
