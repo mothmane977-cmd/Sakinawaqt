@@ -199,13 +199,13 @@ data class SakinaOrbitalHomeState(
 // ============================================================================
 // 3. الشاشة الرئيسية: المدار الكوني التفاعلي (Orbital Living Horizon)
 // ============================================================================
-@OptIn(ExperimentalFoundationApi::class)
 private fun alarmModeIconOnly(mode: PrayerAlarmMode): String = when (mode) {
     PrayerAlarmMode.ADHAN -> "🔊"
     PrayerAlarmMode.NOTIFICATION -> "📳"
     PrayerAlarmMode.SILENT -> "🔇"
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SakinaOrbitalHomeScreen(
     state: SakinaOrbitalHomeState,
