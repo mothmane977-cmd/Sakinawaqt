@@ -603,7 +603,7 @@ private fun QuranIndexPortalContent(
                 )
             }
             QuranSubSection.TADABBUR -> {
-                QuranTadabburHubContent(
+                SakinaTadabburTabContent(
                     headingFontFamily = headingFontFamily,
                     bodyFontFamily = bodyFontFamily,
                     modifier = Modifier.fillMaxWidth().weight(1f)
@@ -1695,6 +1695,7 @@ private fun QuranMushafReaderContent(
     var showBookmarks10Dialog by remember { mutableStateOf(false) }
     var showJumpPageDialog by remember { mutableStateOf(false) }
     var showLongPressDialog by remember { mutableStateOf(false) }
+    var showMeaningsDialog by remember { mutableStateOf(false) }
     var showSpotlight by remember { mutableStateOf(!SakinaMushafProPrefs.hasSeenSpotlight(readerCtx)) }
     val activeKhatmahName = remember(state.currentReaderPage) { SakinaKhatmahStore.loadSlot(readerCtx).name }
 
@@ -2118,7 +2119,13 @@ private fun QuranMushafReaderContent(
                         onClick = { hideAyahsForTest = !hideAyahsForTest }
                     )
                     ReaderTopChip(
-                        label = "⚙ العرض",
+                        label = "معاني",
+                        isActive = false,
+                        bodyFontFamily = bodyFontFamily,
+                        onClick = { showMeaningsDialog = true }
+                    )
+                    ReaderTopChip(
+                        label = "⚙",
                         isActive = false,
                         bodyFontFamily = bodyFontFamily,
                         onClick = { showDisplayDialog = true }
@@ -2357,6 +2364,15 @@ private fun QuranMushafReaderContent(
         )
     }
 
+    if (showMeaningsDialog) {
+        MushafPageMeaningsDialog(
+            surahName = state.currentReaderSurah,
+            headingFontFamily = headingFontFamily,
+            bodyFontFamily = bodyFontFamily,
+            onDismiss = { showMeaningsDialog = false }
+        )
+    }
+
     if (showLongPressDialog) {
         val currentPageText = remember(state.currentReaderPage) {
             pageAyahsProvider(state.currentReaderPage).joinToString(" ") { "${it.styledText.text} ﴿${it.ayahNumber}﴾" }
@@ -2573,7 +2589,7 @@ private fun KineticWaveMiniPlayer(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 74.dp)
+            .height(74.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Brush.horizontalGradient(listOf(Color(0xFF06231D), Color(0xFF0A332A), Color(0xFF051819))))
             .border(1.1.dp, SakinaLuxuryPalette.MetallicGoldTextBrush, RoundedCornerShape(22.dp))

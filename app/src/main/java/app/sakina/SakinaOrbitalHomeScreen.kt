@@ -200,6 +200,12 @@ data class SakinaOrbitalHomeState(
 // 3. الشاشة الرئيسية: المدار الكوني التفاعلي (Orbital Living Horizon)
 // ============================================================================
 @OptIn(ExperimentalFoundationApi::class)
+private fun alarmModeIconOnly(mode: PrayerAlarmMode): String = when (mode) {
+    PrayerAlarmMode.ADHAN -> "🔊"
+    PrayerAlarmMode.NOTIFICATION -> "📳"
+    PrayerAlarmMode.SILENT -> "🔇"
+}
+
 @Composable
 fun SakinaOrbitalHomeScreen(
     state: SakinaOrbitalHomeState,
@@ -489,8 +495,22 @@ fun SakinaOrbitalHomeScreen(
                                 }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(7.dp)
                                 ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0x66041716))
+                                            .border(0.75.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), CircleShape)
+                                            .clickable {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                onCyclePrayerAlarmMode(activeNode.type)
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(text = alarmModeIconOnly(activeNode.alarmMode), fontSize = 13.sp)
+                                    }
                                     Text(
                                         text = activeNode.timeText,
                                         style = TextStyle(
@@ -602,8 +622,23 @@ fun SakinaOrbitalHomeScreen(
                                     }
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(7.dp)
                                     ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0x66041716))
+                                                .border(0.75.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), CircleShape)
+                                                .clickable {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                    lastInteractionTick++
+                                                    onCyclePrayerAlarmMode(node.type)
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(text = alarmModeIconOnly(node.alarmMode), fontSize = 13.sp)
+                                        }
                                         Text(
                                             text = node.timeText,
                                             style = TextStyle(
@@ -616,7 +651,8 @@ fun SakinaOrbitalHomeScreen(
                                                 platformStyle = PlatformTextStyle(includeFontPadding = false)
                                             )
                                         )
-                                        if (node.isCompleted) {
+                                        val isPassedPrayer = idx < state.activePrayerIndex
+                                        if (isPassedPrayer || node.isCompleted) {
                                             Image(
                                                 painter = painterResource(id = R.drawable.ic_3d_check_gold),
                                                 contentDescription = null,

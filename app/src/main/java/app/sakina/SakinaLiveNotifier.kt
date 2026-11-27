@@ -214,7 +214,8 @@ object SakinaLiveNotifier {
                 add(IslamicCalendar.DAY_OF_MONTH, Prefs.hijriOffset(ctx))
             }
             val hijriMonth = s.hijriMonths.getOrElse(ic.get(IslamicCalendar.MONTH).coerceIn(0, 11)) { "" }
-            val hijriShort = SakinaAdvancedPrefs.formatDigits(ctx, "${ic.get(IslamicCalendar.DAY_OF_MONTH)} $hijriMonth")
+            val hijriYear = ic.get(IslamicCalendar.YEAR)
+            val hijriShort = SakinaAdvancedPrefs.formatDigits(ctx, "${ic.get(IslamicCalendar.DAY_OF_MONTH)} $hijriMonth $hijriYear هـ")
             val place = localizeCityName(Place.name(ctx), lang)
 
             val fajrMs = today.first().second.time
