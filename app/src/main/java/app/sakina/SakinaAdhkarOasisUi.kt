@@ -152,7 +152,7 @@ fun SakinaAdhkarOasisScreen(
     bodyFontFamily: FontFamily = FontFamily.Default,
     selectedTabIndex: Int = 0,
     showBottomDock: Boolean = false,
-    hostBottomBarReserve: Dp = 82.dp,
+    hostBottomBarReserve: Dp = 122.dp,
     onBackClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onTasbihTap: () -> Unit = {},
@@ -168,6 +168,8 @@ fun SakinaAdhkarOasisScreen(
     onTabSelected: (Int) -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
+    var showNawawi40 by remember { mutableStateOf(false) }
+    var showRuqyahPro by remember { mutableStateOf(false) }
     val isCategoryOpen = state.activeCategoryTitle != null
 
     Box(
@@ -202,10 +204,13 @@ fun SakinaAdhkarOasisScreen(
 
                 Text(
                     text = state.activeCategoryTitle ?: strings.oasisTitle,
-                    color = SakinaOrbitalColors.WarmCream,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = headingFontFamily
+                    style = TextStyle(
+                        brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                        shadow = SakinaLuxuryPalette.GoldEngravedShadow,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = headingFontFamily
+                    )
                 )
 
                 IconButton(onClick = onSearchClick) {
@@ -267,7 +272,52 @@ fun SakinaAdhkarOasisScreen(
                             }
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // بوابتا المرحلة السادسة v68: الأربعون النووية + الرقية الشرعية الموثّقة
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(Brush.verticalGradient(listOf(Color(0xFF072821), Color(0xFF051A18))))
+                                    .border(1.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.6f), RoundedCornerShape(18.dp))
+                                    .clickable {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        showNawawi40 = true
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                            ) {
+                                Column {
+                                    Text("✦ الأربعون النووية", color = SakinaLuxuryColors.SoftGoldGlow, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = headingFontFamily)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("أحاديث شريفة · أوفلاين", color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.78f), fontSize = 10.5.sp, fontFamily = bodyFontFamily)
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(Brush.verticalGradient(listOf(Color(0xFF072821), Color(0xFF051A18))))
+                                    .border(1.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.6f), RoundedCornerShape(18.dp))
+                                    .clickable {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        showRuqyahPro = true
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                            ) {
+                                Column {
+                                    Text("✦ الرقية الشرعية", color = SakinaLuxuryColors.SoftGoldGlow, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = headingFontFamily)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("ارقِ نفسك وغيرك · بالتخريج", color = SakinaLuxuryColors.EmeraldGlow, fontSize = 10.5.sp, fontFamily = bodyFontFamily)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
                     }
                 } else {
                     DhikrCategoryReaderContent(
@@ -298,6 +348,22 @@ fun SakinaAdhkarOasisScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
+    }
+
+    if (showNawawi40) {
+        Nawawi40OverlayDialog(
+            headingFontFamily = headingFontFamily,
+            bodyFontFamily = bodyFontFamily,
+            onDismiss = { showNawawi40 = false }
+        )
+    }
+
+    if (showRuqyahPro) {
+        RuqyahProOverlayDialog(
+            headingFontFamily = headingFontFamily,
+            bodyFontFamily = bodyFontFamily,
+            onDismiss = { showRuqyahPro = false }
+        )
     }
 }
 
