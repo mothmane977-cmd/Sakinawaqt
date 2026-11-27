@@ -321,7 +321,7 @@ fun SakinaLuminousQuranScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = if (state.isReaderOpen) 4.dp else 14.dp)
+                .padding(horizontal = if (state.isReaderOpen) 2.dp else 14.dp)
                 .padding(
                     top = if (state.isReaderOpen) 2.dp else 10.dp,
                     bottom = if (state.isReaderOpen) 2.dp else if (!showBottomDock) hostBottomBarReserve else 0.dp
@@ -1785,24 +1785,40 @@ private fun QuranMushafReaderContent(
                     }
                 )
         ) {
-            if (isParchment) {
-                if (displaySettings.paperColorIdx == 0 && displaySettings.frameThemeIdx == 0) {
-                    Image(
-                        painter = painterResource(id = R.drawable.bg_mushaf_fullscreen_frame),
-                        contentDescription = null,
-                        contentScale = ContentScale.FillBounds,
-                        modifier = Modifier.fillMaxSize()
+            // إطار خيط ذهبي واحد نحيف وعريض قريب جداً من حافة الشاشة ليسع أسطر القرآن برحابة دون أي تداخل
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(if (isParchment) chosenPaperColor else Color(0xFF071B18))
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val m = 4.dp.toPx()
+                    val strokeColor = if (isParchment) chosenFrameColor else SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.72f)
+                    drawRoundRect(
+                        color = strokeColor,
+                        topLeft = Offset(m, m),
+                        size = Size(size.width - m * 2, size.height - m * 2),
+                        cornerRadius = CornerRadius(10.dp.toPx(), 10.dp.toPx()),
+                        style = Stroke(width = 1.15.dp.toPx())
                     )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(chosenPaperColor)
-                            .padding(8.dp)
-                            .border(1.4.dp, chosenFrameColor, RoundedCornerShape(12.dp))
-                            .padding(3.dp)
-                            .border(0.7.dp, chosenFrameColor.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-                    )
+                    // زخرفة معيّنة صغيرة وأنيقة جداً في الزوايا الأربع
+                    val d = 3.2.dp.toPx()
+                    val cOff = m + 5.dp.toPx()
+                    listOf(
+                        Offset(cOff, cOff),
+                        Offset(size.width - cOff, cOff),
+                        Offset(cOff, size.height - cOff),
+                        Offset(size.width - cOff, size.height - cOff)
+                    ).forEach { center ->
+                        val p = Path().apply {
+                            moveTo(center.x, center.y - d)
+                            lineTo(center.x + d, center.y)
+                            lineTo(center.x, center.y + d)
+                            lineTo(center.x - d, center.y)
+                            close()
+                        }
+                        drawPath(p, color = strokeColor)
+                    }
                 }
             }
 
@@ -1851,10 +1867,10 @@ private fun QuranMushafReaderContent(
                             onLongClick = { showLongPressDialog = true }
                         )
                         .padding(
-                            start = 26.dp,
-                            end = 26.dp,
-                            top = 30.dp,
-                            bottom = 44.dp
+                            start = 15.dp,
+                            end = 15.dp,
+                            top = 18.dp,
+                            bottom = 36.dp
                         )
                 ) {
                     val combinedAyahs = buildAnnotatedString {
@@ -2531,7 +2547,7 @@ private fun KineticWaveMiniPlayer(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(58.dp)
+            .height(68.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Brush.horizontalGradient(listOf(Color(0xFF06231D), Color(0xFF0A332A), Color(0xFF051819))))
             .border(1.1.dp, SakinaLuxuryPalette.MetallicGoldTextBrush, RoundedCornerShape(22.dp))
@@ -2622,11 +2638,12 @@ private fun KineticWaveMiniPlayer(
                         SurahAudioStatus.DOWNLOADING -> "${player.reciterName} · ${(player.downloadProgress * 100).roundToInt()}%"
                         SurahAudioStatus.NOT_DOWNLOADED -> "${player.reciterName} · ${strings.downloadFormat.format(player.audioSizeMb)}"
                     }
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = subtitle,
-                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.85f),
+                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.88f),
                         fontSize = 11.sp,
-                        lineHeight = 14.sp,
+                        lineHeight = 18.sp,
                         fontFamily = bodyFontFamily,
                         style = TextStyle(fontFeatureSettings = "tnum", platformStyle = PlatformTextStyle(includeFontPadding = false)),
                         maxLines = 1,
@@ -2709,7 +2726,7 @@ private fun ExpandedLuxuryAudioOverlay(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 26.dp, end = 26.dp, top = 46.dp, bottom = 22.dp),
+                    .padding(start = 20.dp, end = 20.dp, top = 30.dp, bottom = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -2717,7 +2734,7 @@ private fun ExpandedLuxuryAudioOverlay(
                     style = TextStyle(
                         brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
                         shadow = SakinaLuxuryPalette.GoldEngravedShadow,
-                        fontSize = 21.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = headingFontFamily,
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
@@ -2738,7 +2755,7 @@ private fun ExpandedLuxuryAudioOverlay(
                         .padding(horizontal = 10.dp, vertical = 3.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // شريط التمرير الذهبي التفاعلي (اللمس + السحب)
                 val progress = if (player.totalDurationSec > 0) {
@@ -2817,7 +2834,7 @@ private fun ExpandedLuxuryAudioOverlay(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // أزرار التحكم المحورية (-10s · Play/Pause · +10s)
                 Row(
@@ -2845,7 +2862,7 @@ private fun ExpandedLuxuryAudioOverlay(
                                 SurahAudioStatus.DOWNLOADING -> Unit
                             }
                         },
-                        size = 68.dp
+                        size = 52.dp
                     ) {
                         when (player.audioStatus) {
                             SurahAudioStatus.DOWNLOADING -> CircularProgressIndicator(
@@ -2880,7 +2897,7 @@ private fun ExpandedLuxuryAudioOverlay(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

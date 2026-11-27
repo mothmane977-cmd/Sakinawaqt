@@ -15,6 +15,7 @@ import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
 import android.os.Build
+import android.os.SystemClock
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
@@ -101,9 +102,13 @@ object SakinaLuxuryNotifications {
         val countdownStr = formatCountdown(remainingMillis)
 
         // وضع مطوي مخصّص (64dp) يمنع قصّ الأزرار في Android 12+ / HyperOS
+        val targetElapsedBase = SystemClock.elapsedRealtime() + remainingMillis.coerceAtLeast(1000L)
         val collapsedRv = RemoteViews(context.packageName, R.layout.notif_sakina_live_collapsed).apply {
             setTextViewText(R.id.tv_collapsed_prayer, "$prayerName · $prayerTimeFormatted")
-            setTextViewText(R.id.tv_collapsed_countdown, countdownStr)
+            setChronometer(R.id.tv_collapsed_countdown, targetElapsedBase, null, true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                setChronometerCountDown(R.id.tv_collapsed_countdown, true)
+            }
             setTextViewText(R.id.tv_collapsed_meta, cityAndHijri)
         }
 
@@ -115,7 +120,10 @@ object SakinaLuxuryNotifications {
             )
             setTextViewText(R.id.tv_live_city_hijri, cityAndHijri)
             setTextViewText(R.id.tv_next_prayer, "$prayerName $prayerTimeFormatted")
-            setTextViewText(R.id.tv_remaining_time, countdownStr)
+            setChronometer(R.id.tv_remaining_time, targetElapsedBase, null, true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                setChronometerCountDown(R.id.tv_remaining_time, true)
+            }
             setTextViewText(R.id.tv_five_prayers_strip, fivePrayersStrip)
             val spNotif = context.getSharedPreferences("prefs", Context.MODE_PRIVATE)
             val activeIdx = spNotif.getInt("live_active_prayer_idx", 0).coerceIn(0, 4)
@@ -123,11 +131,21 @@ object SakinaLuxuryNotifications {
             val prayedNow = SakinaAdvancedPrefs.isPrayerLogged(context, todayK, activeIdx)
             setTextViewText(R.id.btn_live_prayed, if (prayedNow) "✓ تمّت الصلاة" else "○ صليت")
             setTextViewText(R.id.btn_live_alert_mode, alertModeLabel)
-            setTextViewText(R.id.btn_live_tasbih, "تسبيحة ${tasbihCount % 34}/33")
+            setTextViewText(R.id.btn_live_tasbih, "🤲 الأذكار")
 
+            val openAdhkarIntent = Intent(context, MainActivity::class.java).apply {
+                putExtra("open_after_prayer", true)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val openAdhkarPi = PendingIntent.getActivity(
+                context,
+                744,
+                openAdhkarIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
             setOnClickPendingIntent(R.id.btn_live_prayed, actionPi(context, ACTION_MARK_PRAYED, 1))
             setOnClickPendingIntent(R.id.btn_live_alert_mode, actionPi(context, ACTION_CYCLE_ALERT, 2))
-            setOnClickPendingIntent(R.id.btn_live_tasbih, actionPi(context, ACTION_TASBIH_TAP, 3))
+            setOnClickPendingIntent(R.id.btn_live_tasbih, openAdhkarPi)
         }
 
         val builder = NotificationCompat.Builder(context, LIVE_CHANNEL_ID)
@@ -269,7 +287,10 @@ object SakinaLuxuryNotifications {
         onlyAlertOnce: Boolean
     ) {
         val notif = NotificationCompat.Builder(context, STAGE_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_sakina)
+            .apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) setSmallIcon(SakinaStatusBarIconFactory.createLiveStatusIcon(Long.MAX_VALUE))
+                else setSmallIcon(R.drawable.ic_stat_sakina)
+            }
             .setCustomContentView(rv)
             .setCustomBigContentView(rv)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
