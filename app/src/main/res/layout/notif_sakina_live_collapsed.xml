@@ -2,14 +2,14 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@android:color/transparent"
+    android:background="@drawable/bg_notif_glass_card"
     android:gravity="center_vertical"
     android:layoutDirection="rtl"
     android:orientation="horizontal"
-    android:paddingStart="4dp"
-    android:paddingEnd="4dp"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
 
     <ImageView
         android:layout_width="32dp"
