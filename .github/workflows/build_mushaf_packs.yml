@@ -28,15 +28,14 @@ jobs:
       - name: Clone public-domain QuranHub Mushaf Pages (Hafs & Warsh)
         run: |
           git clone --depth 1 https://github.com/QuranHub/quran-pages-images.git quran_src
-          echo "=== Discovered folders ==="
-          find quran_src -maxdepth 3 -type d
 
-      - name: Convert 604 pages to 1080px Near-Lossless Transparent Grayscale WebP
+      - name: Convert 604 pages to 1080px Near-Lossless Transparent Grayscale WebP (Parallel)
         env:
           TARGET_RIWAYAH: ${{ github.event.inputs.riwayah }}
         run: |
           python3 - << 'PY'
           import os, re, subprocess, tempfile, zipfile
+          from concurrent.futures import ThreadPoolExecutor
           from pathlib import Path
           from PIL import Image
 
@@ -50,7 +49,6 @@ jobs:
                       imgs = [p for p in d.iterdir() if p.is_file() and p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}]
                       if len(imgs) >= 500:
                           candidates.append((len(imgs), "tajweed" in str(d).lower(), d, imgs))
-              # Prefer non-tajweed clean grayscale-friendly folders, highest page count
               candidates.sort(key=lambda x: (x[1], -x[0]))
               return (candidates[0][2], candidates[0][3]) if candidates else (None, [])
 
@@ -68,29 +66,37 @@ jobs:
               print(f"Building {out_zip.name} from {folder} ({len(imgs)} pages)...")
               with tempfile.TemporaryDirectory() as td:
                   td_p = Path(td)
+
+                  def convert_one(pair):
+                      idx, src = pair
+                      pnum = page_num(src) or idx
+                      tmp_png = td_p / f"{pnum:03d}.png"
+                      out_webp = td_p / f"{pnum:03d}.webp"
+                      im = Image.open(src).convert("L")
+                      w, h = im.size
+                      if w != 1080:
+                          im = im.resize((1080, int(round(h * (1080.0 / w)))), Image.Resampling.LANCZOS)
+                      alpha = im.point(lambda p: 0 if p >= 235 else min(255, int((235 - p) * (255.0 / 235.0))))
+                      rgba = Image.new("RGBA", im.size, (0, 0, 0, 0))
+                      rgba.putalpha(alpha)
+                      rgba.save(tmp_png, "PNG")
+                      subprocess.run(
+                          ["cwebp", "-quiet", "-near_lossless", "60", "-m", "4", str(tmp_png), "-o", str(out_webp)],
+                          check=True
+                      )
+                      tmp_png.unlink(missing_ok=True)
+                      return pnum, out_webp
+
+                  with ThreadPoolExecutor(max_workers=4) as ex:
+                      results = list(ex.map(convert_one, enumerate(imgs, 1)))
+
+                  results.sort(key=lambda x: x[0])
                   with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_STORED) as zf:
-                      for idx, src in enumerate(imgs, 1):
-                          pnum = page_num(src) or idx
-                          tmp_png = td_p / f"{pnum:03d}.png"
-                          out_webp = td_p / f"{pnum:03d}.webp"
-                          im = Image.open(src).convert("L")
-                          w, h = im.size
-                          if w != 1080:
-                              im = im.resize((1080, int(round(h * (1080.0 / w)))), Image.Resampling.LANCZOS)
-                          # White background -> transparent Alpha; dark text -> sharp opaque black
-                          alpha = im.point(lambda p: 0 if p >= 235 else min(255, int((235 - p) * (255.0 / 235.0))))
-                          rgba = Image.new("RGBA", im.size, (0, 0, 0, 0))
-                          rgba.putalpha(alpha)
-                          rgba.save(tmp_png, "PNG")
-                          subprocess.run(
-                              ["cwebp", "-quiet", "-near_lossless", "60", "-m", "6", str(tmp_png), "-o", str(out_webp)],
-                              check=True
-                          )
+                      for pnum, out_webp in results:
                           zf.write(out_webp, f"{pnum:03d}.webp")
-                          if idx % 100 == 0 or idx == len(imgs):
-                              print(f"  [{riwayah}] {idx}/{len(imgs)} done")
+
               mb = out_zip.stat().st_size / (1024 * 1024)
-              print(f"READY: {out_zip.name} ({mb:.2f} MB)")
+              print(f"READY: {out_zip.name} ({mb:.2f} MB, {len(results)} pages)")
 
           if target in ("both", "hafs"):
               build_pack("hafs")
@@ -102,11 +108,13 @@ jobs:
       - name: Publish Packs to GitHub Releases (tag mushaf-packs-v1)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
-          if gh release view mushaf-packs-v1 >/dev/null 2>&1; then
-            gh release upload mushaf-packs-v1 mushaf_*_1080_webp.zip --clobber
+          if gh release view mushaf-packs-v1 --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload mushaf-packs-v1 mushaf_*_1080_webp.zip --repo "$REPO" --clobber
           else
             gh release create mushaf-packs-v1 mushaf_*_1080_webp.zip \
+              --repo "$REPO" \
               --title "NurQunoot 1080px WebP Mushaf Packs (Hafs & Warsh)" \
               --notes "حزمتا المصحف المطبوع 1080px Near-Lossless Transparent WebP لروايتي حفص وورش (تعمل أوفلاين للأبد داخل تطبيق نور قنوت)."
           fi
