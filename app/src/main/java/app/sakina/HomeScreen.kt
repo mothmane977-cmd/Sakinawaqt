@@ -611,60 +611,46 @@ fun HomeScreen(ctx: Context, openAfterPrayer: Boolean = false) {
                                     }
 
                                     if (extraSection == ExtraSection.NONE && !(currentTab == SakinaNavTab.HOME && useOrbitalHome) && !(currentTab == SakinaNavTab.QURAN && isMushafReadingFullScreen)) {
-                                        // v49 #2: توحيد موضع وشكل الزرّين في كل الشاشات: الترس الذهبي يميناً وزر AR يساراً
-                                        Box(
+                                        // v74: توحيد زرّي الإعدادات وتبديل اللغة في كل الشاشات من معدن الذهب ثلاثي الأبعاد
+                                        SakinaTactileGoldCoinButton(
+                                            onClick = { celestialHubMode = CelestialHubMode.SETTINGS },
+                                            size = 40.dp,
+                                            drawableRes = R.drawable.ic_3d_settings_coin_gold,
+                                            contentDescription = sakinaTr(currentLang, "التحكم والإعدادات", "Settings", "Paramètres", "Ayarlar", "Pengaturan", "ترتیبات"),
                                             modifier = Modifier
                                                 .align(AbsoluteAlignment.TopRight)
                                                 .statusBarsPadding()
                                                 .padding(end = 16.dp, top = 12.dp)
-                                                .size(38.dp)
-                                                .sakinaLuxuryGlassCard(
-                                                    cornerRadius = 19.dp,
-                                                    innerHairline = false,
-                                                    emeraldFlare = false,
-                                                    shimmer = false,
-                                                    borderAlpha = 0.75f
-                                                )
-                                                .clip(CircleShape)
-                                                .clickable { celestialHubMode = CelestialHubMode.SETTINGS },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Settings,
-                                                contentDescription = sakinaTr(currentLang, "التحكم والإعدادات", "Settings", "Paramètres", "Ayarlar", "Pengaturan", "ترتیبات"),
-                                                tint = SakinaLuxuryColors.SoftGoldGlow,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
+                                        )
 
-                                        Box(
+                                        SakinaTactileGoldCoinButton(
+                                            onClick = {
+                                                val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
+                                                currentLang = next
+                                                sp.edit().putString("app_lang", next.code).apply()
+                                            },
+                                            size = 40.dp,
+                                            drawableRes = R.drawable.ic_3d_lang_coin_gold,
+                                            contentDescription = "Language",
                                             modifier = Modifier
                                                 .align(AbsoluteAlignment.TopLeft)
                                                 .statusBarsPadding()
                                                 .padding(start = 16.dp, top = 12.dp)
-                                                .size(38.dp)
-                                                .sakinaLuxuryGlassCard(
-                                                    cornerRadius = 19.dp,
-                                                    innerHairline = false,
-                                                    emeraldFlare = false,
-                                                    shimmer = false,
-                                                    borderAlpha = 0.75f
-                                                )
-                                                .clip(CircleShape)
-                                                .clickable {
-                                                    val next = SakinaLang.entries[(currentLang.ordinal + 1) % SakinaLang.entries.size]
-                                                    currentLang = next
-                                                    sp.edit().putString("app_lang", next.code).apply()
-                                                },
-                                            contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 text = currentLang.code.uppercase(),
                                                 fontFamily = SakinaNumeralFont,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp,
-                                                color = SakinaLuxuryColors.SoftGoldGlow,
-                                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 12.sp,
+                                                color = Color(0xFF2B1906),
+                                                style = TextStyle(
+                                                    shadow = androidx.compose.ui.graphics.Shadow(
+                                                        color = Color(0x99FFF2C2),
+                                                        offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+                                                        blurRadius = 1.5f
+                                                    ),
+                                                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                                )
                                             )
                                         }
                                     }
@@ -1319,19 +1305,27 @@ private fun SakinaHomeContent(
                 DayChipItem(dayLabel = lbl, dayNumber = num, isSelected = dayOffset == dOff)
             }
         }
-        val orbitalNodes = remember(rows, activeDateKey, trackerTick) {
+        val orbitalNodes = remember(rows, todayPrayers, dayOffset, minuteBucket, activeDateKey, trackerTick) {
             val types = listOf(PrayerType.FAJR, PrayerType.DHUHR, PrayerType.ASR, PrayerType.MAGHRIB, PrayerType.ISHA)
+            val nowEpoch = System.currentTimeMillis()
             rows.take(5).mapIndexed { idx, r ->
                 val alarmMode = when (r.mode) {
                     2 -> PrayerAlarmMode.NOTIFICATION
                     3 -> PrayerAlarmMode.SILENT
                     else -> PrayerAlarmMode.ADHAN
                 }
+                val prayerMs = todayPrayers.getOrNull(idx)?.second?.time ?: Long.MAX_VALUE
+                val passedFlag = when {
+                    dayOffset < 0 -> true
+                    dayOffset > 0 -> false
+                    else -> nowEpoch >= prayerMs
+                }
                 OrbitalPrayerNode(
                     type = types[idx],
                     localizedName = r.displayTitle,
                     timeText = r.timeText,
                     isCompleted = SakinaAdvancedPrefs.isPrayerLogged(ctx, activeDateKey, idx),
+                    isPassed = passedFlag,
                     alarmMode = alarmMode
                 )
             }

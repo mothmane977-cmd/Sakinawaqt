@@ -110,6 +110,12 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import androidx.compose.material3.LinearProgressIndicator
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.delay
 import android.content.pm.ActivityInfo
 import android.app.Activity
@@ -620,6 +626,226 @@ private fun QuranIndexPortalContent(
             modifier = Modifier.fillMaxWidth().weight(1f),
             contentPadding = PaddingValues(bottom = 6.dp)
         ) {
+            // 0. بطاقة تحميل صفحات المصحف المطبوع 1080px WebP أوفلاين (حفص / ورش) — v74
+            item(key = "mushaf_printed_packs_hub") {
+                val packProg by SakinaMushafPackManager.state.collectAsState()
+                val packScope = rememberCoroutineScope()
+                var packRefreshTick by remember { mutableIntStateOf(0) }
+                var packsExpanded by remember { mutableStateOf(false) }
+                val activePack = SakinaMushafPack.forRiwayah(state.riwayah)
+                val activeReady = remember(state.riwayah, packProg.extractedPages, packProg.isDownloading, packProg.isExtracting, packRefreshTick) {
+                    SakinaMushafPackManager.isPackReady(portalCtx, activePack)
+                }
+                val activeCount = remember(state.riwayah, packProg.extractedPages, packRefreshTick) {
+                    SakinaMushafPackManager.downloadedPageCount(portalCtx, activePack)
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFF072520), Color(0xFF0C3B31), Color(0xFF072520))
+                            )
+                        )
+                        .border(1.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.60f), RoundedCornerShape(18.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { packsExpanded = !packsExpanded },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (activeReady) "✓ المصحف المطبوع 1080px جاهز أوفلاين"
+                                else "⬇ تحميل صفحات المصحف المطبوع (1080px)",
+                                color = SakinaLuxuryColors.SoftGoldGlow,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = headingFontFamily
+                            )
+                            Text(
+                                text = if (activeReady) "${activePack.titleAr} · 604 صفحة عالية الدقة شفافة الخلفية"
+                                else "${activePack.titleAr} (${activeCount}/604 صفحة) · اضغط للتحميل أو إدارة الحزمتين",
+                                color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.80f),
+                                fontSize = 10.5.sp,
+                                fontFamily = bodyFontFamily,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (!activeReady && !packProg.isDownloading && !packProg.isExtracting) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Brush.horizontalGradient(listOf(Color(0xFFD9AE58), Color(0xFFF3D58A))))
+                                    .clickable {
+                                        packsExpanded = true
+                                        packScope.launch {
+                                            SakinaMushafPackManager.downloadAndExtractPack(portalCtx, activePack)
+                                            packRefreshTick++
+                                        }
+                                    }
+                                    .padding(horizontal = 11.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "تحميل",
+                                    color = Color(0xFF071A18),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontFamily = bodyFontFamily
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = if (packsExpanded) "▲" else "▼",
+                                color = SakinaLuxuryColors.ChampagneGold,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    if (packProg.isDownloading || packProg.isExtracting) {
+                        Spacer(modifier = Modifier.height(7.dp))
+                        val pct = if (packProg.isExtracting) (packProg.extractedPages / 604f).coerceIn(0f, 1f)
+                        else packProg.progressFraction.coerceIn(0f, 1f)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(Color(0xFF041614))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(pct)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(Brush.horizontalGradient(listOf(Color(0xFFD9AE58), Color(0xFFF5DC96))))
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = if (packProg.isExtracting) "جاري فك الصفحات: ${packProg.extractedPages} / 604 صفحة"
+                            else "جاري تحميل الحزمة: ${(pct * 100).toInt()}%",
+                            color = SakinaLuxuryColors.SoftGoldGlow,
+                            fontSize = 10.5.sp,
+                            fontFamily = bodyFontFamily
+                        )
+                    }
+
+                    if (packProg.errorMessage != null) {
+                        Spacer(modifier = Modifier.height(5.dp))
+                        Text(
+                            text = packProg.errorMessage ?: "",
+                            color = Color(0xFFFF9B85),
+                            fontSize = 10.5.sp,
+                            fontFamily = bodyFontFamily
+                        )
+                    }
+
+                    if (packsExpanded) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        for (pk in SakinaMushafPack.entries) {
+                            val pkReady = remember(pk, packProg.extractedPages, packProg.isDownloading, packRefreshTick) {
+                                SakinaMushafPackManager.isPackReady(portalCtx, pk)
+                            }
+                            val pkPages = remember(pk, packProg.extractedPages, packRefreshTick) {
+                                SakinaMushafPackManager.downloadedPageCount(portalCtx, pk)
+                            }
+                            val isBusy = (packProg.isDownloading || packProg.isExtracting) && packProg.activePack == pk
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 3.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xAA041815))
+                                    .border(0.75.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = pk.titleAr,
+                                        color = SakinaOrbitalColors.WarmCream,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = bodyFontFamily
+                                    )
+                                    Text(
+                                        text = if (pkReady) "جاهز بالكامل · 604 صفحة (${pk.approxSizeLabel})"
+                                        else "${pk.subtitleAr} · ${pk.approxSizeLabel} ($pkPages/604)",
+                                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.72f),
+                                        fontSize = 10.sp,
+                                        fontFamily = bodyFontFamily
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    if (pkReady) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(9.dp))
+                                                .background(Color(0xFF0F4C3A))
+                                                .border(0.7.dp, SakinaLuxuryColors.SoftGoldGlow, RoundedCornerShape(9.dp))
+                                                .clickable {
+                                                    onRiwayahChange(if (pk == SakinaMushafPack.WARSH_1080) QuranRiwayah.WARSH else QuranRiwayah.HAFS)
+                                                    onOpenPageClick(state.lastReadPage.coerceIn(1, 604))
+                                                }
+                                                .padding(horizontal = 9.dp, vertical = 5.dp)
+                                        ) {
+                                            Text("فتح", color = SakinaLuxuryColors.SoftGoldGlow, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, fontFamily = bodyFontFamily)
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(9.dp))
+                                                .background(Color(0x33FF6B6B))
+                                                .clickable {
+                                                    SakinaMushafPackManager.deletePack(portalCtx, pk)
+                                                    packRefreshTick++
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 5.dp)
+                                        ) {
+                                            Text("حذف", color = Color(0xFFFFA59E), fontSize = 10.sp, fontFamily = bodyFontFamily)
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(9.dp))
+                                                .background(
+                                                    if (isBusy) Brush.horizontalGradient(listOf(Color(0xFF28423B), Color(0xFF28423B)))
+                                                    else Brush.horizontalGradient(listOf(Color(0xFFD9AE58), Color(0xFFF3D58A)))
+                                                )
+                                                .clickable(enabled = !packProg.isDownloading && !packProg.isExtracting) {
+                                                    packScope.launch {
+                                                        SakinaMushafPackManager.downloadAndExtractPack(portalCtx, pk)
+                                                        packRefreshTick++
+                                                    }
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                                        ) {
+                                            Text(
+                                                text = if (isBusy) "جاري..." else "⬇ تحميل",
+                                                color = if (isBusy) SakinaOrbitalColors.WarmCream else Color(0xFF071A18),
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                fontFamily = bodyFontFamily
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // 1. مبدّل الرواية (حفص / ورش) + شريط البحث باللون الزمردي المخملي الموحّد
             item(key = "hdr_riwayah_search") {
                 Row(
@@ -1704,6 +1930,12 @@ private fun QuranMushafReaderContent(
     var showLongPressDialog by remember { mutableStateOf(false) }
     var showMeaningsDialog by remember { mutableStateOf(false) }
     var showPageTafsirDialog by remember { mutableStateOf(false) }
+    var showWebpPacksDialog by remember { mutableStateOf(false) }
+    val packProgress by SakinaMushafPackManager.state.collectAsState()
+    val activeWebpPack = remember(state.riwayah) { MushafWebpPack.forRiwayah(state.riwayah) }
+    val isWebpPackReady = remember(state.riwayah, packProgress.extractedPages) {
+        SakinaMushafPackManager.isPackReady(readerCtx, activeWebpPack)
+    }
     var showSpotlight by remember { mutableStateOf(!SakinaMushafProPrefs.hasSeenSpotlight(readerCtx)) }
     val activeKhatmahName = remember(state.currentReaderPage) { SakinaKhatmahStore.loadSlot(readerCtx).name }
 
@@ -1923,15 +2155,60 @@ private fun QuranMushafReaderContent(
                         charCount < 950 -> 27.sp
                         else -> 24.sp
                     }
-                    Text(
-                        text = combinedAyahs,
-                        color = pageTextColor,
-                        fontSize = (autoFontSp.value * displaySettings.fontScale).sp,
-                        lineHeight = (autoLineSp.value * displaySettings.fontScale * displaySettings.lineSpacingScale).sp,
-                        fontFamily = quranFontFamily,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.alpha(if (hideAyahsForTest) 0.06f else 1f)
-                    )
+                    var pageBmp by remember(state.riwayah, pageIndex, isWebpPackReady) { mutableStateOf<Bitmap?>(null) }
+                    LaunchedEffect(state.riwayah, pageIndex, isWebpPackReady) {
+                        pageBmp = if (isWebpPackReady) {
+                            SakinaMushafPackManager.loadPageBitmap(readerCtx, state.riwayah, pageIndex + 1)
+                        } else null
+                    }
+                    if (pageBmp != null) {
+                        Image(
+                            bitmap = pageBmp!!.asImageBitmap(),
+                            contentDescription = "صفحة ${pageIndex + 1}",
+                            contentScale = ContentScale.FillWidth,
+                            colorFilter = ColorFilter.tint(pageTextColor),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer {
+                                    scaleX = displaySettings.fontScale
+                                    scaleY = displaySettings.fontScale
+                                }
+                                .alpha(if (hideAyahsForTest) 0.06f else 1f)
+                        )
+                    } else {
+                        if (!isWebpPackReady && pageIndex + 1 == state.currentReaderPage) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xE0072821))
+                                    .border(0.8.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
+                                    .clickable { showWebpPacksDialog = true }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "⬇ تحميل المصحف المطبوع 1080px (${activeWebpPack.approxSizeLabel})",
+                                    color = SakinaLuxuryColors.SoftGoldGlow,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = bodyFontFamily
+                                )
+                                Text("حفص / ورش", color = SakinaLuxuryColors.EmeraldGlow, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Text(
+                            text = combinedAyahs,
+                            color = pageTextColor,
+                            fontSize = (autoFontSp.value * displaySettings.fontScale).sp,
+                            lineHeight = (autoLineSp.value * displaySettings.fontScale * displaySettings.lineSpacingScale).sp,
+                            fontFamily = quranFontFamily,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.alpha(if (hideAyahsForTest) 0.06f else 1f)
+                        )
+                    }
                 }
             }
 
@@ -2366,6 +2643,108 @@ private fun QuranMushafReaderContent(
                 scope.launch { pagerState.animateScrollToPage((target - 1).coerceIn(0, (state.totalPages - 1).coerceAtLeast(0))) }
             },
             onDismiss = { showJumpPageDialog = false }
+        )
+    }
+
+    if (showWebpPacksDialog) {
+        var packTick by remember { mutableIntStateOf(0) }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showWebpPacksDialog = false },
+            containerColor = Color(0xFF061B18),
+            title = {
+                Text(
+                    text = "حزم المصحف المطبوع (1080px WebP)",
+                    color = SakinaLuxuryColors.SoftGoldGlow,
+                    fontSize = 15.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = headingFontFamily
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "اختر حزمة الرواية المفضلة لتحميل 604 صفحة عالية الدقة شفافة الخلفية (تعمل أوفلاين للأبد فوق الإطار الذهبي الموحّد وتدعم الوضع الليلي وألوان الورق الـ 5):",
+                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.85f),
+                        fontSize = 11.5.sp,
+                        lineHeight = 18.sp,
+                        fontFamily = bodyFontFamily
+                    )
+                    MushafWebpPack.values().forEach { pk ->
+                        val readyCount = remember(packTick, packProgress.extractedPages) {
+                            SakinaMushafPackManager.downloadedPageCount(readerCtx, pk)
+                        }
+                        val ready = readyCount >= 600
+                        val busy = (packProgress.isDownloading || packProgress.isExtracting) && packProgress.activePack == pk
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFF041515))
+                                .border(0.9.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(14.dp))
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(pk.titleAr, color = SakinaLuxuryColors.SoftGoldGlow, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = headingFontFamily)
+                                    Text("${pk.subtitleAr} · ${pk.approxSizeLabel}", color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.72f), fontSize = 10.sp, fontFamily = bodyFontFamily)
+                                }
+                                if (ready) {
+                                    Text(
+                                        text = "حذف",
+                                        color = Color(0xFFE58A7E),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.clickable {
+                                            SakinaMushafPackManager.deletePack(readerCtx, pk)
+                                            packTick++
+                                        }.padding(4.dp)
+                                    )
+                                } else if (!busy) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
+                                            .clickable {
+                                                scope.launch {
+                                                    SakinaMushafPackManager.downloadAndExtractPack(readerCtx, pk)
+                                                    packTick++
+                                                }
+                                            }
+                                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("تحميل", color = Color(0xFF071A18), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            if (busy) {
+                                LinearProgressIndicator(
+                                    progress = { packProgress.progressFraction },
+                                    color = SakinaLuxuryColors.SoftGoldGlow,
+                                    trackColor = Color(0xFF10382F),
+                                    modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp))
+                                )
+                                Text(
+                                    text = if (packProgress.isExtracting) "جاري الاستخراج: ${packProgress.extractedPages} / 604 صفحة" else "جاري التحميل: ${(packProgress.progressFraction * 100).toInt()}%",
+                                    color = SakinaLuxuryColors.EmeraldGlow,
+                                    fontSize = 10.5.sp,
+                                    fontFamily = SakinaNumeralFont
+                                )
+                            } else if (ready) {
+                                Text("✓ جاهزة أوفلاين ($readyCount / 604 صفحة)", color = SakinaLuxuryColors.EmeraldGlow, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    if (packProgress.errorMessage != null) {
+                        Text(packProgress.errorMessage!!, color = Color(0xFFE58A7E), fontSize = 11.sp, fontFamily = bodyFontFamily)
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { showWebpPacksDialog = false }) {
+                    Text("إغلاق", color = SakinaLuxuryColors.SoftGoldGlow, fontWeight = FontWeight.Bold)
+                }
+            }
         )
     }
 

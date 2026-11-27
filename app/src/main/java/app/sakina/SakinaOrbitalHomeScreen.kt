@@ -82,6 +82,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -148,6 +149,7 @@ data class OrbitalPrayerNode(
     val localizedName: String,
     val timeText: String,
     val isCompleted: Boolean = false,
+    val isPassed: Boolean = false,
     val alarmMode: PrayerAlarmMode = PrayerAlarmMode.ADHAN
 )
 
@@ -521,7 +523,7 @@ fun SakinaOrbitalHomeScreen(
                                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                                         )
                                     )
-                                    if (activeNode.isCompleted) {
+                                    if (activeNode.isPassed || activeNode.isCompleted) {
                                         Image(
                                             painter = painterResource(id = R.drawable.ic_3d_check_gold),
                                             contentDescription = null,
@@ -647,7 +649,7 @@ fun SakinaOrbitalHomeScreen(
                                                 platformStyle = PlatformTextStyle(includeFontPadding = false)
                                             )
                                         )
-                                        val isPassedPrayer = idx < state.nextPrayerIndex
+                                        val isPassedPrayer = node.isPassed || (idx < state.nextPrayerIndex)
                                         if (isPassedPrayer || node.isCompleted) {
                                             Image(
                                                 painter = painterResource(id = R.drawable.ic_3d_check_gold),
@@ -831,22 +833,13 @@ private fun MinimalistOrbitalHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // زر القائمة الموحّدة الوحيد
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .sakinaLuxuryGlassCard(cornerRadius = 19.dp, borderAlpha = 0.75f)
-                .clip(CircleShape)
-                .clickable(onClick = onMenuClick),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Settings,
-                contentDescription = null,
-                tint = SakinaLuxuryColors.SoftGoldGlow,
-                modifier = Modifier.size(20.dp)
-            )
-        }
+        // زر الإعدادات الموحّد من معدن الذهب ثلاثي الأبعاد (v74)
+        SakinaTactileGoldCoinButton(
+            onClick = onMenuClick,
+            size = 40.dp,
+            drawableRes = R.drawable.ic_3d_settings_coin_gold,
+            contentDescription = null
+        )
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -875,21 +868,27 @@ private fun MinimalistOrbitalHeader(
             )
         }
 
-        // زر تبديل اللغة وحده في الجهة المقابلة
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .sakinaLuxuryGlassCard(cornerRadius = 19.dp, borderAlpha = 0.75f)
-                .clip(CircleShape)
-                .clickable(onClick = onLanguageClick),
-            contentAlignment = Alignment.Center
+        // زر تبديل اللغة الموحّد من معدن الذهب ثلاثي الأبعاد (v74)
+        SakinaTactileGoldCoinButton(
+            onClick = onLanguageClick,
+            size = 40.dp,
+            drawableRes = R.drawable.ic_3d_lang_coin_gold,
+            contentDescription = null
         ) {
             Text(
                 text = langCode.uppercase(),
-                color = SakinaLuxuryColors.SoftGoldGlow,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = bodyFontFamily
+                color = Color(0xFF2B1906),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = SakinaNumeralFont,
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = Color(0x99FFF2C2),
+                        offset = Offset(0f, 1f),
+                        blurRadius = 1.5f
+                    ),
+                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                )
             )
         }
     }
