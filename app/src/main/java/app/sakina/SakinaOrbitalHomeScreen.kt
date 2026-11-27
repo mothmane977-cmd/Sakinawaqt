@@ -651,7 +651,7 @@ fun SakinaOrbitalHomeScreen(
                                                 platformStyle = PlatformTextStyle(includeFontPadding = false)
                                             )
                                         )
-                                        val isPassedPrayer = idx < state.activePrayerIndex
+                                        val isPassedPrayer = idx < state.nextPrayerIndex
                                         if (isPassedPrayer || node.isCompleted) {
                                             Image(
                                                 painter = painterResource(id = R.drawable.ic_3d_check_gold),
