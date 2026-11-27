@@ -125,6 +125,13 @@ enum class QuranRiwayah {
     WARSH
 }
 
+enum class QuranSubSection(val labelAr: String) {
+    MUSHAF("مصحفي"),
+    KHATMAH("ختمتي"),
+    RECITATION("التلاوة"),
+    TADABBUR("التدبّر")
+}
+
 enum class QuranIndexTab {
     SURAHS,
     JUZS,
@@ -262,6 +269,7 @@ fun SakinaLuminousQuranScreen(
     onRiwayahChange: (QuranRiwayah) -> Unit = {},
     onIndexTabChange: (QuranIndexTab) -> Unit = {},
     onSearchQueryChange: (String) -> Unit = {},
+    onOpenPageClick: (Int) -> Unit = {},
     onResumeClick: () -> Unit = {},
     onSurahSelected: (SurahAudioItem) -> Unit = {},
     onDivisionSelected: (QuranDivisionItem) -> Unit = {},
@@ -327,6 +335,9 @@ fun SakinaLuminousQuranScreen(
                     onIndexTabChange = onIndexTabChange,
                     onSearchQueryChange = onSearchQueryChange,
                     onResumeClick = onResumeClick,
+                    onOpenPageClick = onOpenPageClick,
+                    onReciterClick = onReciterClick,
+                    onExpandPlayerClick = { isPlayerExpanded = true },
                     onSurahSelected = { surah ->
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onSurahSelected(surah)
@@ -438,11 +449,15 @@ private fun QuranIndexPortalContent(
     onIndexTabChange: (QuranIndexTab) -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onResumeClick: () -> Unit,
+    onOpenPageClick: (Int) -> Unit,
+    onReciterClick: () -> Unit,
+    onExpandPlayerClick: () -> Unit,
     onSurahSelected: (SurahAudioItem) -> Unit,
     onDivisionSelected: (QuranDivisionItem) -> Unit,
     onDownloadSurahClick: (Int) -> Unit,
     onDeleteDownloadedSurah: (Int) -> Unit
 ) {
+    var activeSubSection by remember { mutableStateOf(QuranSubSection.MUSHAF) }
     val velvetEmeraldBg = remember {
         Brush.horizontalGradient(listOf(Color(0xFF06231D), Color(0xFF082E26), Color(0xFF051819)))
     }
@@ -498,6 +513,80 @@ private fun QuranIndexPortalContent(
 
         Spacer(modifier = Modifier.height(6.dp))
 
+        // شريط التبويبات الفرعية الأربعة المعتمد (مصحفي · ختمتي · التلاوة · التدبّر)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color(0xE6051C19))
+                .border(0.95.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(18.dp))
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            QuranSubSection.values().forEach { sub ->
+                val selected = activeSubSection == sub
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(15.dp))
+                        .background(
+                            if (selected) Brush.horizontalGradient(listOf(Color(0xFF0E4B3B), Color(0xFF156953), Color(0xFF0E4B3B)))
+                            else SolidColor(Color.Transparent)
+                        )
+                        .then(
+                            if (selected) Modifier.border(0.8.dp, SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.75f), RoundedCornerShape(15.dp))
+                            else Modifier
+                        )
+                        .clickable { activeSubSection = sub }
+                        .padding(vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = sub.labelAr,
+                        color = if (selected) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.78f),
+                        fontSize = 11.5.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        fontFamily = bodyFontFamily,
+                        maxLines = 1,
+                        style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(7.dp))
+
+        when (activeSubSection) {
+            QuranSubSection.KHATMAH -> {
+                SakinaKhatmahTabContent(
+                    headingFontFamily = headingFontFamily,
+                    bodyFontFamily = bodyFontFamily,
+                    onOpenPageInMushaf = onOpenPageClick,
+                    modifier = Modifier.fillMaxWidth().weight(1f)
+                )
+            }
+            QuranSubSection.RECITATION -> {
+                QuranRecitationHubContent(
+                    state = state,
+                    strings = strings,
+                    headingFontFamily = headingFontFamily,
+                    bodyFontFamily = bodyFontFamily,
+                    onReciterClick = onReciterClick,
+                    onExpandPlayerClick = onExpandPlayerClick,
+                    onSurahSelected = onSurahSelected,
+                    onDownloadSurahClick = onDownloadSurahClick,
+                    onDeleteDownloadedSurah = onDeleteDownloadedSurah,
+                    modifier = Modifier.fillMaxWidth().weight(1f)
+                )
+            }
+            QuranSubSection.TADABBUR -> {
+                QuranTadabburHubContent(
+                    headingFontFamily = headingFontFamily,
+                    bodyFontFamily = bodyFontFamily,
+                    modifier = Modifier.fillMaxWidth().weight(1f)
+                )
+            }
+            QuranSubSection.MUSHAF -> {
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
             contentPadding = PaddingValues(bottom = 6.dp)
@@ -647,12 +736,7 @@ private fun QuranIndexPortalContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
 
-                QuranIndexKhatmahCard(
-                    headingFontFamily = headingFontFamily,
-                    bodyFontFamily = bodyFontFamily
-                )
 
                 if (state.quickSurahs.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(6.dp))
@@ -812,6 +896,214 @@ private fun QuranIndexPortalContent(
                         }
                     }
                 }
+            }
+        }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuranRecitationHubContent(
+    state: SakinaQuranScreenState,
+    strings: SakinaQuranStrings,
+    headingFontFamily: FontFamily,
+    bodyFontFamily: FontFamily,
+    onReciterClick: () -> Unit,
+    onExpandPlayerClick: () -> Unit,
+    onSurahSelected: (SurahAudioItem) -> Unit,
+    onDownloadSurahClick: (Int) -> Unit,
+    onDeleteDownloadedSurah: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val downloaded = remember(state.surahs) { state.surahs.filter { it.audioStatus == SurahAudioStatus.DOWNLOADED } }
+    val velvetBg = remember { Brush.horizontalGradient(listOf(Color(0xFF06231D), Color(0xFF082E26), Color(0xFF051819))) }
+    val goldBorder = SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f)
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item(key = "rec_header") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(velvetBg)
+                    .border(1.dp, goldBorder, RoundedCornerShape(18.dp))
+                    .clickable(onClick = onReciterClick)
+                    .padding(horizontal = 14.dp, vertical = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "القارئ المختار",
+                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.72f),
+                        fontSize = 11.sp,
+                        fontFamily = bodyFontFamily
+                    )
+                    Text(
+                        text = state.player.reciterName,
+                        color = SakinaLuxuryColors.SoftGoldGlow,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = headingFontFamily
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                ) {
+                    Text("تغيير القارئ", color = Color(0xFF071A18), fontSize = 11.sp, fontWeight = FontWeight.Bold, fontFamily = bodyFontFamily)
+                }
+            }
+        }
+
+        item(key = "rec_open_diamond") {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Brush.horizontalGradient(listOf(Color(0xFF0E4B3B), Color(0xFF14644F))))
+                    .border(1.dp, SakinaLuxuryColors.SoftGoldGlow, RoundedCornerShape(16.dp))
+                    .clickable(onClick = onExpandPlayerClick)
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "✦ فتح المشغّل الصوتي الماسي الكامل",
+                    color = SakinaLuxuryColors.SoftGoldGlow,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = headingFontFamily
+                )
+            }
+        }
+
+        item(key = "rec_offline_title") {
+            Text(
+                text = "السور الجاهزة أوفلاين (${downloaded.size} سورة)",
+                color = SakinaLuxuryColors.SoftGoldGlow,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = headingFontFamily,
+                modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+            )
+        }
+
+        itemsIndexed(downloaded, key = { _, it -> "dl_${it.number}" }) { _, surah ->
+            SurahIndexRow(
+                surah = surah,
+                strings = strings,
+                headingFontFamily = headingFontFamily,
+                bodyFontFamily = bodyFontFamily,
+                onClick = { onSurahSelected(surah) },
+                onDownloadClick = { onDownloadSurahClick(surah.number) },
+                onLongPressDelete = { onDeleteDownloadedSurah(surah.number) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuranTadabburHubContent(
+    headingFontFamily: FontFamily,
+    bodyFontFamily: FontFamily,
+    modifier: Modifier = Modifier
+) {
+    val ctx = LocalContext.current
+    val sp = remember(ctx) { ctx.getSharedPreferences("nurqunoot_notes_v63", android.content.Context.MODE_PRIVATE) }
+    var noteText by remember { mutableStateOf(sp.getString("personal_tadabbur_note", "") ?: "") }
+    val velvetBg = remember { Brush.verticalGradient(listOf(Color(0xFF072821), Color(0xFF051A18))) }
+    val goldBorder = SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f)
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item(key = "tad_notes") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(velvetBg)
+                    .border(1.dp, goldBorder, RoundedCornerShape(18.dp))
+                    .padding(14.dp)
+            ) {
+                Text(
+                    text = "✦ دفتر ملاحظاتي وتدبّراتي",
+                    color = SakinaLuxuryColors.SoftGoldGlow,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = headingFontFamily
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 84.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF041414))
+                        .border(0.8.dp, goldBorder.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                        .padding(10.dp)
+                ) {
+                    if (noteText.isEmpty()) {
+                        Text(
+                            text = "اكتب هنا خواطرك وتدبّراتك القرآنية (تُحفظ تلقائياً أوفلاين)...",
+                            color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.45f),
+                            fontSize = 12.sp,
+                            fontFamily = bodyFontFamily
+                        )
+                    }
+                    BasicTextField(
+                        value = noteText,
+                        onValueChange = {
+                            noteText = it
+                            sp.edit().putString("personal_tadabbur_note", it).apply()
+                        },
+                        textStyle = TextStyle(
+                            color = SakinaOrbitalColors.WarmCream,
+                            fontSize = 13.sp,
+                            lineHeight = 20.sp,
+                            fontFamily = bodyFontFamily
+                        ),
+                        cursorBrush = SolidColor(SakinaLuxuryColors.SoftGoldGlow),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
+        item(key = "tad_roadmap_cards") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(velvetBg)
+                    .border(0.95.dp, goldBorder, RoundedCornerShape(18.dp))
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = "مكتبة التدبّر وعلوم القرآن",
+                    color = SakinaLuxuryColors.SoftGoldGlow,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = headingFontFamily
+                )
+                Text(
+                    text = "• أحكام التجويد (ورش من طريق الأزرق) والمتون الثلاثة (الجزرية، تحفة الأطفال، الشاطبية) تُضاف في المرحلة v66.
+• حزم التفاسير الثمانية والهدايات والإعراب وأسباب النزول القابلة للتحميل أوفلاين تُضاف في المرحلة v67.",
+                    color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
+                    lineHeight = 20.sp,
+                    fontFamily = bodyFontFamily
+                )
             }
         }
     }

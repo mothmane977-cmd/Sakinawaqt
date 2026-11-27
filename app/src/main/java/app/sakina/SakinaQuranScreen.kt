@@ -451,6 +451,14 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier, onReaderActiv
         },
         onIndexTabChange = { indexTab = it },
         onSearchQueryChange = { searchQuery = it },
+        onOpenPageClick = { targetPage ->
+            val p = targetPage.coerceIn(1, 604)
+            currentPage = p
+            val sNum = surahForMushafPage(p)
+            selectedSurahForPlayer = sNum
+            sp.edit().putInt("quran_last_page", p - 1).putInt("quran_last_surah", sNum).apply()
+            isReaderOpen = true
+        },
         onResumeClick = {
             currentPage = lastReadPageNum
             selectedSurahForPlayer = lastReadSurahNum
@@ -489,6 +497,7 @@ fun SakinaQuranScreen(ctx: Context, modifier: Modifier = Modifier, onReaderActiv
         onPageChanged = { newPage ->
             if (newPage != currentPage) {
                 SakinaV45StatsPrefs.logPageRead(ctx)
+                SakinaKhatmahStore.logPages(ctx, deltaPages = 1, minutesSpent = 1)
             }
             val clamped = newPage.coerceIn(1, 604)
             currentPage = clamped
