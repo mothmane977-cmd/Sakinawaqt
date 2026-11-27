@@ -1033,11 +1033,7 @@ private fun KhatmahReminderDialog(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("تفعيل منبّه الورد اليومي", color = SakinaOrbitalColors.WarmCream, fontSize = 13.sp, fontFamily = bodyFontFamily)
-                    Switch(
-                        checked = remOn,
-                        onCheckedChange = { remOn = it },
-                        colors = SwitchDefaults.colors(checkedThumbColor = SakinaLuxuryColors.SoftGoldGlow, checkedTrackColor = Color(0xFF14644F))
-                    )
+                    SakinaJewelSwitch(checked = remOn, onCheckedChange = { remOn = it })
                 }
 
                 if (remOn) {
@@ -1058,11 +1054,7 @@ private fun KhatmahReminderDialog(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("التنبيه السياقي الذكي (نافذتك المفضلة)", color = SakinaOrbitalColors.WarmCream, fontSize = 12.sp, fontFamily = bodyFontFamily, modifier = Modifier.weight(1f))
-                    Switch(
-                        checked = smartHabit,
-                        onCheckedChange = { smartHabit = it },
-                        colors = SwitchDefaults.colors(checkedThumbColor = SakinaLuxuryColors.SoftGoldGlow, checkedTrackColor = Color(0xFF14644F))
-                    )
+                    SakinaJewelSwitch(checked = smartHabit, onCheckedChange = { smartHabit = it })
                 }
 
                 HorizontalDivider(color = SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.3f))

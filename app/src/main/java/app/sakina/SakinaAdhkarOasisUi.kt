@@ -194,13 +194,12 @@ fun SakinaAdhkarOasisScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = { if (isCategoryOpen) onCloseCategory() else onBackClick() }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = strings.backDesc,
-                        tint = SakinaOrbitalColors.ChampagneGold
-                    )
-                }
+                SakinaTactileGoldCoinButton(
+                    onClick = { if (isCategoryOpen) onCloseCategory() else onBackClick() },
+                    size = 38.dp,
+                    drawableRes = R.drawable.ic_quran_back_gold_3d,
+                    contentDescription = strings.backDesc
+                )
 
                 Text(
                     text = state.activeCategoryTitle ?: strings.oasisTitle,

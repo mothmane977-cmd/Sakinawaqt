@@ -6,13 +6,34 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.media.AudioManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 
-class SakinaAdhanForegroundService : Service() {
+/**
+ * خدمة الأذان المحصّنة (v69 — sakina_master_blueprint §6.4):
+ * - مهلة أمان صارمة 240 ثانية (4 دقائق) لمنع تسرب WakeLock (سياسة Google Play 2026)
+ * - إيقاف فوري بقلب الهاتف على وجهه (Flip-to-Silence عبر TYPE_ACCELEROMETER)
+ * - مراعاة المكالمات الجارية (عدم تشغيل الصوت المرتفع أثناء مكالمة)
+ * - أيقونة شريط حالة نورقنوت الموحّدة
+ */
+class SakinaAdhanForegroundService : Service(), SensorEventListener {
     private var wakeLock: PowerManager.WakeLock? = null
+    private var sensorManager: SensorManager? = null
+    private var faceDownHits = 0
+    private val safetyHandler = Handler(Looper.getMainLooper())
+    private val hardTimeoutRunnable = Runnable {
+        SakinaAdhanAudio.stop()
+        stopSelf()
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -30,12 +51,16 @@ class SakinaAdhanForegroundService : Service() {
         }
 
         val prayerName = intent?.getStringExtra(EXTRA_PRAYER) ?: "الصلاة"
+
+        // مهلة أمان صارمة 240 ثانية للـ WakeLock وللخدمة
         try {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "sakina:adhan_wl").apply {
-                acquire(5 * 60_000L)
+                acquire(240_000L)
             }
         } catch (_: Exception) {}
+        safetyHandler.removeCallbacks(hardTimeoutRunnable)
+        safetyHandler.postDelayed(hardTimeoutRunnable, 240_000L)
 
         val chId = "sakina_adhan_fg_service"
         if (Build.VERSION.SDK_INT >= 26) {
@@ -60,7 +85,13 @@ class SakinaAdhanForegroundService : Service() {
         )
 
         val notif = NotificationCompat.Builder(this, chId)
-            .setSmallIcon(R.drawable.ic_stat_sakina)
+            .apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    setSmallIcon(SakinaStatusBarIconFactory.createLiveStatusIcon(Long.MAX_VALUE))
+                } else {
+                    setSmallIcon(R.drawable.ic_stat_sakina)
+                }
+            }
             .setColor(0xFFC69C53.toInt())
             .setContentTitle("حان وقت صلاة $prayerName")
             .setContentText("جاري رفع الأذان · اقلب الهاتف أو اضغط إيقاف للكتم")
@@ -83,6 +114,24 @@ class SakinaAdhanForegroundService : Service() {
             startForeground(779, notif)
         }
 
+        // مراعاة المكالمات الجارية (تجنب الصوت المرتفع أثناء مكالمة هاتفية أو صوتية)
+        val am = try { getSystemService(Context.AUDIO_SERVICE) as AudioManager } catch (_: Exception) { null }
+        val inCall = am != null && (am.mode == AudioManager.MODE_IN_CALL || am.mode == AudioManager.MODE_IN_COMMUNICATION)
+        if (inCall) {
+            safetyHandler.postDelayed({ stopSelf() }, 6000L)
+            return START_NOT_STICKY
+        }
+
+        // تفعيل حساس قلب الهاتف (Flip-to-Silence) فقط أثناء تشغيل الأذان
+        try {
+            faceDownHits = 0
+            sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+            val accel = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            if (accel != null) {
+                sensorManager?.registerListener(this, accel, SensorManager.SENSOR_DELAY_NORMAL)
+            }
+        } catch (_: Exception) {}
+
         SakinaQuranAudioController.pauseForAdhan()
         SakinaAdhanAudio.playAlarmAdhan(this, prayerName) {
             stopSelf()
@@ -91,7 +140,25 @@ class SakinaAdhanForegroundService : Service() {
         return START_NOT_STICKY
     }
 
+    override fun onSensorChanged(event: SensorEvent?) {
+        val z = event?.values?.getOrNull(2) ?: return
+        if (z < -8.0f) {
+            faceDownHits++
+            if (faceDownHits >= 3) {
+                SakinaAdhanAudio.stop()
+                stopSelf()
+            }
+        } else {
+            faceDownHits = 0
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+
     override fun onDestroy() {
+        safetyHandler.removeCallbacks(hardTimeoutRunnable)
+        try { sensorManager?.unregisterListener(this) } catch (_: Exception) {}
+        sensorManager = null
         SakinaAdhanAudio.stop()
         try {
             if (wakeLock?.isHeld == true) wakeLock?.release()

@@ -502,7 +502,7 @@ fun SakinaOrbitalHomeScreen(
                                         contentDescription = null,
                                         contentScale = ContentScale.Fit,
                                         modifier = Modifier
-                                            .size(28.dp)
+                                            .size(30.dp)
                                             .clip(CircleShape)
                                             .clickable {
                                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -627,7 +627,7 @@ fun SakinaOrbitalHomeScreen(
                                             contentDescription = null,
                                             contentScale = ContentScale.Fit,
                                             modifier = Modifier
-                                                .size(28.dp)
+                                                .size(30.dp)
                                                 .clip(CircleShape)
                                                 .clickable {
                                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)

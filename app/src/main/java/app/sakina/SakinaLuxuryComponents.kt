@@ -19,6 +19,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Size
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -588,5 +596,148 @@ fun SakinaMihrabRibbonItem(
                 modifier = Modifier.padding(horizontal = 6.dp)
             )
         }
+    }
+}
+
+
+/**
+ * زر ذهبي معدني دائري بارز حقيقي (v69):
+ * ينخفض فعلياً إلى الداخل عند الضغط ثم يعود بنابض ناعم — موحّد لأزرار الرجوع والإعدادات واللغة في كامل التطبيق.
+ */
+@Composable
+fun SakinaTactileGoldCoinButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 38.dp,
+    drawableRes: Int? = R.drawable.ic_quran_back_gold_3d,
+    contentDescription: String? = null,
+    content: (@Composable () -> Unit)? = null
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.87f else 1.0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium, dampingRatio = 0.55f),
+        label = "goldCoinScale"
+    )
+    val pressOffsetY by animateFloatAsState(
+        targetValue = if (isPressed) 2.2f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "goldCoinOffset"
+    )
+    Box(
+        modifier = modifier
+            .size(size)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationY = pressOffsetY * density
+            }
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (drawableRes != null) {
+            Image(
+                painter = painterResource(id = drawableRes),
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        if (content != null) {
+            content()
+        }
+    }
+}
+
+/**
+ * شريط تمرير/تقدم ذهبي معدني لامع ثلاثي الأبعاد (v69 — مطابق للقطة 22686.jpg):
+ * مسار زجاجي غائر + خط تقدم ذهبي متوهج + كرة ذهبية معدنية ثلاثية الأبعاد بلمعة مضيئة.
+ */
+@Composable
+fun SakinaGold3DSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val clamped = value.coerceIn(0f, 1f)
+    Canvas(
+        modifier = modifier
+            .height(26.dp)
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    val frac = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
+                    onValueChange(frac)
+                }
+            }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures { change, _ ->
+                    change.consume()
+                    val frac = (change.position.x / size.width.toFloat()).coerceIn(0f, 1f)
+                    onValueChange(frac)
+                }
+            }
+    ) {
+        val cy = size.height / 2f
+        val trackH = 6.dp.toPx()
+        val thumbR = 9.5.dp.toPx()
+        val leftX = thumbR
+        val rightX = (size.width - thumbR).coerceAtLeast(leftX + 1f)
+        val usableW = (rightX - leftX).coerceAtLeast(1f)
+        val activeX = leftX + usableW * clamped
+
+        // 1. المسار الخلفي الزجاجي الغائر بحافة خفيفة
+        drawRoundRect(
+            color = Color(0x661C3434),
+            topLeft = Offset(leftX, cy - trackH / 2f),
+            size = Size(usableW, trackH),
+            cornerRadius = CornerRadius(trackH / 2f, trackH / 2f)
+        )
+
+        // 2. توهج ذهبي ناعم حول شريط التقدم النشط
+        if (clamped > 0.005f) {
+            drawRoundRect(
+                color = Color(0x44F5DC8E),
+                topLeft = Offset(leftX, cy - trackH * 0.9f),
+                size = Size((activeX - leftX).coerceAtLeast(trackH), trackH * 1.8f),
+                cornerRadius = CornerRadius(trackH, trackH)
+            )
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color(0xFFFFF0B8), Color(0xFFE7C25D), Color(0xFFB88A2E)),
+                    startY = cy - trackH / 2f,
+                    endY = cy + trackH / 2f
+                ),
+                topLeft = Offset(leftX, cy - trackH / 2f),
+                size = Size((activeX - leftX).coerceAtLeast(trackH), trackH),
+                cornerRadius = CornerRadius(trackH / 2f, trackH / 2f)
+            )
+        }
+
+        // 3. الكرة الذهبية المعدنية ثلاثية الأبعاد (Thumb)
+        drawCircle(
+            color = Color(0x55F7DE8F),
+            radius = thumbR * 1.38f,
+            center = Offset(activeX, cy)
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFFFFF6CE), Color(0xFFE4BC58), Color(0xFF9E701E)),
+                center = Offset(activeX - thumbR * 0.3f, cy - thumbR * 0.3f),
+                radius = thumbR * 1.25f
+            ),
+            radius = thumbR,
+            center = Offset(activeX, cy)
+        )
+        drawCircle(
+            color = Color(0xCCFFF8DC),
+            radius = thumbR * 0.32f,
+            center = Offset(activeX - thumbR * 0.32f, cy - thumbR * 0.32f)
+        )
     }
 }

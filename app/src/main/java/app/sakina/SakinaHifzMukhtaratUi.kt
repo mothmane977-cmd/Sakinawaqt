@@ -451,10 +451,7 @@ private fun HifzTripleRepeatSection(
                 // مفتاح اختبار بعد الجلسة + القارئ
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("اختبار تسميع تلقائي بعد الجلسة", color = SakinaOrbitalColors.WarmCream, fontSize = 12.sp, fontFamily = bodyFontFamily)
-                    Switch(
-                        checked = cfg.postSessionTest,
-                        onCheckedChange = { cfg = cfg.copy(postSessionTest = it) },
-                        colors = SwitchDefaults.colors(checkedThumbColor = SakinaLuxuryColors.SoftGoldGlow, checkedTrackColor = Color(0xFF14644F))
+                    SakinaJewelSwitch(checked = cfg.postSessionTest, onCheckedChange = { cfg = cfg.copy(postSessionTest = it) })
                     )
                 }
 

@@ -1297,10 +1297,10 @@ private fun SurahIndexRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // 1. يميناً: النجمة المثمنة الذهبية + اسم السورة
+            // 1. يميناً: النجمة المثمنة الذهبية + اسم السورة بمساحة رحبة لا تُبتر أبداً
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1.1f)
+                modifier = Modifier.weight(1.42f)
             ) {
                 OctagonalNumberBadge(number = surah.number, bodyFontFamily = bodyFontFamily)
                 Spacer(modifier = Modifier.width(6.dp))
@@ -1995,22 +1995,13 @@ private fun QuranMushafReaderContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // ميدالية الرجوع الذهبية 3D
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = onCloseReader)
-                            .semantics { contentDescription = strings.backDesc },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_quran_back_gold_3d),
-                            contentDescription = strings.backDesc,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                    // ميدالية الرجوع الذهبية المعدنية البارزة (تنخفض عند الضغط وتخرج بعدها)
+                    SakinaTactileGoldCoinButton(
+                        onClick = onCloseReader,
+                        size = 40.dp,
+                        drawableRes = R.drawable.ic_quran_back_gold_3d,
+                        contentDescription = strings.backDesc
+                    )
 
                     // اسم السورة ورقم الصفحة بخط أميري ذهبي محفور
                     Row(
@@ -2878,54 +2869,15 @@ private fun ExpandedLuxuryAudioOverlay(
                         fontFamily = SakinaNumeralFont,
                         style = TextStyle(fontFeatureSettings = "tnum")
                     )
-                    Canvas(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(20.dp)
-                            .pointerInput(player.totalDurationSec) {
-                                detectTapGestures { offset ->
-                                    if (player.totalDurationSec > 0) {
-                                        val fraction = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
-                                        onSeekToSec((fraction * player.totalDurationSec).roundToInt())
-                                    }
-                                }
+                    SakinaGold3DSlider(
+                        value = progress,
+                        onValueChange = { frac ->
+                            if (player.totalDurationSec > 0) {
+                                onSeekToSec((frac * player.totalDurationSec).roundToInt())
                             }
-                            .pointerInput(player.totalDurationSec) {
-                                detectHorizontalDragGestures { change, _ ->
-                                    change.consume()
-                                    if (player.totalDurationSec > 0) {
-                                        val fraction = (change.position.x / size.width.toFloat()).coerceIn(0f, 1f)
-                                        onSeekToSec((fraction * player.totalDurationSec).roundToInt())
-                                    }
-                                }
-                            }
-                    ) {
-                        val y = size.height / 2f
-                        drawLine(
-                            color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.28f),
-                            start = Offset(0f, y),
-                            end = Offset(size.width, y),
-                            strokeWidth = 2.2.dp.toPx(),
-                            cap = StrokeCap.Round
-                        )
-                        val activeX = size.width * progress
-                        drawLine(
-                            color = SakinaOrbitalColors.SoftGoldGlow,
-                            start = Offset(0f, y),
-                            end = Offset(activeX, y),
-                            strokeWidth = 2.6.dp.toPx(),
-                            cap = StrokeCap.Round
-                        )
-                        val d = 5.5.dp.toPx()
-                        val diamond = Path().apply {
-                            moveTo(activeX, y - d)
-                            lineTo(activeX + d, y)
-                            lineTo(activeX, y + d)
-                            lineTo(activeX - d, y)
-                            close()
-                        }
-                        drawPath(diamond, color = SakinaOrbitalColors.SoftGoldGlow)
-                    }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
                     Text(
                         text = formatDurationSec(player.totalDurationSec),
                         color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.78f),
@@ -3043,18 +2995,13 @@ private fun ExpandedLuxuryAudioOverlay(
                             audioMgr.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, (volLevel * maxVol).toInt(), 0)
                         }
                     )
-                    Slider(
+                    SakinaGold3DSlider(
                         value = volLevel,
                         onValueChange = { nv ->
                             volLevel = nv
                             audioMgr.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, (nv * maxVol).toInt(), 0)
                         },
-                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
-                        colors = SliderDefaults.colors(
-                            thumbColor = SakinaLuxuryColors.SoftGoldGlow,
-                            activeTrackColor = SakinaLuxuryColors.ChampagneGold,
-                            inactiveTrackColor = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.25f)
-                        )
+                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
                     )
                     Text(
                         text = if (player.audioStatus == SurahAudioStatus.DOWNLOADED) "✓ ${strings.offlineReadyLabel}" else strings.mbFormat.format(player.audioSizeMb),
