@@ -309,8 +309,8 @@ fun SakinaLuminousQuranScreen(
                 .fillMaxSize()
                 .padding(horizontal = if (state.isReaderOpen) 4.dp else 14.dp)
                 .padding(
-                    top = if (state.isReaderOpen) 4.dp else 46.dp,
-                    bottom = if (state.isReaderOpen) 4.dp else if (!showBottomDock) hostBottomBarReserve else 0.dp
+                    top = if (state.isReaderOpen) 2.dp else 10.dp,
+                    bottom = if (state.isReaderOpen) 2.dp else if (!showBottomDock) hostBottomBarReserve else 0.dp
                 )
         ) {
             if (!state.isReaderOpen) {
@@ -362,23 +362,22 @@ fun SakinaLuminousQuranScreen(
                 )
             }
 
-            if (!state.isReaderOpen || readerBarsVisible) {
-            Spacer(modifier = Modifier.height(6.dp))
-
-            KineticWaveMiniPlayer(
-                player = state.player,
-                strings = strings,
-                bodyFontFamily = bodyFontFamily,
-                onExpandClick = { isPlayerExpanded = true },
-                onPlayPauseClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onPlayPauseClick()
-                },
-                onDownloadClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onDownloadSurahClick(state.player.selectedSurahNumber)
-                }
-            )
+            if (!state.isReaderOpen) {
+                Spacer(modifier = Modifier.height(6.dp))
+                KineticWaveMiniPlayer(
+                    player = state.player,
+                    strings = strings,
+                    bodyFontFamily = bodyFontFamily,
+                    onExpandClick = { isPlayerExpanded = true },
+                    onPlayPauseClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onPlayPauseClick()
+                    },
+                    onDownloadClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onDownloadSurahClick(state.player.selectedSurahNumber)
+                    }
+                )
             }
 
             if (showBottomDock && !state.isReaderOpen) {
@@ -394,18 +393,24 @@ fun SakinaLuminousQuranScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
+        // المشغّل الصوتي الفاخر ذو الإطار الماسي: يظهر مباشرة عند لمس صفحة المصحف، أو عند توسيع المشغّل المصغّر في الفهرس
         AnimatedVisibility(
-            visible = isPlayerExpanded,
-            enter = fadeIn(tween(220)),
-            exit = fadeOut(tween(180))
+            visible = isPlayerExpanded || (state.isReaderOpen && readerBarsVisible),
+            enter = fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 2 },
+            exit = fadeOut(tween(180)) + slideOutVertically(tween(220)) { it / 2 },
+            modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             ExpandedLuxuryAudioOverlay(
                 player = state.player,
-                bottomReserve = if (!showBottomDock) hostBottomBarReserve else 0.dp,
+                bottomReserve = if (state.isReaderOpen) 4.dp else if (!showBottomDock) hostBottomBarReserve else 0.dp,
+                dimBackground = !state.isReaderOpen,
                 strings = strings,
                 headingFontFamily = headingFontFamily,
                 bodyFontFamily = bodyFontFamily,
-                onDismiss = { isPlayerExpanded = false },
+                onDismiss = {
+                    if (state.isReaderOpen) readerBarsVisible = false
+                    else isPlayerExpanded = false
+                },
                 onPlayPauseClick = onPlayPauseClick,
                 onDownloadClick = { onDownloadSurahClick(state.player.selectedSurahNumber) },
                 onSeekToSec = onSeekToSec,
@@ -438,15 +443,28 @@ private fun QuranIndexPortalContent(
     onDownloadSurahClick: (Int) -> Unit,
     onDeleteDownloadedSurah: (Int) -> Unit
 ) {
+    val velvetEmeraldBg = remember {
+        Brush.horizontalGradient(listOf(Color(0xFF06231D), Color(0xFF082E26), Color(0xFF051819)))
+    }
+    val velvetEmeraldDark = Color(0xE6051C19)
+    val filteredSurahs = remember(state.surahs, state.searchQuery) {
+        if (state.searchQuery.isBlank()) state.surahs
+        else state.surahs.filter {
+            it.arabicName.contains(state.searchQuery, ignoreCase = true) ||
+                it.localizedName.contains(state.searchQuery, ignoreCase = true) ||
+                it.number.toString() == state.searchQuery.trim()
+        }
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = strings.screenTitle,
             style = TextStyle(
                 brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
                 shadow = SakinaLuxuryPalette.GoldEngravedShadow,
-                fontSize = 26.sp,
+                fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = headingFontFamily,
                 textAlign = TextAlign.Center,
@@ -454,9 +472,9 @@ private fun QuranIndexPortalContent(
             ),
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(3.dp))
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 44.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 48.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -478,347 +496,318 @@ private fun QuranIndexPortalContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .background(SakinaOrbitalColors.GlassNavy)
-                .border(0.8.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.35f), RoundedCornerShape(22.dp))
-                .padding(3.dp)
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            contentPadding = PaddingValues(bottom = 6.dp)
         ) {
-            listOf(
-                QuranRiwayah.HAFS to strings.hafsLabel,
-                QuranRiwayah.WARSH to strings.warshLabel
-            ).forEach { (riwayah, label) ->
-                val selected = state.riwayah == riwayah
-                Box(
+            // 1. مبدّل الرواية (حفص / ورش) + شريط البحث باللون الزمردي المخملي الموحّد
+            item(key = "hdr_riwayah_search") {
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(19.dp))
-                        .background(if (selected) SakinaLuxuryColors.DeepEmerald.copy(alpha = 0.92f) else Color.Transparent)
-                        .clickable { onRiwayahChange(riwayah) }
-                        .padding(vertical = 7.dp),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(velvetEmeraldDark)
+                        .border(0.9.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.45f), RoundedCornerShape(20.dp))
+                        .padding(3.dp)
                 ) {
-                    Text(
-                        text = label,
-                        color = if (selected) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.85f),
-                        fontSize = 12.sp,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        fontFamily = bodyFontFamily
-                    )
+                    listOf(
+                        QuranRiwayah.HAFS to strings.hafsLabel,
+                        QuranRiwayah.WARSH to strings.warshLabel
+                    ).forEach { (riwayah, label) ->
+                        val selected = state.riwayah == riwayah
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(17.dp))
+                                .background(
+                                    if (selected) Brush.horizontalGradient(listOf(Color(0xFF0E4B3B), Color(0xFF14644F), Color(0xFF0E4B3B)))
+                                    else SolidColor(Color.Transparent)
+                                )
+                                .then(
+                                    if (selected) Modifier.border(0.8.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.65f), RoundedCornerShape(17.dp))
+                                    else Modifier
+                                )
+                                .clickable { onRiwayahChange(riwayah) }
+                                .padding(vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (selected) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.82f),
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                fontFamily = bodyFontFamily,
+                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
+                            )
+                        }
+                    }
                 }
-            }
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(SakinaOrbitalColors.GlassNavy.copy(alpha = 0.72f))
-                .border(0.8.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.30f), RoundedCornerShape(18.dp))
-                .padding(horizontal = 12.dp, vertical = 9.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Search,
-                contentDescription = null,
-                tint = SakinaOrbitalColors.ChampagneGold,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Box(modifier = Modifier.weight(1f)) {
-                if (state.searchQuery.isEmpty()) {
-                    Text(
-                        text = strings.searchPlaceholder,
-                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.45f),
-                        fontSize = 12.sp,
-                        fontFamily = bodyFontFamily
-                    )
-                }
-                BasicTextField(
-                    value = state.searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        color = SakinaOrbitalColors.WarmCream,
-                        fontSize = 12.5.sp,
-                        fontFamily = bodyFontFamily
-                    ),
-                    cursorBrush = SolidColor(SakinaOrbitalColors.ChampagneGold),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            if (state.searchQuery.isNotEmpty()) {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = null,
-                    tint = SakinaOrbitalColors.WarmCream.copy(alpha = 0.65f),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .size(16.dp)
-                        .clickable { onSearchQueryChange("") }
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .sakinaLuxuryGlassCard(
-                    cornerRadius = 18.dp,
-                    innerHairline = false,
-                    emeraldFlare = true,
-                    shimmer = true,
-                    borderAlpha = 0.72f
-                )
-                .clip(RoundedCornerShape(18.dp))
-                .clickable(onClick = onResumeClick)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = strings.lastReadFormat.format(
-                        state.lastReadSurahName,
-                        state.lastReadPage,
-                        state.totalPages
-                    ),
-                    color = SakinaOrbitalColors.WarmCream,
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = bodyFontFamily,
-                    style = TextStyle(fontFeatureSettings = "tnum"),
-                    modifier = Modifier.weight(1f)
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(velvetEmeraldDark)
+                        .border(0.85.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.40f), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 12.dp, vertical = 7.dp)
                 ) {
-                    Text(
-                        text = strings.resumeLabel,
-                        color = SakinaOrbitalColors.InkNavy,
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = bodyFontFamily
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        contentDescription = null,
+                        tint = SakinaLuxuryColors.SoftGoldGlow,
+                        modifier = Modifier.size(17.dp)
                     )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        QuranIndexKhatmahCard(
-            headingFontFamily = headingFontFamily,
-            bodyFontFamily = bodyFontFamily
-        )
-
-        if (state.quickSurahs.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 2.dp)
-            ) {
-                items(state.quickSurahs) { item ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(SakinaOrbitalColors.GlassNavy.copy(alpha = 0.7f))
-                            .border(0.8.dp, SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.38f), RoundedCornerShape(14.dp))
-                            .clickable { onSurahSelected(item) }
-                            .padding(horizontal = 14.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = item.arabicName,
-                            color = SakinaOrbitalColors.SoftGoldGlow,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = bodyFontFamily
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (state.searchQuery.isEmpty()) {
+                            Text(
+                                text = strings.searchPlaceholder,
+                                color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.50f),
+                                fontSize = 12.sp,
+                                fontFamily = bodyFontFamily
+                            )
+                        }
+                        BasicTextField(
+                            value = state.searchQuery,
+                            onValueChange = onSearchQueryChange,
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                color = SakinaOrbitalColors.WarmCream,
+                                fontSize = 12.5.sp,
+                                fontFamily = bodyFontFamily
+                            ),
+                            cursorBrush = SolidColor(SakinaLuxuryColors.SoftGoldGlow),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    if (state.searchQuery.isNotEmpty()) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = null,
+                            tint = SakinaOrbitalColors.WarmCream.copy(alpha = 0.70f),
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { onSearchQueryChange("") }
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(6.dp))
             }
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            listOf(
-                QuranIndexTab.SURAHS to strings.tabSurahs,
-                QuranIndexTab.JUZS to strings.tabJuzs,
-                QuranIndexTab.HIZBS to strings.tabHizbs
-            ).forEach { (tab, label) ->
-                val active = state.indexTab == tab
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+            // 2. بطاقة آخر قراءة + الختمة اليومية المضغوطة والأنيقة
+            item(key = "hdr_resume_khatmah") {
+                Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { onIndexTabChange(tab) }
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(velvetEmeraldBg)
+                        .border(0.95.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
+                        .clickable(onClick = onResumeClick)
                 ) {
-                    Text(
-                        text = label,
-                        color = if (active) SakinaOrbitalColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.65f),
-                        fontSize = 12.sp,
-                        fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-                        fontFamily = bodyFontFamily,
-                        style = TextStyle(fontFeatureSettings = "tnum")
-                    )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Box(
+                    Row(
                         modifier = Modifier
-                            .width(42.dp)
-                            .height(2.dp)
-                            .background(
-                                if (active) SakinaOrbitalColors.ChampagneGold else Color.Transparent,
-                                CircleShape
-                            )
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .sakinaLuxuryGlassCard(
-                    cornerRadius = 22.dp,
-                    innerHairline = false,
-                    emeraldFlare = true,
-                    shimmer = false,
-                    borderAlpha = 0.65f
-                )
-                .clip(RoundedCornerShape(22.dp))
-        ) {
-            val filteredSurahs = remember(state.surahs, state.searchQuery) {
-                if (state.searchQuery.isBlank()) state.surahs
-                else state.surahs.filter {
-                    it.arabicName.contains(state.searchQuery, ignoreCase = true) ||
-                        it.localizedName.contains(state.searchQuery, ignoreCase = true) ||
-                        it.number.toString() == state.searchQuery.trim()
-                }
-            }
-
-            when (state.indexTab) {
-                QuranIndexTab.SURAHS -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(vertical = 6.dp),
-                        modifier = Modifier.fillMaxSize()
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        itemsIndexed(filteredSurahs, key = { _, it -> it.number }) { idx, surah ->
-                            SurahIndexRow(
-                                surah = surah,
-                                strings = strings,
-                                headingFontFamily = headingFontFamily,
-                                bodyFontFamily = bodyFontFamily,
-                                onClick = { onSurahSelected(surah) },
-                                onDownloadClick = { onDownloadSurahClick(surah.number) },
-                                onLongPressDelete = { onDeleteDownloadedSurah(surah.number) }
+                        Text(
+                            text = strings.lastReadFormat.format(
+                                state.lastReadSurahName,
+                                state.lastReadPage,
+                                state.totalPages
+                            ),
+                            color = SakinaOrbitalColors.WarmCream,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = bodyFontFamily,
+                            style = TextStyle(fontFeatureSettings = "tnum"),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = strings.resumeLabel,
+                                color = SakinaOrbitalColors.InkNavy,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = bodyFontFamily,
+                                style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                             )
-                            if (idx < filteredSurahs.lastIndex) {
-                                HorizontalDivider(
-                                    color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.22f),
-                                    modifier = Modifier.padding(horizontal = 16.dp)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                QuranIndexKhatmahCard(
+                    headingFontFamily = headingFontFamily,
+                    bodyFontFamily = bodyFontFamily
+                )
+
+                if (state.quickSurahs.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp)
+                    ) {
+                        items(state.quickSurahs) { item ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(velvetEmeraldDark)
+                                    .border(0.85.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                                    .clickable { onSurahSelected(item) }
+                                    .padding(horizontal = 12.dp, vertical = 5.dp)
+                            ) {
+                                Text(
+                                    text = item.arabicName,
+                                    color = SakinaLuxuryColors.SoftGoldGlow,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontFamily = bodyFontFamily,
+                                    style = TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))
                                 )
                             }
                         }
                     }
                 }
-                QuranIndexTab.JUZS, QuranIndexTab.HIZBS -> {
-                    val itemsList = if (state.indexTab == QuranIndexTab.JUZS) state.juzs else state.hizbs
-                    LazyColumn(
-                        contentPadding = PaddingValues(vertical = 6.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        itemsIndexed(itemsList) { idx, item ->
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+
+            // 3. تبويبات الفهرس (السور / الأجزاء / الأحزاب)
+            item(key = "hdr_tabs") {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    listOf(
+                        QuranIndexTab.SURAHS to strings.tabSurahs,
+                        QuranIndexTab.JUZS to strings.tabJuzs,
+                        QuranIndexTab.HIZBS to strings.tabHizbs
+                    ).forEach { (tab, label) ->
+                        val active = state.indexTab == tab
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onIndexTabChange(tab) }
+                                .padding(horizontal = 10.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (active) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.68f),
+                                fontSize = 12.sp,
+                                fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
+                                fontFamily = bodyFontFamily,
+                                style = TextStyle(fontFeatureSettings = "tnum")
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Box(
                                 modifier = Modifier
+                                    .width(42.dp)
+                                    .height(2.dp)
+                                    .background(
+                                        if (active) SakinaLuxuryColors.ChampagneGold else Color.Transparent,
+                                        CircleShape
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 4. صفوف السور أو الأجزاء أو الأحزاب (حرة دون صندوق خارجي زائد)
+            when (state.indexTab) {
+                QuranIndexTab.SURAHS -> {
+                    itemsIndexed(filteredSurahs, key = { _, it -> "surah_${it.number}" }) { _, surah ->
+                        SurahIndexRow(
+                            surah = surah,
+                            strings = strings,
+                            headingFontFamily = headingFontFamily,
+                            bodyFontFamily = bodyFontFamily,
+                            onClick = { onSurahSelected(surah) },
+                            onDownloadClick = { onDownloadSurahClick(surah.number) },
+                            onLongPressDelete = { onDeleteDownloadedSurah(surah.number) }
+                        )
+                    }
+                }
+                QuranIndexTab.JUZS, QuranIndexTab.HIZBS -> {
+                    val itemsList = if (state.indexTab == QuranIndexTab.JUZS) state.juzs else state.hizbs
+                    itemsIndexed(itemsList, key = { idx, it -> "div_${state.indexTab.name}_${it.number}_$idx" }) { _, item ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 3.dp)
+                                .heightIn(min = 56.dp)
+                                .clickable { onDivisionSelected(item) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.bg_prayer_row_gold_3d),
+                                contentDescription = null,
+                                contentScale = ContentScale.FillBounds,
+                                modifier = Modifier.matchParentSize()
+                            )
+                            Row(
+                                modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 6.dp, vertical = 4.dp)
-                                    .heightIn(min = 58.dp)
-                                    .clickable { onDivisionSelected(item) },
-                                contentAlignment = Alignment.Center
+                                    .padding(horizontal = 24.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.bg_prayer_row_gold_3d),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.FillBounds,
-                                    modifier = Modifier.matchParentSize()
-                                )
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        OctagonalNumberBadge(number = item.number, bodyFontFamily = bodyFontFamily)
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column {
-                                            Text(
-                                                text = item.title,
-                                                color = SakinaLuxuryColors.SoftGoldGlow,
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                fontFamily = headingFontFamily
-                                            )
-                                            Text(
-                                                text = item.subtitle,
-                                                color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.76f),
-                                                fontSize = 11.sp,
-                                                fontFamily = bodyFontFamily
-                                            )
-                                        }
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(
-                                                Brush.verticalGradient(
-                                                    listOf(Color(0xFF0E4436), SakinaLuxuryColors.DeepEmerald, Color(0xFF07251D))
-                                                )
-                                            )
-                                            .border(1.1.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(12.dp))
-                                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
+                                    OctagonalNumberBadge(number = item.number, bodyFontFamily = bodyFontFamily)
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
                                         Text(
-                                            text = "✦ ص ${item.startPage}",
+                                            text = item.title,
                                             color = SakinaLuxuryColors.SoftGoldGlow,
-                                            fontSize = 10.sp,
+                                            fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
-                                            fontFamily = bodyFontFamily,
-                                            style = TextStyle(fontFeatureSettings = "tnum")
+                                            fontFamily = headingFontFamily
+                                        )
+                                        Text(
+                                            text = item.subtitle,
+                                            color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.78f),
+                                            fontSize = 11.sp,
+                                            fontFamily = bodyFontFamily
                                         )
                                     }
                                 }
-                            }
-                            if (idx < itemsList.lastIndex) {
-                                HorizontalDivider(
-                                    color = SakinaOrbitalColors.ChampagneGold.copy(alpha = 0.22f),
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(Color(0xFF0E4436), SakinaLuxuryColors.DeepEmerald, Color(0xFF07251D))
+                                            )
+                                        )
+                                        .border(1.dp, SakinaLuxuryPalette.MetallicGoldButtonBrush, RoundedCornerShape(12.dp))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "✦ ص ${item.startPage}",
+                                        color = SakinaLuxuryColors.SoftGoldGlow,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = SakinaNumeralFont,
+                                        style = TextStyle(fontFeatureSettings = "tnum")
+                                    )
+                                }
                             }
                         }
                     }
@@ -1008,16 +997,11 @@ private fun QuranIndexKhatmahCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .sakinaLuxuryGlassCard(
-                cornerRadius = 18.dp,
-                innerHairline = false,
-                emeraldFlare = true,
-                shimmer = celebrate,
-                borderAlpha = 0.78f
-            )
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(Brush.horizontalGradient(listOf(Color(0xFF06231D), Color(0xFF082E26), Color(0xFF051819))))
+            .border(0.95.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
             .clickable { showControls = !showControls }
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -1579,12 +1563,12 @@ private fun QuranMushafReaderContent(
             }
         }
 
-        // 3. الشريط السفلي العائم (شرح الحكم + التجويد/أصول ورش + أزرار تقليب الصفحات)
+        // 3. شريط تقليب الصفحات والتجويد العائم (يموضع بأناقة أعلى المشغّل الصوتي الماسي دون أي تداخل)
         Column(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .padding(start = 10.dp, end = 10.dp, top = 112.dp)
         ) {
             AnimatedVisibility(visible = activeRuleExplanation != null) {
                 activeRuleExplanation?.let { (title, desc) ->
@@ -1910,16 +1894,12 @@ private fun KineticWaveMiniPlayer(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(78.dp)
-            .clip(RoundedCornerShape(30.dp))
+            .height(58.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Brush.horizontalGradient(listOf(Color(0xFF06231D), Color(0xFF0A332A), Color(0xFF051819))))
+            .border(1.1.dp, SakinaLuxuryPalette.MetallicGoldTextBrush, RoundedCornerShape(22.dp))
             .clickable(onClick = onExpandClick)
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.bg_luxury_audio_player_capsule),
-            contentDescription = null,
-            contentScale = ContentScale.FillBounds,
-            modifier = Modifier.matchParentSize()
-        )
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
@@ -1938,7 +1918,7 @@ private fun KineticWaveMiniPlayer(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .clickable {
                             when (player.audioStatus) {
@@ -2052,6 +2032,7 @@ private fun KineticWaveMiniPlayer(
 private fun ExpandedLuxuryAudioOverlay(
     player: QuranAudioPlayerState,
     bottomReserve: Dp = 0.dp,
+    dimBackground: Boolean = true,
     strings: SakinaQuranStrings,
     headingFontFamily: FontFamily,
     bodyFontFamily: FontFamily,
@@ -2066,10 +2047,14 @@ private fun ExpandedLuxuryAudioOverlay(
     onReciterClick: () -> Unit
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.58f))
-            .clickable(onClick = onDismiss),
+        modifier = if (dimBackground) {
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.58f))
+                .clickable(onClick = onDismiss)
+        } else {
+            Modifier.fillMaxWidth()
+        },
         contentAlignment = Alignment.BottomCenter
     ) {
         Box(
