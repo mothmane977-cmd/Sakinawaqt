@@ -632,7 +632,7 @@ private fun QuranIndexPortalContent(
                 val packScope = rememberCoroutineScope()
                 var packRefreshTick by remember { mutableIntStateOf(0) }
                 var packsExpanded by remember { mutableStateOf(false) }
-                val activePack = SakinaMushafPack.forRiwayah(state.riwayah)
+                val activePack = MushafWebpPack.forRiwayah(state.riwayah)
                 val activeReady = remember(state.riwayah, packProg.extractedPages, packProg.isDownloading, packProg.isExtracting, packRefreshTick) {
                     SakinaMushafPackManager.isPackReady(portalCtx, activePack)
                 }
@@ -740,10 +740,10 @@ private fun QuranIndexPortalContent(
                         )
                     }
 
-                    if (packProg.errorMessage != null) {
+                    packProg.errorMessage?.takeIf { it.isNotBlank() }?.let { errMsg ->
                         Spacer(modifier = Modifier.height(5.dp))
                         Text(
-                            text = packProg.errorMessage ?: "",
+                            text = errMsg,
                             color = Color(0xFFFF9B85),
                             fontSize = 10.5.sp,
                             fontFamily = bodyFontFamily
@@ -752,7 +752,7 @@ private fun QuranIndexPortalContent(
 
                     if (packsExpanded) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        for (pk in SakinaMushafPack.entries) {
+                        for (pk in MushafWebpPack.values()) {
                             val pkReady = remember(pk, packProg.extractedPages, packProg.isDownloading, packRefreshTick) {
                                 SakinaMushafPackManager.isPackReady(portalCtx, pk)
                             }
@@ -795,7 +795,7 @@ private fun QuranIndexPortalContent(
                                                 .background(Color(0xFF0F4C3A))
                                                 .border(0.7.dp, SakinaLuxuryColors.SoftGoldGlow, RoundedCornerShape(9.dp))
                                                 .clickable {
-                                                    onRiwayahChange(if (pk == SakinaMushafPack.WARSH_1080) QuranRiwayah.WARSH else QuranRiwayah.HAFS)
+                                                    onRiwayahChange(if (pk == MushafWebpPack.WARSH_1080) QuranRiwayah.WARSH else QuranRiwayah.HAFS)
                                                     onOpenPageClick(state.lastReadPage.coerceIn(1, 604))
                                                 }
                                                 .padding(horizontal = 9.dp, vertical = 5.dp)
@@ -2735,8 +2735,8 @@ private fun QuranMushafReaderContent(
                             }
                         }
                     }
-                    if (packProgress.errorMessage != null) {
-                        Text(packProgress.errorMessage!!, color = Color(0xFFE58A7E), fontSize = 11.sp, fontFamily = bodyFontFamily)
+                    packProgress.errorMessage?.takeIf { it.isNotBlank() }?.let { errMsg ->
+                        Text(text = errMsg, color = Color(0xFFE58A7E), fontSize = 11.sp, fontFamily = bodyFontFamily)
                     }
                 }
             },
