@@ -61,9 +61,13 @@ import androidx.compose.ui.unit.sp
 fun SakinaTadabburTabContent(
     headingFontFamily: FontFamily,
     bodyFontFamily: FontFamily,
+    currentSurahNumber: Int = 1,
+    currentSurahName: String = "سورة الفاتحة",
+    currentPage: Int = 1,
+    currentPageAyahs: List<MushafAyahUi> = emptyList(),
     modifier: Modifier = Modifier
 ) {
-    var innerTab by remember { mutableIntStateOf(0) } // 0=تجويد ورش، 1=المتون، 2=الفوائد، 3=ملاحظاتي
+    var innerTab by remember { mutableIntStateOf(0) } // 0=التفسير والهدايات، 1=تجويد ورش، 2=المتون، 3=الفوائد، 4=ملاحظاتي
     val goldBorder = SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f)
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -76,7 +80,7 @@ fun SakinaTadabburTabContent(
                 .padding(3.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            listOf("تجويد ورش", "المتون الـ3", "الفوائد", "ملاحظاتي").forEachIndexed { idx, lbl ->
+            listOf("التفسير", "التجويد", "المتون", "الفوائد", "ملاحظاتي").forEachIndexed { idx, lbl ->
                 val sel = innerTab == idx
                 Box(
                     modifier = Modifier
@@ -102,9 +106,17 @@ fun SakinaTadabburTabContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         when (innerTab) {
-            0 -> WarshTajweedLessonsSection(headingFontFamily, bodyFontFamily)
-            1 -> ThreeMutunSection(headingFontFamily, bodyFontFamily)
-            2 -> FawaidSection(headingFontFamily, bodyFontFamily)
+            0 -> SakinaPageTafsirContent(
+                surahNumber = currentSurahNumber,
+                surahName = currentSurahName,
+                pageNumber = currentPage,
+                pageAyahs = currentPageAyahs,
+                headingFontFamily = headingFontFamily,
+                bodyFontFamily = bodyFontFamily
+            )
+            1 -> WarshTajweedLessonsSection(headingFontFamily, bodyFontFamily)
+            2 -> ThreeMutunSection(headingFontFamily, bodyFontFamily)
+            3 -> FawaidSection(headingFontFamily, bodyFontFamily)
             else -> PersonalNotesSection(headingFontFamily, bodyFontFamily)
         }
     }

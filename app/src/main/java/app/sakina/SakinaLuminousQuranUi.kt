@@ -345,6 +345,7 @@ fun SakinaLuminousQuranScreen(
                     onOpenPageClick = onOpenPageClick,
                     onReciterClick = onReciterClick,
                     onExpandPlayerClick = { isPlayerExpanded = true },
+                    pageAyahsProvider = pageAyahsProvider,
                     onStartHifzSession = { cfg ->
                         activeHifzSession = cfg
                         onOpenPageClick(cfg.startPage)
@@ -465,6 +466,7 @@ private fun QuranIndexPortalContent(
     onOpenPageClick: (Int) -> Unit,
     onReciterClick: () -> Unit,
     onExpandPlayerClick: () -> Unit,
+    pageAyahsProvider: (Int) -> List<MushafAyahUi>,
     onStartHifzSession: (HifzSessionConfig) -> Unit,
     onSurahSelected: (SurahAudioItem) -> Unit,
     onDivisionSelected: (QuranDivisionItem) -> Unit,
@@ -606,6 +608,10 @@ private fun QuranIndexPortalContent(
                 SakinaTadabburTabContent(
                     headingFontFamily = headingFontFamily,
                     bodyFontFamily = bodyFontFamily,
+                    currentSurahNumber = state.player.selectedSurahNumber,
+                    currentSurahName = state.lastReadSurahName,
+                    currentPage = state.lastReadPage,
+                    currentPageAyahs = pageAyahsProvider(state.lastReadPage),
                     modifier = Modifier.fillMaxWidth().weight(1f)
                 )
             }
@@ -867,12 +873,13 @@ private fun QuranIndexPortalContent(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
                                 .clickable { onIndexTabChange(tab) }
-                                .padding(horizontal = 10.dp, vertical = 3.dp)
+                                .padding(horizontal = 4.dp, vertical = 3.dp)
                         ) {
                             Text(
                                 text = label,
                                 color = if (active) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.68f),
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
+                                maxLines = 1,
                                 fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
                                 fontFamily = bodyFontFamily,
                                 style = TextStyle(fontFeatureSettings = "tnum")
@@ -1696,6 +1703,7 @@ private fun QuranMushafReaderContent(
     var showJumpPageDialog by remember { mutableStateOf(false) }
     var showLongPressDialog by remember { mutableStateOf(false) }
     var showMeaningsDialog by remember { mutableStateOf(false) }
+    var showPageTafsirDialog by remember { mutableStateOf(false) }
     var showSpotlight by remember { mutableStateOf(!SakinaMushafProPrefs.hasSeenSpotlight(readerCtx)) }
     val activeKhatmahName = remember(state.currentReaderPage) { SakinaKhatmahStore.loadSlot(readerCtx).name }
 
@@ -2119,6 +2127,12 @@ private fun QuranMushafReaderContent(
                         onClick = { hideAyahsForTest = !hideAyahsForTest }
                     )
                     ReaderTopChip(
+                        label = "تفسير",
+                        isActive = false,
+                        bodyFontFamily = bodyFontFamily,
+                        onClick = { showPageTafsirDialog = true }
+                    )
+                    ReaderTopChip(
                         label = "معاني",
                         isActive = false,
                         bodyFontFamily = bodyFontFamily,
@@ -2364,6 +2378,40 @@ private fun QuranMushafReaderContent(
         )
     }
 
+    if (showPageTafsirDialog) {
+        val activeSurahNum = remember(state.currentReaderPage, state.surahs) {
+            state.surahs.lastOrNull { it.startPage <= state.currentReaderPage }?.number ?: 1
+        }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showPageTafsirDialog = false },
+            containerColor = Color(0xFF061B18),
+            title = null,
+            text = {
+                Box(modifier = Modifier.fillMaxWidth().height(460.dp)) {
+                    SakinaPageTafsirContent(
+                        surahNumber = activeSurahNum,
+                        surahName = state.currentReaderSurah,
+                        pageNumber = state.currentReaderPage,
+                        pageAyahs = pageAyahsProvider(state.currentReaderPage),
+                        headingFontFamily = headingFontFamily,
+                        bodyFontFamily = bodyFontFamily,
+                        onPrevPage = {
+                            if (state.currentReaderPage > 1) scope.launch { pagerState.animateScrollToPage(state.currentReaderPage - 2) }
+                        },
+                        onNextPage = {
+                            if (state.currentReaderPage < state.totalPages) scope.launch { pagerState.animateScrollToPage(state.currentReaderPage) }
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { showPageTafsirDialog = false }) {
+                    Text("إغلاق", color = SakinaLuxuryColors.SoftGoldGlow, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
     if (showMeaningsDialog) {
         MushafPageMeaningsDialog(
             surahName = state.currentReaderSurah,
@@ -2589,25 +2637,29 @@ private fun KineticWaveMiniPlayer(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(74.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(Brush.horizontalGradient(listOf(Color(0xFF06231D), Color(0xFF0A332A), Color(0xFF051819))))
-            .border(1.1.dp, SakinaLuxuryPalette.MetallicGoldTextBrush, RoundedCornerShape(22.dp))
+            .height(86.dp)
             .clickable(onClick = onExpandClick)
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_quran_diamond_player_3d),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.matchParentSize()
+        )
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
+                    .padding(horizontal = 18.dp, vertical = 5.dp)
                     .fillMaxWidth(progressFraction)
-                    .height(2.5.dp)
+                    .height(2.2.dp)
                     .background(SakinaOrbitalColors.SoftGoldGlow)
             )
 
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -2664,15 +2716,19 @@ private fun KineticWaveMiniPlayer(
                 Spacer(modifier = Modifier.width(10.dp))
 
                 Column(
-                    modifier = Modifier.weight(1f).padding(vertical = 2.dp),
+                    modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = player.selectedSurahName,
-                        color = SakinaOrbitalColors.SoftGoldGlow,
-                        fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = bodyFontFamily,
+                        style = TextStyle(
+                            brush = SakinaLuxuryPalette.MetallicGoldTextBrush,
+                            shadow = SakinaLuxuryPalette.GoldEngravedShadow,
+                            fontSize = 13.5.sp,
+                            lineHeight = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = bodyFontFamily
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -2683,13 +2739,13 @@ private fun KineticWaveMiniPlayer(
                     }
                     Text(
                         text = subtitle,
-                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.90f),
+                        color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.92f),
                         fontSize = 11.sp,
-                        fontFamily = bodyFontFamily,
+                        lineHeight = 18.sp,
+                        fontFamily = FontFamily.SansSerif,
                         style = TextStyle(fontFeatureSettings = "tnum"),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(bottom = 2.dp)
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 

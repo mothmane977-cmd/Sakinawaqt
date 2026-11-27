@@ -199,10 +199,10 @@ data class SakinaOrbitalHomeState(
 // ============================================================================
 // 3. الشاشة الرئيسية: المدار الكوني التفاعلي (Orbital Living Horizon)
 // ============================================================================
-private fun alarmModeIconOnly(mode: PrayerAlarmMode): String = when (mode) {
-    PrayerAlarmMode.ADHAN -> "🔊"
-    PrayerAlarmMode.NOTIFICATION -> "📳"
-    PrayerAlarmMode.SILENT -> "🔇"
+private fun alarmModeDrawableRes(mode: PrayerAlarmMode): Int = when (mode) {
+    PrayerAlarmMode.ADHAN -> R.drawable.ic_3d_alarm_sound_gold
+    PrayerAlarmMode.NOTIFICATION -> R.drawable.ic_3d_alarm_vibrate_gold
+    PrayerAlarmMode.SILENT -> R.drawable.ic_3d_alarm_silent_gold
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -497,20 +497,18 @@ fun SakinaOrbitalHomeScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                                 ) {
-                                    Box(
+                                    Image(
+                                        painter = painterResource(id = alarmModeDrawableRes(activeNode.alarmMode)),
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Fit,
                                         modifier = Modifier
                                             .size(28.dp)
                                             .clip(CircleShape)
-                                            .background(Color(0x66041716))
-                                            .border(0.75.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), CircleShape)
                                             .clickable {
                                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 onCyclePrayerAlarmMode(activeNode.type)
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(text = alarmModeIconOnly(activeNode.alarmMode), fontSize = 13.sp)
-                                    }
+                                            }
+                                    )
                                     Text(
                                         text = activeNode.timeText,
                                         style = TextStyle(
@@ -624,21 +622,19 @@ fun SakinaOrbitalHomeScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(7.dp)
                                     ) {
-                                        Box(
+                                        Image(
+                                            painter = painterResource(id = alarmModeDrawableRes(node.alarmMode)),
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Fit,
                                             modifier = Modifier
                                                 .size(28.dp)
                                                 .clip(CircleShape)
-                                                .background(Color(0x66041716))
-                                                .border(0.75.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), CircleShape)
                                                 .clickable {
                                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                     lastInteractionTick++
                                                     onCyclePrayerAlarmMode(node.type)
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(text = alarmModeIconOnly(node.alarmMode), fontSize = 13.sp)
-                                        }
+                                                }
+                                        )
                                         Text(
                                             text = node.timeText,
                                             style = TextStyle(
