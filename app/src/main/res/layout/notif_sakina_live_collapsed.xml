@@ -12,8 +12,8 @@
     android:paddingBottom="8dp">
 
     <ImageView
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
         android:layout_marginEnd="8dp"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_3d_mosque"
@@ -39,7 +39,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textColor="#FFE0C288"
-                android:textSize="13.5sp"
+                android:textSize="11.5sp"
                 android:textStyle="bold" />
 
             <Chronometer
@@ -50,7 +50,7 @@
                 android:countDown="true"
                 android:maxLines="1"
                 android:textColor="#FF1EE3A8"
-                android:textSize="13.5sp"
+                android:textSize="11.5sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -62,6 +62,6 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="#CCFAF6EC"
-            android:textSize="10.5sp" />
+            android:textSize="9.8sp" />
     </LinearLayout>
 </LinearLayout>
