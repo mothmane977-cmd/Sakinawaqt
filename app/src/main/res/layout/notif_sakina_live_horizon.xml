@@ -70,10 +70,11 @@
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
-            <TextView
+            <Chronometer
                 android:id="@+id/tv_remaining_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:countDown="true"
                 android:textColor="#FF1EE3A8"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -128,7 +129,7 @@
                 android:layout_weight="1.15"
                 android:background="@drawable/bg_notif_gold_pill"
                 android:gravity="center"
-                android:text="تسبيحة 0/33"
+                android:text="🤲 الأذكار"
                 android:textColor="#FFF2DAA4"
                 android:textSize="12sp"
                 android:textStyle="bold" />

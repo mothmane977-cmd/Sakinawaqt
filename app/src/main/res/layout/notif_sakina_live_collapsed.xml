@@ -42,11 +42,12 @@
                 android:textSize="13.5sp"
                 android:textStyle="bold" />
 
-            <TextView
+            <Chronometer
                 android:id="@+id/tv_collapsed_countdown"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
+                android:countDown="true"
                 android:maxLines="1"
                 android:textColor="#FF1EE3A8"
                 android:textSize="13.5sp"
