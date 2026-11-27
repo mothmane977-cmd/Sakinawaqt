@@ -110,6 +110,11 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import android.content.pm.ActivityInfo
+import android.app.Activity
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.gestures.detectTransformGestures
 import kotlin.math.roundToInt
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
@@ -458,17 +463,24 @@ private fun QuranIndexPortalContent(
     onDeleteDownloadedSurah: (Int) -> Unit
 ) {
     var activeSubSection by remember { mutableStateOf(QuranSubSection.MUSHAF) }
+    val portalCtx = LocalContext.current
+    var pinTick by remember { mutableIntStateOf(0) }
+    val pinnedSet = remember(pinTick) { SakinaMushafProPrefs.pinnedSurahs(portalCtx) }
+    val searchHist = remember(pinTick, state.searchQuery) { SakinaMushafProPrefs.searchHistory(portalCtx) }
+    val bookmarks10 = remember(pinTick) { SakinaMushafProPrefs.loadBookmarks10(portalCtx) }
+    val bookmarkedPages = remember(bookmarks10) { bookmarks10.map { it.page }.toSet() }
     val velvetEmeraldBg = remember {
         Brush.horizontalGradient(listOf(Color(0xFF06231D), Color(0xFF082E26), Color(0xFF051819)))
     }
     val velvetEmeraldDark = Color(0xE6051C19)
-    val filteredSurahs = remember(state.surahs, state.searchQuery) {
-        if (state.searchQuery.isBlank()) state.surahs
+    val filteredSurahs = remember(state.surahs, state.searchQuery, pinnedSet) {
+        val base = if (state.searchQuery.isBlank()) state.surahs
         else state.surahs.filter {
             it.arabicName.contains(state.searchQuery, ignoreCase = true) ||
                 it.localizedName.contains(state.searchQuery, ignoreCase = true) ||
                 it.number.toString() == state.searchQuery.trim()
         }
+        base.sortedByDescending { it.number in pinnedSet }
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -685,6 +697,64 @@ private fun QuranIndexPortalContent(
                         )
                     }
                 }
+                // البحث الموحّد: قفز فوري لرقم الصفحة (1-604) أو عرض سجل آخر عمليات البحث
+                val queryPageNum = state.searchQuery.trim().toIntOrNull()?.takeIf { it in 1..604 }
+                if (queryPageNum != null) {
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF0E4B3B))
+                            .border(0.85.dp, SakinaLuxuryColors.SoftGoldGlow, RoundedCornerShape(12.dp))
+                            .clickable {
+                                SakinaMushafProPrefs.addSearchHistory(portalCtx, "صفحة $queryPageNum")
+                                pinTick++
+                                onOpenPageClick(queryPageNum)
+                            }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "✦ انتقال مباشر إلى صفحة $queryPageNum (الجزء ${SakinaMushafProPrefs.approxJuzForPage(queryPageNum)} · الحزب ${SakinaMushafProPrefs.approxHizbForPage(queryPageNum)})",
+                            color = SakinaLuxuryColors.SoftGoldGlow,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = bodyFontFamily
+                        )
+                    }
+                } else if (state.searchQuery.isBlank() && searchHist.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(5.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        items(searchHist) { h ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF051C19))
+                                    .border(0.7.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        val pOnly = h.replace("صفحة ", "").trim().toIntOrNull()
+                                        if (pOnly != null && pOnly in 1..604) onOpenPageClick(pOnly)
+                                        else onSearchQueryChange(h)
+                                    }
+                                    .padding(horizontal = 9.dp, vertical = 3.dp)
+                            ) {
+                                Text(h, color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.8f), fontSize = 10.5.sp, fontFamily = bodyFontFamily)
+                            }
+                        }
+                        item {
+                            Text(
+                                text = "مسح السجل",
+                                color = Color(0xFFE58A7E),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clickable { SakinaMushafProPrefs.clearSearchHistory(portalCtx); pinTick++ }.padding(horizontal = 4.dp)
+                            )
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(6.dp))
             }
 
@@ -777,7 +847,8 @@ private fun QuranIndexPortalContent(
                     listOf(
                         QuranIndexTab.SURAHS to strings.tabSurahs,
                         QuranIndexTab.JUZS to strings.tabJuzs,
-                        QuranIndexTab.HIZBS to strings.tabHizbs
+                        QuranIndexTab.HIZBS to strings.tabHizbs,
+                        QuranIndexTab.PAGES to "الصفحات"
                     ).forEach { (tab, label) ->
                         val active = state.indexTab == tab
                         Column(
@@ -819,7 +890,16 @@ private fun QuranIndexPortalContent(
                             strings = strings,
                             headingFontFamily = headingFontFamily,
                             bodyFontFamily = bodyFontFamily,
-                            onClick = { onSurahSelected(surah) },
+                            isPinned = surah.number in pinnedSet,
+                            hasBookmark = surah.startPage in bookmarkedPages,
+                            onTogglePin = {
+                                SakinaMushafProPrefs.togglePinnedSurah(portalCtx, surah.number)
+                                pinTick++
+                            },
+                            onClick = {
+                                if (state.searchQuery.isNotBlank()) SakinaMushafProPrefs.addSearchHistory(portalCtx, surah.arabicName)
+                                onSurahSelected(surah)
+                            },
                             onDownloadClick = { onDownloadSurahClick(surah.number) },
                             onLongPressDelete = { onDeleteDownloadedSurah(surah.number) }
                         )
@@ -893,6 +973,55 @@ private fun QuranIndexPortalContent(
                                     )
                                 }
                             }
+                        }
+                        if (state.indexTab == QuranIndexTab.HIZBS) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                listOf("بداية الحزب" to 0, "ربع" to 2, "نصف" to 5, "3 أرباع" to 7).forEach { (qLbl, offset) ->
+                                    val qPage = (item.startPage + offset).coerceIn(1, 604)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xCC051C19))
+                                            .border(0.6.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                            .clickable { onOpenPageClick(qPage) }
+                                            .padding(vertical = 3.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("$qLbl · $qPage", color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.85f), fontSize = 9.sp, fontFamily = bodyFontFamily, maxLines = 1)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                QuranIndexTab.PAGES -> {
+                    val pageRows = (1..604).chunked(4)
+                    itemsIndexed(pageRows, key = { idx, _ -> "pg_row_$idx" }) { _, rowPages ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            rowPages.forEach { p ->
+                                val sName = state.surahs.lastOrNull { it.startPage <= p }?.arabicName ?: ""
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(velvetEmeraldBg)
+                                        .border(0.75.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                                        .clickable { onOpenPageClick(p) }
+                                        .padding(vertical = 7.dp, horizontal = 3.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text("ص $p", color = SakinaLuxuryColors.SoftGoldGlow, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = SakinaNumeralFont)
+                                    Text(sName, color = SakinaOrbitalColors.WarmCream.copy(alpha = 0.72f), fontSize = 9.5.sp, fontFamily = bodyFontFamily, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                            repeat(4 - rowPages.size) { Spacer(modifier = Modifier.weight(1f)) }
                         }
                     }
                 }
@@ -1115,6 +1244,9 @@ private fun SurahIndexRow(
     strings: SakinaQuranStrings,
     headingFontFamily: FontFamily,
     bodyFontFamily: FontFamily,
+    isPinned: Boolean = false,
+    hasBookmark: Boolean = false,
+    onTogglePin: (() -> Unit)? = null,
     onClick: () -> Unit,
     onDownloadClick: () -> Unit,
     onLongPressDelete: () -> Unit
@@ -1153,9 +1285,17 @@ private fun SurahIndexRow(
                 modifier = Modifier.weight(1.1f)
             ) {
                 OctagonalNumberBadge(number = surah.number, bodyFontFamily = bodyFontFamily)
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                if (onTogglePin != null) {
+                    Text(
+                        text = if (isPinned) "📌" else "☆",
+                        color = if (isPinned) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.45f),
+                        fontSize = 12.sp,
+                        modifier = Modifier.clickable { onTogglePin() }.padding(end = 4.dp)
+                    )
+                }
                 Text(
-                    text = surah.arabicName,
+                    text = if (hasBookmark) "${surah.arabicName} 🔖" else surah.arabicName,
                     color = SakinaLuxuryColors.SoftGoldGlow,
                     fontSize = 15.5.sp,
                     fontWeight = FontWeight.Bold,
@@ -1533,9 +1673,49 @@ private fun QuranMushafReaderContent(
     onPageChanged: (Int) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val readerCtx = LocalContext.current
+    val readerView = LocalView.current
     val localBarsVisible = barsVisible
+    var displaySettings by remember { mutableStateOf(SakinaMushafProPrefs.loadDisplay(readerCtx)) }
+    var hideAyahsForTest by remember { mutableStateOf(false) }
+    var showDisplayDialog by remember { mutableStateOf(false) }
+    var showBookmarks10Dialog by remember { mutableStateOf(false) }
+    var showJumpPageDialog by remember { mutableStateOf(false) }
+    var showLongPressDialog by remember { mutableStateOf(false) }
+    var showSpotlight by remember { mutableStateOf(!SakinaMushafProPrefs.hasSeenSpotlight(readerCtx)) }
+    val activeKhatmahName = remember(state.currentReaderPage) { SakinaKhatmahStore.loadSlot(readerCtx).name }
+
+    // تطبيق السطوع المستقل وإبقاء الشاشة مضاءة واتجاه الشاشة أثناء القراءة فقط
+    DisposableEffect(displaySettings.keepScreenAwake, displaySettings.brightness, displaySettings.orientationMode) {
+        readerView.keepScreenOn = displaySettings.keepScreenAwake
+        val act = readerCtx as? Activity
+        val origBrightness = act?.window?.attributes?.screenBrightness ?: -1f
+        val origOrient = act?.requestedOrientation ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        if (act != null) {
+            val lp = act.window.attributes
+            lp.screenBrightness = if (displaySettings.brightness < 0f) -1f else displaySettings.brightness.coerceIn(0.12f, 1.0f)
+            act.window.attributes = lp
+            act.requestedOrientation = when (displaySettings.orientationMode) {
+                1 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                2 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                else -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            }
+        }
+        onDispose {
+            readerView.keepScreenOn = false
+            if (act != null) {
+                val lp = act.window.attributes
+                lp.screenBrightness = origBrightness
+                act.window.attributes = lp
+                act.requestedOrientation = origOrient
+            }
+        }
+    }
+
     val isParchment = state.readerTheme == QuranReaderTheme.WARM_PARCHMENT
-    val pageBg = if (isParchment) SakinaOrbitalColors.WarmCream else Color(0xFF0A1F1A)
+    val chosenPaperColor = SakinaMushafProPrefs.PAPER_COLORS.getOrElse(displaySettings.paperColorIdx) { SakinaMushafProPrefs.PAPER_COLORS.first() }.second
+    val chosenFrameColor = SakinaMushafProPrefs.FRAME_THEMES.getOrElse(displaySettings.frameThemeIdx) { SakinaMushafProPrefs.FRAME_THEMES.first() }.second
+    val pageBg = if (isParchment) chosenPaperColor else Color(0xFF0A1F1A)
     val pageTextColor = if (isParchment) SakinaOrbitalColors.InkNavy else SakinaOrbitalColors.WarmCream
 
     var activeRuleExplanation by remember(state.riwayah, state.currentReaderPage) {
@@ -1605,12 +1785,24 @@ private fun QuranMushafReaderContent(
                 )
         ) {
             if (isParchment) {
-                Image(
-                    painter = painterResource(id = R.drawable.bg_mushaf_fullscreen_frame),
-                    contentDescription = null,
-                    contentScale = ContentScale.FillBounds,
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (displaySettings.paperColorIdx == 0 && displaySettings.frameThemeIdx == 0) {
+                    Image(
+                        painter = painterResource(id = R.drawable.bg_mushaf_fullscreen_frame),
+                        contentDescription = null,
+                        contentScale = ContentScale.FillBounds,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(chosenPaperColor)
+                            .padding(8.dp)
+                            .border(1.4.dp, chosenFrameColor, RoundedCornerShape(12.dp))
+                            .padding(3.dp)
+                            .border(0.7.dp, chosenFrameColor.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                    )
+                }
             }
 
             // تقليب الصفحات بالسحب الأفقي الحقيقي (HorizontalPager) مع هوامش آمنة تحفظ الآيات داخل الخيط الذهبي
@@ -1619,19 +1811,49 @@ private fun QuranMushafReaderContent(
                 modifier = Modifier.fillMaxSize()
             ) { pageIndex ->
                 val ayahsForThisPage = pageAyahsProvider(pageIndex + 1)
+                val pageScroll = rememberScrollState()
+                LaunchedEffect(displaySettings.autoScrollSpeed, pagerState.currentPage) {
+                    if (displaySettings.autoScrollSpeed > 0 && pagerState.currentPage == pageIndex) {
+                        val stepMs = when (displaySettings.autoScrollSpeed) {
+                            1 -> 65L
+                            2 -> 38L
+                            else -> 20L
+                        }
+                        while (true) {
+                            delay(stepMs)
+                            if (pageScroll.value < pageScroll.maxValue) {
+                                pageScroll.scrollTo(pageScroll.value + 1)
+                            } else {
+                                break
+                            }
+                        }
+                    }
+                }
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .clickable(
+                        .pointerInput(Unit) {
+                            detectTransformGestures { _, _, zoom, _ ->
+                                if (zoom != 1f) {
+                                    val nextScale = (displaySettings.fontScale * zoom).coerceIn(0.75f, 1.75f)
+                                    val updated = displaySettings.copy(fontScale = nextScale)
+                                    displaySettings = updated
+                                    SakinaMushafProPrefs.saveDisplay(readerCtx, updated)
+                                }
+                            }
+                        }
+                        .verticalScroll(pageScroll)
+                        .combinedClickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { onToggleBars() }
+                            indication = null,
+                            onClick = { onToggleBars() },
+                            onLongClick = { showLongPressDialog = true }
+                        )
                         .padding(
                             start = 26.dp,
                             end = 26.dp,
                             top = 30.dp,
-                            bottom = 42.dp
+                            bottom = 44.dp
                         )
                 ) {
                     val combinedAyahs = buildAnnotatedString {
@@ -1666,20 +1888,30 @@ private fun QuranMushafReaderContent(
                     Text(
                         text = combinedAyahs,
                         color = pageTextColor,
-                        fontSize = autoFontSp,
-                        lineHeight = autoLineSp,
+                        fontSize = (autoFontSp.value * displaySettings.fontScale).sp,
+                        lineHeight = (autoLineSp.value * displaySettings.fontScale * displaySettings.lineSpacingScale).sp,
                         fontFamily = quranFontFamily,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.alpha(if (hideAyahsForTest) 0.06f else 1f)
                     )
                 }
             }
 
-            // رقم الصفحة الهادئ أسفل إطار المصحف (دائم الظهور بوقار في وضع ملء الشاشة)
+            // طبقة درجة الاصفرار لحماية العين (Eye-Care Warmth Filter)
+            if (displaySettings.warmthYellow > 0.01f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFFFFB74D).copy(alpha = displaySettings.warmthYellow))
+                )
+            }
+
+            // رقم الصفحة الهادئ + اسم الختمة النشطة أسفل إطار المصحف
             if (!localBarsVisible) {
                 Text(
-                    text = "${state.currentReaderPage}",
+                    text = "${state.currentReaderPage}  ·  $activeKhatmahName",
                     color = if (isParchment) Color(0xFF8C6B2F) else SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.85f),
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = SakinaNumeralFont,
                     style = TextStyle(
@@ -1688,7 +1920,7 @@ private fun QuranMushafReaderContent(
                     ),
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 14.dp)
+                        .padding(bottom = 13.dp)
                 )
             }
         }
@@ -1790,7 +2022,7 @@ private fun QuranMushafReaderContent(
                                         Modifier.border(1.8.dp, SakinaLuxuryColors.EmeraldGlow, CircleShape)
                                     } else Modifier
                                 )
-                                .clickable(onClick = onToggleBookmark),
+                                .clickable { onToggleBookmark(); showBookmarks10Dialog = true },
                             contentAlignment = Alignment.Center
                         ) {
                             Image(
@@ -1826,10 +2058,10 @@ private fun QuranMushafReaderContent(
 
                 Spacer(modifier = Modifier.height(7.dp))
 
-                // شريحتا الرواية والتجويد/أصول ورش بالزمردي والذهبي أسفل الترويسة
+                // شرائح التحكم السريع: الرواية · التجويد/ورش · زر العين للتسميع · إعدادات العرض
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     ReaderTopChip(
                         label = if (state.riwayah == QuranRiwayah.HAFS) strings.hafsShort else strings.warshShort,
@@ -1849,6 +2081,18 @@ private fun QuranMushafReaderContent(
                             if (state.riwayah == QuranRiwayah.HAFS) onToggleTajweed()
                             else activeRuleExplanation = WarshUsulRule.BADAL.arabicTitle to WarshUsulRule.BADAL.explanation
                         }
+                    )
+                    ReaderTopChip(
+                        label = if (hideAyahsForTest) "👁 إظهار" else "👁 تسميع",
+                        isActive = hideAyahsForTest,
+                        bodyFontFamily = bodyFontFamily,
+                        onClick = { hideAyahsForTest = !hideAyahsForTest }
+                    )
+                    ReaderTopChip(
+                        label = "⚙ العرض",
+                        isActive = false,
+                        bodyFontFamily = bodyFontFamily,
+                        onClick = { showDisplayDialog = true }
                     )
                 }
             }
@@ -1934,54 +2178,155 @@ private fun QuranMushafReaderContent(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "< ${strings.prevPageLabel}",
-                            color = if (state.currentReaderPage > 1) SakinaLuxuryColors.SoftGoldGlow else Color.Gray,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = bodyFontFamily,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable(enabled = state.currentReaderPage > 1) {
-                                    scope.launch {
-                                        pagerState.animateScrollToPage((state.currentReaderPage - 2).coerceAtLeast(0))
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "«5",
+                                color = if (state.currentReaderPage > 5) SakinaLuxuryColors.EmeraldGlow else Color.Gray,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SakinaNumeralFont,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable(enabled = state.currentReaderPage > 1) {
+                                        scope.launch { pagerState.animateScrollToPage((state.currentReaderPage - 6).coerceAtLeast(0)) }
                                     }
-                                }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+                                    .padding(horizontal = 5.dp, vertical = 4.dp)
+                            )
+                            Text(
+                                text = "< ${strings.prevPageLabel}",
+                                color = if (state.currentReaderPage > 1) SakinaLuxuryColors.SoftGoldGlow else Color.Gray,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                fontFamily = bodyFontFamily,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable(enabled = state.currentReaderPage > 1) {
+                                        scope.launch { pagerState.animateScrollToPage((state.currentReaderPage - 2).coerceAtLeast(0)) }
+                                    }
+                                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                            )
+                        }
 
                         Text(
-                            text = strings.pageCounterFormat.format(state.currentReaderPage, state.totalPages),
-                            color = SakinaOrbitalColors.WarmCream,
-                            fontSize = 12.5.sp,
+                            text = "${strings.pageCounterFormat.format(state.currentReaderPage, state.totalPages)} ▾",
+                            color = SakinaLuxuryColors.SoftGoldGlow,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = SakinaNumeralFont,
-                            style = TextStyle(fontFeatureSettings = "tnum")
-                        )
-
-                        Text(
-                            text = "${strings.nextPageLabel} >",
-                            color = if (state.currentReaderPage < state.totalPages) SakinaLuxuryColors.SoftGoldGlow else Color.Gray,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = bodyFontFamily,
+                            style = TextStyle(fontFeatureSettings = "tnum"),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .clickable(enabled = state.currentReaderPage < state.totalPages) {
-                                    scope.launch {
-                                        pagerState.animateScrollToPage((state.currentReaderPage).coerceAtMost(state.totalPages - 1))
-                                    }
-                                }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .background(Color(0xFF0A2E26))
+                                .clickable { showJumpPageDialog = true }
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "${strings.nextPageLabel} >",
+                                color = if (state.currentReaderPage < state.totalPages) SakinaLuxuryColors.SoftGoldGlow else Color.Gray,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                fontFamily = bodyFontFamily,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable(enabled = state.currentReaderPage < state.totalPages) {
+                                        scope.launch { pagerState.animateScrollToPage((state.currentReaderPage).coerceAtMost(state.totalPages - 1)) }
+                                    }
+                                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                            )
+                            Text(
+                                text = "5»",
+                                color = if (state.currentReaderPage < state.totalPages) SakinaLuxuryColors.EmeraldGlow else Color.Gray,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = SakinaNumeralFont,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable(enabled = state.currentReaderPage < state.totalPages) {
+                                        scope.launch { pagerState.animateScrollToPage((state.currentReaderPage + 4).coerceAtMost(state.totalPages - 1)) }
+                                    }
+                                    .padding(horizontal = 5.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
             }
         }
+
+        // جولة التركيز البؤري الإرشادية عند أول فتح للمصحف
+        if (showSpotlight) {
+            MushafSpotlightOverlay(
+                headingFontFamily = headingFontFamily,
+                bodyFontFamily = bodyFontFamily,
+                onFinish = {
+                    SakinaMushafProPrefs.markSpotlightSeen(readerCtx, true)
+                    showSpotlight = false
+                }
+            )
+        }
+    }
+
+    if (showDisplayDialog) {
+        MushafDisplaySettingsDialog(
+            settings = displaySettings,
+            headingFontFamily = headingFontFamily,
+            bodyFontFamily = bodyFontFamily,
+            onUpdate = { updated ->
+                displaySettings = updated
+                SakinaMushafProPrefs.saveDisplay(readerCtx, updated)
+            },
+            onReplaySpotlight = {
+                SakinaMushafProPrefs.markSpotlightSeen(readerCtx, false)
+                showSpotlight = true
+            },
+            onDismiss = { showDisplayDialog = false }
+        )
+    }
+
+    if (showBookmarks10Dialog) {
+        MushafBookmarks10Dialog(
+            currentPage = state.currentReaderPage,
+            currentSurahName = state.currentReaderSurah,
+            headingFontFamily = headingFontFamily,
+            bodyFontFamily = bodyFontFamily,
+            onJumpToPage = { target ->
+                scope.launch { pagerState.animateScrollToPage((target - 1).coerceIn(0, (state.totalPages - 1).coerceAtLeast(0))) }
+            },
+            onDismiss = { showBookmarks10Dialog = false }
+        )
+    }
+
+    if (showJumpPageDialog) {
+        MushafJumpToPageDialog(
+            currentPage = state.currentReaderPage,
+            surahNameForPage = { p -> state.surahs.lastOrNull { it.startPage <= p }?.arabicName ?: state.currentReaderSurah },
+            headingFontFamily = headingFontFamily,
+            bodyFontFamily = bodyFontFamily,
+            onJump = { target ->
+                scope.launch { pagerState.animateScrollToPage((target - 1).coerceIn(0, (state.totalPages - 1).coerceAtLeast(0))) }
+            },
+            onDismiss = { showJumpPageDialog = false }
+        )
+    }
+
+    if (showLongPressDialog) {
+        val currentPageText = remember(state.currentReaderPage) {
+            pageAyahsProvider(state.currentReaderPage).joinToString(" ") { "${it.styledText.text} ﴿${it.ayahNumber}﴾" }
+        }
+        MushafVerseLongPressDialog(
+            surahName = state.currentReaderSurah,
+            page = state.currentReaderPage,
+            verseText = currentPageText,
+            headingFontFamily = headingFontFamily,
+            bodyFontFamily = bodyFontFamily,
+            onSaveToBookmarks = { showBookmarks10Dialog = true },
+            onDismiss = { showLongPressDialog = false }
+        )
     }
 }
 
