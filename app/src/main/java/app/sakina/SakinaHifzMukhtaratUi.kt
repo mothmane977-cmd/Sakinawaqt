@@ -452,7 +452,6 @@ private fun HifzTripleRepeatSection(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("اختبار تسميع تلقائي بعد الجلسة", color = SakinaOrbitalColors.WarmCream, fontSize = 12.sp, fontFamily = bodyFontFamily)
                     SakinaJewelSwitch(checked = cfg.postSessionTest, onCheckedChange = { cfg = cfg.copy(postSessionTest = it) })
-                    )
                 }
 
                 Text(

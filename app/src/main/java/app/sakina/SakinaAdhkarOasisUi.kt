@@ -55,6 +55,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -170,6 +171,7 @@ fun SakinaAdhkarOasisScreen(
     val haptic = LocalHapticFeedback.current
     var showNawawi40 by remember { mutableStateOf(false) }
     var showRuqyahPro by remember { mutableStateOf(false) }
+    var activeAdhkarSub by remember { mutableStateOf(AdhkarSubSection.NOW) }
     val isCategoryOpen = state.activeCategoryTitle != null
 
     Box(
@@ -223,12 +225,70 @@ fun SakinaAdhkarOasisScreen(
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            if (!isCategoryOpen) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xE6051C19))
+                        .border(0.95.dp, SakinaLuxuryColors.ChampagneGold.copy(alpha = 0.55f), RoundedCornerShape(18.dp))
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    AdhkarSubSection.values().forEach { sub ->
+                        val sel = activeAdhkarSub == sub
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(15.dp))
+                                .background(
+                                    if (sel) Brush.horizontalGradient(listOf(Color(0xFF0E4B3B), Color(0xFF156953), Color(0xFF0E4B3B)))
+                                    else SolidColor(Color.Transparent)
+                                )
+                                .then(
+                                    if (sel) Modifier.border(0.8.dp, SakinaLuxuryColors.SoftGoldGlow.copy(alpha = 0.75f), RoundedCornerShape(15.dp))
+                                    else Modifier
+                                )
+                                .clickable { activeAdhkarSub = sub }
+                                .padding(vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = sub.labelAr,
+                                color = if (sel) SakinaLuxuryColors.SoftGoldGlow else SakinaOrbitalColors.WarmCream.copy(alpha = 0.78f),
+                                fontSize = 11.sp,
+                                fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                                fontFamily = bodyFontFamily,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             AnimatedContent(
                 targetState = isCategoryOpen,
                 modifier = Modifier.weight(1f),
                 label = "oasisView"
             ) { inCategory ->
                 if (!inCategory) {
+                    when (activeAdhkarSub) {
+                        AdhkarSubSection.NOW -> {
+                            SakinaAdhkarNowTabContent(
+                                headingFontFamily = headingFontFamily,
+                                bodyFontFamily = bodyFontFamily,
+                                onOpenFullNawawi = { showNawawi40 = true },
+                                onOpenFullRuqyah = { showRuqyahPro = true }
+                            )
+                        }
+                        AdhkarSubSection.MY_DUAS -> {
+                            PersonalDuasQuickTab(
+                                headingFontFamily = headingFontFamily,
+                                bodyFontFamily = bodyFontFamily
+                            )
+                        }
+                        AdhkarSubSection.HISN, AdhkarSubSection.TASBIH -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -317,6 +377,8 @@ fun SakinaAdhkarOasisScreen(
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
+                    }
+                        }
                     }
                 } else {
                     DhikrCategoryReaderContent(

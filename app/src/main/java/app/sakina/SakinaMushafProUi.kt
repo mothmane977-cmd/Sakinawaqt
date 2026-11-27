@@ -190,7 +190,6 @@ fun MushafDisplaySettingsDialog(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("التصفح الرأسي المستمر", color = SakinaOrbitalColors.WarmCream, fontSize = 12.5.sp, fontFamily = bodyFontFamily)
                     SakinaJewelSwitch(checked = settings.isVerticalScroll, onCheckedChange = { onUpdate(settings.copy(isVerticalScroll = it)) })
-                    )
                 }
 
                 // التصفح التلقائي
@@ -237,7 +236,6 @@ fun MushafDisplaySettingsDialog(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("إبقاء الشاشة مضاءة أثناء التلاوة", color = SakinaOrbitalColors.WarmCream, fontSize = 12.5.sp, fontFamily = bodyFontFamily)
                     SakinaJewelSwitch(checked = settings.keepScreenAwake, onCheckedChange = { onUpdate(settings.copy(keepScreenAwake = it)) })
-                    )
                 }
 
                 Text(
