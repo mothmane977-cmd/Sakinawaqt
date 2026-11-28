@@ -79,8 +79,12 @@ fun SakinaAdhkarScreen(
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
-    val tts = remember { SakinaDhikrTtsEngine(ctx) }
     var playingKey by remember { mutableStateOf<String?>(null) }
+    val tts = remember {
+        SakinaDhikrTtsEngine(ctx = ctx, onStateChanged = { id ->
+            if (id == null) playingKey = null
+        })
+    }
 
     DisposableEffect(Unit) {
         onDispose {
