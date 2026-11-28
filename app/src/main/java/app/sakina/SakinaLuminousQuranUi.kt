@@ -3500,7 +3500,7 @@ object SakinaPrintedMushafEngine {
 
     fun downloadedPageCount(ctx: Context, pack: PrintedMushafPack): Int {
         val dir = packFolder(ctx, pack)
-        return dir.listFiles { f -> f.isFile && f.name.endsWith(".webp", ignoreCase = true) }?.size ?: 0
+        return dir.listFiles()?.count { f: File -> f.isFile && f.name.endsWith(".webp", ignoreCase = true) } ?: 0
     }
 
     fun isPackReady(ctx: Context, pack: PrintedMushafPack): Boolean =
@@ -3522,7 +3522,7 @@ object SakinaPrintedMushafEngine {
 
     fun deletePack(ctx: Context, pack: PrintedMushafPack) {
         try {
-            packFolder(ctx, pack).listFiles()?.forEach { it.delete() }
+            packFolder(ctx, pack).listFiles()?.forEach { f: File -> f.delete() }
         } catch (_: Exception) {}
     }
 
@@ -3547,8 +3547,8 @@ object SakinaPrintedMushafEngine {
                 val totalBytes = conn.contentLengthLong.coerceAtLeast(1L)
                 var readBytes = 0L
                 val buf = ByteArray(16 * 1024)
-                BufferedInputStream(conn.inputStream).use { input ->
-                    FileOutputStream(tmpZip).use { out ->
+                BufferedInputStream(conn.inputStream).use { input: BufferedInputStream ->
+                    FileOutputStream(tmpZip).use { out: FileOutputStream ->
                         while (true) {
                             val n = input.read(buf)
                             if (n <= 0) break
@@ -3563,13 +3563,13 @@ object SakinaPrintedMushafEngine {
                 _state.value = PrintedMushafProgress(activePack = pack, isExtracting = true, extractedPages = 0)
                 val destDir = packFolder(ctx, pack)
                 var count = 0
-                ZipInputStream(BufferedInputStream(tmpZip.inputStream())).use { zis ->
+                ZipInputStream(BufferedInputStream(tmpZip.inputStream())).use { zis: ZipInputStream ->
                     var entry = zis.nextEntry
                     while (entry != null) {
                         if (!entry.isDirectory && entry.name.endsWith(".webp", ignoreCase = true)) {
                             val baseName = File(entry.name).name
                             val outFile = File(destDir, baseName)
-                            FileOutputStream(outFile).use { fos -> zis.copyTo(fos) }
+                            FileOutputStream(outFile).use { fos: FileOutputStream -> zis.copyTo(fos) }
                             count++
                             if (count % 8 == 0 || count >= 604) {
                                 _state.value = _state.value.copy(
