@@ -112,6 +112,18 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import androidx.compose.material3.LinearProgressIndicator
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.zip.ZipInputStream
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.ColorFilter
@@ -628,16 +640,16 @@ private fun QuranIndexPortalContent(
         ) {
             // 0. بطاقة تحميل صفحات المصحف المطبوع 1080px WebP أوفلاين (حفص / ورش) — v74
             item(key = "mushaf_printed_packs_hub") {
-                val packProg by SakinaMushafPackManager.state.collectAsState()
+                val packProg by SakinaPrintedMushafEngine.state.collectAsState()
                 val packScope = rememberCoroutineScope()
                 var packRefreshTick by remember { mutableIntStateOf(0) }
                 var packsExpanded by remember { mutableStateOf(false) }
-                val activePack = MushafWebpPack.forRiwayah(state.riwayah)
+                val activePack = PrintedMushafPack.forRiwayah(state.riwayah)
                 val activeReady = remember(state.riwayah, packProg.extractedPages, packProg.isDownloading, packProg.isExtracting, packRefreshTick) {
-                    SakinaMushafPackManager.isPackReady(portalCtx, activePack)
+                    SakinaPrintedMushafEngine.isPackReady(portalCtx, activePack)
                 }
                 val activeCount = remember(state.riwayah, packProg.extractedPages, packRefreshTick) {
-                    SakinaMushafPackManager.downloadedPageCount(portalCtx, activePack)
+                    SakinaPrintedMushafEngine.downloadedPageCount(portalCtx, activePack)
                 }
                 Column(
                     modifier = Modifier
@@ -687,7 +699,7 @@ private fun QuranIndexPortalContent(
                                     .clickable {
                                         packsExpanded = true
                                         packScope.launch {
-                                            SakinaMushafPackManager.downloadAndExtractPack(portalCtx, activePack)
+                                            SakinaPrintedMushafEngine.downloadAndExtractPack(portalCtx, activePack)
                                             packRefreshTick++
                                         }
                                     }
@@ -740,10 +752,11 @@ private fun QuranIndexPortalContent(
                         )
                     }
 
-                    packProg.errorMessage?.takeIf { it.isNotBlank() }?.let { errMsg ->
+                    val errMsgTop: String = packProg.errorMessage ?: ""
+                    if (errMsgTop.isNotBlank()) {
                         Spacer(modifier = Modifier.height(5.dp))
                         Text(
-                            text = errMsg,
+                            text = errMsgTop,
                             color = Color(0xFFFF9B85),
                             fontSize = 10.5.sp,
                             fontFamily = bodyFontFamily
@@ -752,12 +765,12 @@ private fun QuranIndexPortalContent(
 
                     if (packsExpanded) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        for (pk in MushafWebpPack.values()) {
+                        for (pk in PrintedMushafPack.values()) {
                             val pkReady = remember(pk, packProg.extractedPages, packProg.isDownloading, packRefreshTick) {
-                                SakinaMushafPackManager.isPackReady(portalCtx, pk)
+                                SakinaPrintedMushafEngine.isPackReady(portalCtx, pk)
                             }
                             val pkPages = remember(pk, packProg.extractedPages, packRefreshTick) {
-                                SakinaMushafPackManager.downloadedPageCount(portalCtx, pk)
+                                SakinaPrintedMushafEngine.downloadedPageCount(portalCtx, pk)
                             }
                             val isBusy = (packProg.isDownloading || packProg.isExtracting) && packProg.activePack == pk
                             Row(
@@ -795,7 +808,7 @@ private fun QuranIndexPortalContent(
                                                 .background(Color(0xFF0F4C3A))
                                                 .border(0.7.dp, SakinaLuxuryColors.SoftGoldGlow, RoundedCornerShape(9.dp))
                                                 .clickable {
-                                                    onRiwayahChange(if (pk == MushafWebpPack.WARSH_1080) QuranRiwayah.WARSH else QuranRiwayah.HAFS)
+                                                    onRiwayahChange(pk.riwayah)
                                                     onOpenPageClick(state.lastReadPage.coerceIn(1, 604))
                                                 }
                                                 .padding(horizontal = 9.dp, vertical = 5.dp)
@@ -807,7 +820,7 @@ private fun QuranIndexPortalContent(
                                                 .clip(RoundedCornerShape(9.dp))
                                                 .background(Color(0x33FF6B6B))
                                                 .clickable {
-                                                    SakinaMushafPackManager.deletePack(portalCtx, pk)
+                                                    SakinaPrintedMushafEngine.deletePack(portalCtx, pk)
                                                     packRefreshTick++
                                                 }
                                                 .padding(horizontal = 8.dp, vertical = 5.dp)
@@ -824,7 +837,7 @@ private fun QuranIndexPortalContent(
                                                 )
                                                 .clickable(enabled = !packProg.isDownloading && !packProg.isExtracting) {
                                                     packScope.launch {
-                                                        SakinaMushafPackManager.downloadAndExtractPack(portalCtx, pk)
+                                                        SakinaPrintedMushafEngine.downloadAndExtractPack(portalCtx, pk)
                                                         packRefreshTick++
                                                     }
                                                 }
@@ -1931,10 +1944,10 @@ private fun QuranMushafReaderContent(
     var showMeaningsDialog by remember { mutableStateOf(false) }
     var showPageTafsirDialog by remember { mutableStateOf(false) }
     var showWebpPacksDialog by remember { mutableStateOf(false) }
-    val packProgress by SakinaMushafPackManager.state.collectAsState()
-    val activeWebpPack = remember(state.riwayah) { MushafWebpPack.forRiwayah(state.riwayah) }
+    val packProgress by SakinaPrintedMushafEngine.state.collectAsState()
+    val activeWebpPack = remember(state.riwayah) { PrintedMushafPack.forRiwayah(state.riwayah) }
     val isWebpPackReady = remember(state.riwayah, packProgress.extractedPages) {
-        SakinaMushafPackManager.isPackReady(readerCtx, activeWebpPack)
+        SakinaPrintedMushafEngine.isPackReady(readerCtx, activeWebpPack)
     }
     var showSpotlight by remember { mutableStateOf(!SakinaMushafProPrefs.hasSeenSpotlight(readerCtx)) }
     val activeKhatmahName = remember(state.currentReaderPage) { SakinaKhatmahStore.loadSlot(readerCtx).name }
@@ -2158,7 +2171,7 @@ private fun QuranMushafReaderContent(
                     var pageBmp by remember(state.riwayah, pageIndex, isWebpPackReady) { mutableStateOf<Bitmap?>(null) }
                     LaunchedEffect(state.riwayah, pageIndex, isWebpPackReady) {
                         pageBmp = if (isWebpPackReady) {
-                            SakinaMushafPackManager.loadPageBitmap(readerCtx, state.riwayah, pageIndex + 1)
+                            SakinaPrintedMushafEngine.loadPageBitmap(readerCtx, state.riwayah, pageIndex + 1)
                         } else null
                     }
                     if (pageBmp != null) {
@@ -2669,9 +2682,9 @@ private fun QuranMushafReaderContent(
                         lineHeight = 18.sp,
                         fontFamily = bodyFontFamily
                     )
-                    MushafWebpPack.values().forEach { pk ->
+                    PrintedMushafPack.values().forEach { pk ->
                         val readyCount = remember(packTick, packProgress.extractedPages) {
-                            SakinaMushafPackManager.downloadedPageCount(readerCtx, pk)
+                            SakinaPrintedMushafEngine.downloadedPageCount(readerCtx, pk)
                         }
                         val ready = readyCount >= 600
                         val busy = (packProgress.isDownloading || packProgress.isExtracting) && packProgress.activePack == pk
@@ -2696,7 +2709,7 @@ private fun QuranMushafReaderContent(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.clickable {
-                                            SakinaMushafPackManager.deletePack(readerCtx, pk)
+                                            SakinaPrintedMushafEngine.deletePack(readerCtx, pk)
                                             packTick++
                                         }.padding(4.dp)
                                     )
@@ -2707,7 +2720,7 @@ private fun QuranMushafReaderContent(
                                             .background(SakinaLuxuryPalette.MetallicGoldButtonBrush)
                                             .clickable {
                                                 scope.launch {
-                                                    SakinaMushafPackManager.downloadAndExtractPack(readerCtx, pk)
+                                                    SakinaPrintedMushafEngine.downloadAndExtractPack(readerCtx, pk)
                                                     packTick++
                                                 }
                                             }
@@ -2735,8 +2748,9 @@ private fun QuranMushafReaderContent(
                             }
                         }
                     }
-                    packProgress.errorMessage?.takeIf { it.isNotBlank() }?.let { errMsg ->
-                        Text(text = errMsg, color = Color(0xFFE58A7E), fontSize = 11.sp, fontFamily = bodyFontFamily)
+                    val errMsgDlg: String = packProgress.errorMessage ?: ""
+                    if (errMsgDlg.isNotBlank()) {
+                        Text(text = errMsgDlg, color = Color(0xFFE58A7E), fontSize = 11.sp, fontFamily = bodyFontFamily)
                     }
                 }
             },
@@ -3419,4 +3433,165 @@ private fun DrawScope.drawPauseVector(tint: Color) {
     val barW = size.width * 0.26f
     drawRoundRect(tint, Offset(size.width * 0.18f, 0f), Size(barW, size.height), CornerRadius(2.dp.toPx()))
     drawRoundRect(tint, Offset(size.width * 0.56f, 0f), Size(barW, size.height), CornerRadius(2.dp.toPx()))
+}
+
+
+// ============================================================================
+// محرّك تحميل وإدارة حزمتي المصحف المطبوع (1080px WebP — مدمج ذاتياً v74d)
+// ============================================================================
+data class PrintedMushafPack(
+    val id: String,
+    val riwayah: QuranRiwayah,
+    val titleAr: String,
+    val subtitleAr: String,
+    val zipFileName: String,
+    val approxSizeLabel: String
+) {
+    val downloadUrl: String
+        get() = "https://github.com/mothmane977-cmd/Sakinawaqt/releases/download/mushaf-packs-v1/$zipFileName"
+
+    companion object {
+        val HAFS_1080 = PrintedMushafPack(
+            id = "hafs",
+            riwayah = QuranRiwayah.HAFS,
+            titleAr = "مصحف المدينة (حفص عن عاصم)",
+            subtitleAr = "604 صفحة · 1080px WebP شفاف · 15 سطراً",
+            zipFileName = "mushaf_hafs_1080_webp.zip",
+            approxSizeLabel = "~26 MB"
+        )
+        val WARSH_1080 = PrintedMushafPack(
+            id = "warsh",
+            riwayah = QuranRiwayah.WARSH,
+            titleAr = "مصحف دار المعرفة (ورش عن نافع)",
+            subtitleAr = "604 صفحة · 1080px WebP شفاف · 15 سطراً",
+            zipFileName = "mushaf_warsh_1080_webp.zip",
+            approxSizeLabel = "~28 MB"
+        )
+        fun values(): List<PrintedMushafPack> = listOf(HAFS_1080, WARSH_1080)
+        fun forRiwayah(r: QuranRiwayah): PrintedMushafPack =
+            if (r == QuranRiwayah.WARSH) WARSH_1080 else HAFS_1080
+    }
+}
+
+data class PrintedMushafProgress(
+    val activePack: PrintedMushafPack? = null,
+    val isDownloading: Boolean = false,
+    val isExtracting: Boolean = false,
+    val progressFraction: Float = 0f,
+    val extractedPages: Int = 0,
+    val errorMessage: String? = null
+)
+
+object SakinaPrintedMushafEngine {
+    private val _state = MutableStateFlow(PrintedMushafProgress())
+    val state: StateFlow<PrintedMushafProgress> = _state.asStateFlow()
+
+    private fun packFolder(ctx: Context, pack: PrintedMushafPack): File =
+        File(File(ctx.filesDir, "mushaf_webp"), pack.id).apply { mkdirs() }
+
+    private fun pageFile(ctx: Context, pack: PrintedMushafPack, pageNum: Int): File {
+        val num = pageNum.coerceIn(1, 604)
+        val padded = "%03d.webp".format(num)
+        val dir = packFolder(ctx, pack)
+        val f1 = File(dir, padded)
+        if (f1.exists()) return f1
+        return File(dir, "$num.webp")
+    }
+
+    fun downloadedPageCount(ctx: Context, pack: PrintedMushafPack): Int {
+        val dir = packFolder(ctx, pack)
+        return dir.listFiles { f -> f.isFile && f.name.endsWith(".webp", ignoreCase = true) }?.size ?: 0
+    }
+
+    fun isPackReady(ctx: Context, pack: PrintedMushafPack): Boolean =
+        downloadedPageCount(ctx, pack) >= 600
+
+    suspend fun loadPageBitmap(ctx: Context, riwayah: QuranRiwayah, pageNum: Int): Bitmap? =
+        withContext(Dispatchers.IO) {
+            val f = pageFile(ctx, PrintedMushafPack.forRiwayah(riwayah), pageNum)
+            if (!f.exists()) return@withContext null
+            try {
+                val opts = BitmapFactory.Options().apply {
+                    inPreferredConfig = Bitmap.Config.ARGB_8888
+                }
+                BitmapFactory.decodeFile(f.absolutePath, opts)
+            } catch (_: Throwable) {
+                null
+            }
+        }
+
+    fun deletePack(ctx: Context, pack: PrintedMushafPack) {
+        try {
+            packFolder(ctx, pack).listFiles()?.forEach { it.delete() }
+        } catch (_: Exception) {}
+    }
+
+    suspend fun downloadAndExtractPack(ctx: Context, pack: PrintedMushafPack): Boolean =
+        withContext(Dispatchers.IO) {
+            if (_state.value.isDownloading || _state.value.isExtracting) return@withContext false
+            _state.value = PrintedMushafProgress(activePack = pack, isDownloading = true, progressFraction = 0f)
+            val tmpZip = File(ctx.cacheDir, pack.zipFileName)
+            try {
+                val conn = (URL(pack.downloadUrl).openConnection() as HttpURLConnection).apply {
+                    instanceFollowRedirects = true
+                    connectTimeout = 15_000
+                    readTimeout = 30_000
+                }
+                if (conn.responseCode !in 200..299) {
+                    _state.value = PrintedMushafProgress(
+                        activePack = pack,
+                        errorMessage = "تعذّر الوصول للحزمة على Releases (${conn.responseCode})"
+                    )
+                    return@withContext false
+                }
+                val totalBytes = conn.contentLengthLong.coerceAtLeast(1L)
+                var readBytes = 0L
+                val buf = ByteArray(16 * 1024)
+                BufferedInputStream(conn.inputStream).use { input ->
+                    FileOutputStream(tmpZip).use { out ->
+                        while (true) {
+                            val n = input.read(buf)
+                            if (n <= 0) break
+                            out.write(buf, 0, n)
+                            readBytes += n
+                            _state.value = _state.value.copy(
+                                progressFraction = (readBytes.toFloat() / totalBytes.toFloat()).coerceIn(0f, 1f)
+                            )
+                        }
+                    }
+                }
+                _state.value = PrintedMushafProgress(activePack = pack, isExtracting = true, extractedPages = 0)
+                val destDir = packFolder(ctx, pack)
+                var count = 0
+                ZipInputStream(BufferedInputStream(tmpZip.inputStream())).use { zis ->
+                    var entry = zis.nextEntry
+                    while (entry != null) {
+                        if (!entry.isDirectory && entry.name.endsWith(".webp", ignoreCase = true)) {
+                            val baseName = File(entry.name).name
+                            val outFile = File(destDir, baseName)
+                            FileOutputStream(outFile).use { fos -> zis.copyTo(fos) }
+                            count++
+                            if (count % 8 == 0 || count >= 604) {
+                                _state.value = _state.value.copy(
+                                    extractedPages = count,
+                                    progressFraction = (count / 604f).coerceIn(0f, 1f)
+                                )
+                            }
+                        }
+                        zis.closeEntry()
+                        entry = zis.nextEntry
+                    }
+                }
+                tmpZip.delete()
+                _state.value = PrintedMushafProgress(activePack = null, extractedPages = count)
+                count > 0
+            } catch (_: Exception) {
+                tmpZip.delete()
+                _state.value = PrintedMushafProgress(
+                    activePack = pack,
+                    errorMessage = "تعذّر التحميل — تأكد من اتصال الإنترنت ووجود الحزمة في Releases"
+                )
+                false
+            }
+        }
 }
